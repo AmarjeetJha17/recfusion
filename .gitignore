@@ -1,0 +1,125 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Python environments and uv
+.venv/
+venv/
+env/
+.env/
+.uv-cache/
+
+# Node.js
+node_modules/
+.npm/
+.yarn/
+.pnpm-store/
+dist/
+.next/
+.nuxt/
+.cache/
+coverage/
+*.tsbuildinfo
+
+# IDE and editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Logs and runtime files
+*.log
+*.pid
+*.pid.lock
+*.seed
+*.pid
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+.secrets/
+
+# Local datasets and generated ML artifacts
+data/raw/
+data/processed/
+datasets/
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.arrow
+*.h5
+*.hdf5
+*.npz
+*.npy
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.joblib
+*.pkl
+*.pickle
+
+# Vector indexes and model registries
+indexes/
+vector_indexes/
+mlruns/
+wandb/
+.dvc/cache/
+
+# Checkpoints and experiment outputs
+checkpoints/
+checkpoints/**
+experiments/**/
+!experiments/.gitkeep
+outputs/
+runs/
+artifacts/
+
+# Databases
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.mdb
+.pgdata/
+
+# Temporary and OS files
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+*.rej

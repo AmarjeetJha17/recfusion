@@ -1,0 +1,90 @@
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "recfusion"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "mypy",
+  "pre-commit",
+  "pytest",
+  "pytest-cov",
+  "ruff",
+]
+
+[tool.setuptools.packages.find]
+where = ["packages"]
+include = ["recfusion_core*"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+exclude = [
+  ".git",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".venv",
+  "build",
+  "dist",
+  "node_modules",
+  "data",
+  "datasets",
+  "artifacts",
+  "checkpoints",
+  "experiments",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "PT", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+warn_unused_configs = true
+disallow_untyped_decorators = true
+exclude = [
+  "(^|/)build/",
+  "(^|/)dist/",
+  "(^|/)data/",
+  "(^|/)datasets/",
+  "(^|/)artifacts/",
+  "(^|/)checkpoints/",
+  "(^|/)experiments/",
+]
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests/unit", "tests/contract"]
+addopts = "-ra --strict-config --strict-markers"
+markers = [
+  "unit: Fast isolated unit tests",
+  "contract: API and schema contract tests",
+  "integration: Tests requiring external services",
+  "ml: Dataset and model behavior tests",
+  "agent: Agent workflow and grounding tests",
+  "security: Security and authorization tests",
+  "e2e: End-to-end application tests",
+]
+
+[tool.coverage.run]
+source = ["packages", "apps/api/src", "scripts"]
+omit = [
+  "*/__pycache__/*",
+  "*/.venv/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
