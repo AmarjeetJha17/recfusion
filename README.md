@@ -1,6 +1,6 @@
 # RecFusion — documentation-first project starter
 
-**Status:** Pre-implementation planning. No repository source code, trained models, performance measurements, live inventory, or product integrations are implied by these documents.
+**Status:** Phase 1 repository and API foundation. No recommendation features, trained models, performance measurements, live inventory, or product integrations are implied by this implementation.
 
 RecFusion is an **evaluation-driven hybrid electronics recommender**: classical and neural retrieval generate candidates; deterministic constraints and a learned ranker order products; a bounded agent workflow extracts preferences, calls typed tools, and explains catalog-grounded results. It is **not** an LLM that invents shopping recommendations.
 
@@ -26,15 +26,15 @@ RecFusion is an **evaluation-driven hybrid electronics recommender**: classical 
 - All performance numbers in these documents are **targets**, never measured results.
 - Amazon Reviews 2023 is proposed for offline experiments. Its historical prices and reviews are **not** live Indian product listings, clicks, stock, or sales.
 - The live/demo catalog is a separate data contract; synthetic examples must be visibly marked.
-- Do not start Phase 1 implementation until a human reviews and accepts these specifications. `AGENTS.md` gives the handoff workflow.
+- Unresolved product, data, identity, and hosting decisions remain proposed; see `docs/DECISIONS.md`.
 
-## Intended repository layout (implementation is future work)
+## Repository layout
 
 ```text
 recfusion/
 ├── AGENTS.md
 ├── docs/                  # this documentation pack
-├── apps/api/              # FastAPI, later
+├── apps/api/              # FastAPI application foundation
 ├── apps/web/              # Next.js, later
 ├── packages/recfusion_core/
 ├── packages/recfusion_data/
@@ -47,7 +47,21 @@ recfusion/
 └── .github/workflows/
 ```
 
-**Suggested initial milestone:** documentation review, open-decision resolution, dataset feasibility spike, and automated repository bootstrap.
+## API foundation
+
+Install the locked Python dependencies and start the API from the repository root:
+
+```powershell
+uv sync --frozen
+uv run uvicorn recfusion_api.main:app --host 127.0.0.1 --port 8000 --no-access-log
+```
+
+| Endpoint | Purpose | Successful response |
+|---|---|---|
+| `GET /health` | Liveness only | `{"status":"ok"}` |
+| `GET /ready` | Local application initialization only | `{"status":"ready"}` |
+
+Readiness does not check PostgreSQL, Qdrant, or other external services. Swagger UI (`/docs`) and OpenAPI (`/openapi.json`) are enabled outside production and disabled in production. Run the tests with `uv run pytest`.
 
 ## Python development setup
 
