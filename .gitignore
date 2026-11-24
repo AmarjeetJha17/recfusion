@@ -74,7 +74,8 @@ secrets/
 # Local datasets and generated ML artifacts
 data/raw/
 data/processed/
-datasets/
+# Root-local dataset downloads; keep configs/datasets available for tracked configs.
+/datasets/
 *.csv
 *.tsv
 *.parquet

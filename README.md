@@ -1,6 +1,6 @@
 # RecFusion — documentation-first project starter
 
-**Status:** Phase 1 repository and API foundation. No recommendation features, trained models, performance measurements, live inventory, or product integrations are implied by this implementation.
+**Status:** Phase 1 repository, API, local infrastructure, and CI foundations. No recommendation features, trained models, performance measurements, live inventory, or product integrations are implied by this implementation.
 
 RecFusion is an **evaluation-driven hybrid electronics recommender**: classical and neural retrieval generate candidates; deterministic constraints and a learned ranker order products; a bounded agent workflow extracts preferences, calls typed tools, and explains catalog-grounded results. It is **not** an LLM that invents shopping recommendations.
 

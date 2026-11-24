@@ -1,6 +1,6 @@
 # ARCHITECTURE — RecFusion system design
 
-**Status:** Proposed logical design; repository, API, and local infrastructure foundations are implemented, with no production deployment.
+**Status:** Proposed logical design; repository, API, local infrastructure, and CI foundations are implemented, with no production deployment.
 
 ## 1. Architectural style
 

@@ -1,6 +1,6 @@
 # TESTING — Verification strategy
 
-**Status:** Planned. No tests have been run by virtue of producing these documents.
+**Status:** The repository bootstrap and API foundation have unit and contract tests, and CI runs the current quality checks. Integration, ML, agent, security and end-to-end coverage remains planned as those features are implemented.
 
 ## 1. Test pyramid
 
@@ -15,7 +15,7 @@
 | E2E | onboarding, search, refine, compare, feedback, no results | release candidate |
 | Performance | retrieval P95, model load, throughput, agent latency | controlled environment, pre-release |
 
-## 2. Required core tests
+## 2. Required product and ML tests (future features)
 
 - **Constraint invariants:** no candidate with absent/invalid mandatory price passes a strict budget filter; wrong category excluded; reranking cannot reintroduce rejected IDs.
 - **Provenance:** explanation evidence must refer to fields of returned product and source; unknown spec is not asserted as fact.
@@ -34,23 +34,23 @@ Use tiny synthetic product catalogs and interaction tables with explicit provena
 
 See `EVALUATION.md` for leakage controls and exact metric definitions. A model acceptance PR must include dataset version, split manifest, candidate universe, baseline comparisons, seeds, run configuration and stored outputs. Never declare a model better based only on one random split or an unverifiable screenshot.
 
-## 5. Suggested commands (to be implemented in Phase 1)
+## 5. Current foundation commands
 
-```bash
+These commands are implemented and documented in the README. The GitHub Actions quality workflow runs them on pull requests and pushes to `master`; it also builds the configured Python package.
+
+```powershell
 uv sync --frozen
 uv run ruff check .
 uv run ruff format --check .
-uv run mypy packages apps/api
-uv run pytest tests/unit tests/contract -q
-# Only when integration infra is running:
-uv run pytest tests/integration -q
+uv run mypy packages apps/api/src
+uv run pytest
+uv run pre-commit run --all-files
+uv build
 ```
-
-These are **future intended commands**, not guaranteed to work until repository bootstrap.
 
 ## 6. CI gates
 
-On PR: formatting, lint, type check, synthetic fixture unit/contract/agent safety tests, package build; optional integration with services. Heavy dataset jobs and training are manual/approved workflows with bounded cost/time. Release candidate: e2e, security, performance, model artifact compatibility and evaluation reports.
+Current CI runs formatting, lint, type checks, the existing unit/contract suite, all pre-commit hooks, and a package build. It does not start PostgreSQL/Qdrant or run dataset/model jobs. Add service-backed integration, ML, agent-safety, security and end-to-end checks as those features and fixtures are implemented; keep heavy dataset jobs and training in separately approved workflows.
 
 ## 7. Bug reporting
 

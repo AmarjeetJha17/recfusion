@@ -1,6 +1,6 @@
 # ROADMAP — Gated implementation milestones
 
-**Status:** Planned. Approximate part-time horizon **14–20 weeks** is illustrative, not a deadline or promise. Phase gates, not dates, determine progress.
+**Status:** Phase 1 foundation steps 1.1–1.5 are implemented locally; the phase gate remains pending primary-branch confirmation, a successful hosted CI run, and user sign-off. Later phases remain planned. Approximate part-time horizon **14–20 weeks** is illustrative, not a deadline or promise. Phase gates, not dates, determine progress.
 
 ## Phase 0 — Documentation agreement (before implementation)
 
