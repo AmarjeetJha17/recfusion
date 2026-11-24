@@ -51,18 +51,36 @@
 - **Why:** reduce friction and minimize PII.
 - **Open:** authentication provider, retention periods, data export policy.
 
+## ADR-008 — Dataset feasibility source and pilot
+
+- **Status:** Proposed
+- **Choice:** Evaluate Amazon Reviews 2023 Electronics as the first offline research source. Use the official 5-core absolute-timestamp split for a bounded, reproducible dense pilot; follow with a 0-core profile before making long-tail or cold-start claims.
+- **Why:** The source documents 43.9M Electronics reviews and provides a processed 5-core Electronics timestamp split (13.1M / 1.2M / 1.2M train/validation/test interactions). The 5-core filtering is useful for a dense pilot but changes the original population.
+- **Evidence:** [Dataset overview](https://amazon-reviews-2023.github.io/) and [5-core processing and split documentation](https://amazon-reviews-2023.github.io/data_processing/5core.html).
+- **Revisit if:** Profiling shows insufficient metadata coverage, unsuitable temporal support, or prohibitive resource needs.
+- **Open:** Actual metadata join/field coverage, license/terms review, pilot resource usage, and whether to proceed.
+
+## ADR-009 — Review feedback and temporal evaluation
+
+- **Status:** Proposed
+- **Choice:** Treat records as review/rating feedback, never as clicks, impressions, or complete purchase events. For an initial binary relevance analysis, test ratings 4–5 as relevant, ratings 1–2 as explicitly low-rated, and rating 3 as neutral; missing interactions are unobserved. Use global time cutoffs and a training-time warm-item catalog, with cold users/items reported separately.
+- **Why:** The source contains ratings and review timestamps but does not provide an exposure log. Its absolute timestamp split is explicit and reproducible; metadata does not have per-item effective timestamps.
+- **Evidence:** [Review schema and source description](https://amazon-reviews-2023.github.io/) and [5-core timestamp split](https://amazon-reviews-2023.github.io/data_processing/5core.html).
+- **Revisit if:** A pilot demonstrates different label behavior or a source with valid exposure/query labels becomes available.
+- **Open:** Rating threshold acceptance, negative-feedback use, exact candidate policy, and whether rating-based LTR is defensible.
+
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |
 |---|---|---|
 | Initial app catalog | laptops first, expand to smartphones/headphones | user confirms scope |
-| Dataset | Amazon Reviews 2023 electronics | license, schema and use conditions |
+| Dataset | Amazon Reviews 2023 Electronics, dense 5-core pilot first | license/terms review, schema profile, and use conditions |
 | Catalog freshness | synthetic/curated demo with visible source | source and permitted asset usage |
 | User data | guest first; optional sign-in later | consent/retention policy |
 | ML hardware | local CPU + optional GPU | actual device capacity |
 | Hosting | local Docker Compose first | deployment cost/budget |
 | LLM provider | abstract provider and mocked tests | token budget, terms, privacy |
-| Ranking labels | defer LambdaRank until labels justified | empirical candidate/group validation |
+| Ranking labels | ratings are review feedback; defer LambdaRank unless group labels are justified | rating policy and empirical candidate/group validation |
 | Success criteria | reproducible benchmarks, not numeric win guarantee | evaluation report review |
 
 ## How to update this log
