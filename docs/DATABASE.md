@@ -69,3 +69,9 @@ Minimize stored chat transcripts and precise personal information. Clearly separ
 ## 7. Not yet decided
 
 Final auth integration; retention duration; whether raw conversations are stored; catalog ingestion ownership; exact indexing plan. Resolve in `DECISIONS.md` before implementing sensitive storage.
+
+## 8. Local development infrastructure
+
+`infra/compose/compose.yaml` defines only local PostgreSQL and Qdrant services; it does not create application schemas, collections, or data. It uses pinned image digests, named data volumes, and loopback-only bindings. The `.env.example` file documents the required `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and configurable `POSTGRES_PORT` values. Copy it to the ignored repository-root `.env` and set a unique local password; Compose rejects an empty password.
+
+The sample host port is 5433 because a local PostgreSQL process already occupies 5432; PostgreSQL itself continues to listen on container port 5432. Qdrant uses host port 6333. This unauthenticated Qdrant configuration is for loopback-only development and is not suitable for public or production deployment. Ordinary Compose shutdown preserves data; `down --volumes` is destructive.
