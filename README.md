@@ -95,7 +95,11 @@ uv python install 3.13
 uv sync --frozen
 uv run ruff check .
 uv run ruff format --check .
-uv run mypy packages
+uv run mypy packages apps/api/src
 uv run pytest
 uv run pre-commit run --all-files
 ```
+
+## Continuous integration
+
+The [CI workflow](.github/workflows/ci.yml) runs on pull requests targeting `master` and pushes to `master`. It installs the locked Python dependencies, runs Ruff lint/format checks, mypy, pytest, all pre-commit hooks, and builds the Python package. It does not require Docker, PostgreSQL, Qdrant, datasets, or ML models.
