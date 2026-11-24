@@ -27,18 +27,19 @@ Use this before making the repository public or accepting the first external con
 
 ## Repository publication
 
-- [ ] Choose and verify repository owner/name, license, visibility, and intended primary branch.
-- [ ] Configure the remote and default branch through the authorized repository workflow; this local repository currently has no remote.
-- [ ] Review staged and tracked files, Git history, ignore rules, and documentation links before publishing.
+- [x] Verify repository owner/name, visibility, and intended primary branch. Current repository: `AmarjeetJha17/recfusion`, public, `master` (retained public at the user's direction).
+- [ ] Choose and record a repository license; GitHub currently reports no license.
+- [x] Verify the configured `origin` remote and that local and remote `master` point to the published audit commit.
+- [x] Review tracked files and Git history paths; a common credential-pattern scan found no matches across the published commit history. This does not replace a full secret-scanner run.
 - [ ] Protect the primary branch and require the CI quality job before merging.
 - [ ] Do not add a README workflow badge until the real repository and workflow URL are confirmed.
 
 ## GitHub Actions verification
 
-- [ ] Confirm CI runs on a push to the intended primary branch and on a pull request targeting it.
-- [ ] Verify the first hosted run completes dependency sync, Ruff, mypy, tests, pre-commit, and package build.
-- [ ] Confirm Python resolves from `.python-version` and the workflow needs no Docker, datasets, model weights, or application secrets.
-- [ ] If the target default branch differs from `master`, update and review the workflow branch filters before relying on its status check.
+- [x] Confirm CI runs on a push to the intended primary branch and on a pull request targeting it (`master`).
+- [x] Verify the hosted run on `963607da6f34ae99a01556a7d17ec9853bd94499` completed successfully: dependency sync, Ruff, mypy, tests, pre-commit, and package build.
+- [x] Confirm Python resolves from `.python-version` and the workflow needs no Docker, datasets, model weights, or application secrets.
+- [x] Confirmed the target default branch is `master`, matching the current workflow branch filters.
 
 ## Documentation and acceptance
 

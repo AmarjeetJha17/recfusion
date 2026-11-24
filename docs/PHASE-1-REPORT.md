@@ -1,7 +1,7 @@
 # Phase 1 Foundation Audit
 
 **Audit date:** 2026-11-24
-**Result:** Conditional pass. The local foundation validates; hosted publication and CI still need remote-repository verification.
+**Result:** Conditional pass. The repository is published and hosted CI passed on `master`; license selection, branch protection, and Phase 1 sign-off remain open.
 
 ## Scope and delivered foundation
 
@@ -12,7 +12,7 @@ Steps 1.1–1.5 are represented by the committed history:
 - `a75aa46` — PostgreSQL and Qdrant local infrastructure
 - `2ca22e6` — GitHub Actions quality pipeline
 
-The only local branch is `master`; the working tree was clean at audit start. No Git remote is configured.
+The only local branch is `master`; the working tree was clean at audit start. The `origin` remote points to `https://github.com/AmarjeetJha17/recfusion.git`, and local and remote `master` matched at the published audit commit.
 
 | Area | Implemented inventory |
 |---|---|
@@ -52,22 +52,31 @@ The runtime checks below were completed in the preceding Step 1.4 verification, 
 
 ## Security and CI review
 
-- The tracked-file scan found no matches for common GitHub, AWS, API-key, or private-key patterns. This is a pattern scan, not a full secret-scanner attestation; `gitleaks` is not installed.
+- A scan of all 20 commits found no matches for common GitHub, AWS, API-key, or private-key patterns, and no committed `.env`, local database, dataset, checkpoint, or model-artifact paths. `.env.example` and `configs/datasets/.gitkeep` are intentional placeholders. This pattern scan is not a full secret-scanner attestation; `gitleaks` is not installed.
 - `.env` exists locally, is ignored and untracked; `.env.example` is tracked and uses an empty password placeholder. No credential value is included in CI or staged files.
 - PostgreSQL and unauthenticated Qdrant bind only to `127.0.0.1`. Qdrant must not be exposed publicly; this Compose configuration is local development only.
 - Production debug mode is rejected by settings validation. OpenAPI and Swagger are disabled in production. Request logs contain route templates and selected metadata, not request bodies, authorization headers, or exception messages.
 - All three workflow actions are pinned to verified immutable commit SHAs; workflow permissions are read-only `contents`, and checkout credentials are not persisted. Workflow YAML passes the pre-commit YAML hook.
-- `actionlint` is not installed. GitHub-hosted execution has not been observed because no remote is configured.
+- `actionlint` is not installed. GitHub-hosted execution is verified below; actionlint validation remains unavailable.
 
 ## Findings and corrections
 
 **Critical:** None found.
 
-**Major:** The repository has no remote or remote default-branch reference. `master` is the only local branch and matches the workflow filters, but the hosted repository's intended primary branch cannot yet be confirmed. First hosted CI execution is also unverified.
+**Major:** None found during this audit.
 
 **Minor:** The generic `datasets/` ignore pattern also hid the intended `configs/datasets/.gitkeep`. The pattern is now root-anchored so the configuration directory can be tracked without unignoring root dataset downloads. The Testing guide's bootstrap status and command examples were also stale and have been aligned with current CI.
 
-**Informational:** Qdrant's container health check verifies that its REST port is listening; it does not itself make an HTTP request. The documented external `/healthz` check was verified during the previous runtime verification. The build backend is declared as `setuptools>=75.0`, rather than pinned in `uv.lock`; the offline build passed, but the isolated backend version on a fresh hosted runner has not been exercised.
+**Informational:** The repository is [public](https://github.com/AmarjeetJha17/recfusion), as retained at the user's direction after discovering it was already public. The default branch is `master`, matching CI filters. No GitHub license is selected and branch protection is not configured; resolve these before inviting external contributions. Qdrant's container health check verifies that its REST port is listening; the separate `/healthz` check passed in the previous runtime verification. The build backend is declared as `setuptools>=75.0`, rather than pinned in `uv.lock`; both local and hosted package builds passed.
+
+## GitHub publication and hosted CI (verified 2026-11-24)
+
+- Repository: <https://github.com/AmarjeetJha17/recfusion> (public).
+- Remote: `origin` → `https://github.com/AmarjeetJha17/recfusion.git`.
+- Default branch: `master`; published audit commit: `963607da6f34ae99a01556a7d17ec9853bd94499`.
+- Workflow: [CI run 45452193976](https://github.com/AmarjeetJha17/recfusion/actions/runs/45452193976), triggered by a push to `master`; conclusion **success**.
+- The `Python quality` job completed successfully, including setup, frozen dependency sync, Ruff lint/format, mypy, pytest, pre-commit, and package build.
+- The remote repository contains the intended CI workflow and Phase 1 audit report. Local and remote `master` tips matched at the audit commit before this verification update.
 
 ## Open decisions and Phase 2 entry criteria
 
