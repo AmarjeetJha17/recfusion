@@ -44,9 +44,14 @@ Use multiple seeds and bootstrap confidence intervals across evaluation users/qu
 
 ## 5. Leakage prevention
 
+- The Step 2.5 temporal layer supports either trusted pre-split inputs, whose membership it verifies and preserves, or explicitly unpartitioned interactions assigned by UTC cutoffs. An input carrying split membership is rejected by cutoff mode.
+- Cutoffs use train `< t1`, validation `[t1, t2)`, and test `>= t2`; equal timestamps are assigned together. Pre-split temporal contradictions and chronological overlaps block evaluation without repairing the records.
+- User/item vocabularies and the candidate pool use train interactions only. Unknown held-out IDs map to reserved index 0; cold-start rows stay in the evaluation audit. The candidate pool is the set of train-observed items, not a set of confirmed negatives or proof of historical availability.
+- Exact cross-split duplicates and conflicting source-event fingerprints are retained for audit but block metric eligibility. Warm-only metric candidates require a provisional positive rating and both IDs in train; report all neutral, low-rating, cold-start, duplicate, and integrity exclusions separately.
+- Catalog snapshots without effective timestamps cannot establish which items were available at each prediction time. Temporal eligibility does not solve catalog-availability bias.
 - Never build training user history using held-out events.
 - Normalize features / build vocab on train only; document item metadata time validity.
-- Keep interactions from train/validation/test in their designated windows; no cross-split duplicate same event.
+- Keep interactions from train/validation/test in their designated windows; never silently move or delete an official-split record.
 - Candidate pools must not embed future popularity or test-positive lists.
 - Pretrained text models may use external data; document their source and do not equate them with test interaction leakage.
 - Avoid choosing final hyperparameters based on test performance; test only after validation-based selection.

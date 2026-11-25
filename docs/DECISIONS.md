@@ -86,6 +86,15 @@
 - **Revisit if:** An approved source requires additional event fields or timestamp semantics, or a separately reviewed training-only vocabulary contract is ready.
 - **Open:** Whether the provisional rating thresholds suit any future experiment; whether/how to fit integer ID mappings from train while representing validation/test unknown users/items; acceptable source-specific treatment of duplicate events.
 
+## ADR-012 — Temporal split validation and train-only vocabulary
+
+- **Status:** Proposed
+- **Choice:** Add a separate source-independent temporal layer with two explicit modes: validate and preserve trusted pre-split membership, or assign explicitly unpartitioned canonical interactions by required absolute UTC cutoffs. Use half-open train/validation/test boundaries, binary-sorted train-only user/item vocabularies with unknown index 0, and a candidate pool containing only train-observed items. Keep held-out interactions auditable; block evaluation on split contradictions, chronology violations, cross-split duplicates, or fingerprint conflicts rather than repairing or hiding them.
+- **Why:** Reproducible temporal evaluation requires immutable split provenance and train-only transforms. Explicitly rejecting split-bearing input in cutoff mode prevents accidental recomputation of official membership, while reserved unknown IDs preserve cold-start cases without using held-out outcomes to fit vocabularies.
+- **Evidence:** Synthetic boundary, reorder, duplicate/conflict, warm/cold, and held-out-invariance tests validate the implementation contract only. They are not dataset measurements, rights approval, or evidence of product availability at historical prediction times.
+- **Revisit if:** An approved source requires alternate split semantics, timestamp precision, event de-duplication, or a separately reviewed candidate catalog snapshot.
+- **Open:** Whether proposed provisional rating labels are suitable for any future metric; whether timestamp-effective catalog snapshots are available; whether source-specific official split chronology has additional rules.
+
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |

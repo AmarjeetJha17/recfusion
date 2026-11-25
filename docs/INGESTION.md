@@ -36,7 +36,7 @@ Rerun with a different new output directory to compare deterministic output file
 - Fatal file/header or output errors exit non-zero and do not publish a completed output directory. Row-level parsing, adapter, and validation failures do not abort the run; their reason counts are in the manifest. Raw inputs are read-only and never copied into output.
 - Processing uses a temporary SQLite index on disk for exact duplicate detection. The first train-only eligibility pass and selected-item set require memory proportional to unique training users and selected training items; this is not constant-memory for all state.
 
-This foundation does not implement Amazon-specific field mapping, source-ID pseudonymization, temporal splitting, feature generation, database insertion, training, or profiling. The JSONL/CSV fixtures are synthetic and are not evidence about real dataset quality, licensing, or resource requirements.
+This foundation does not implement Amazon-specific field mapping, source-ID pseudonymization, feature generation, database insertion, training, or profiling. Temporal split validation is provided by the separate `recfusion-temporal-split` command below. The JSONL/CSV fixtures are synthetic and are not evidence about real dataset quality, licensing, or resource requirements.
 
 ## Product metadata normalization
 
@@ -94,3 +94,37 @@ The manifest includes input SHA-256/byte counts, source identity/version, schema
 Malformed JSON and schema failures are counted by reason. Unrepresentable/negative timestamps, invalid ratings, missing identifiers/fingerprints, split mismatches, unsupported fields, and conflicting fingerprints are rejected with explicit counts. A fatal file, checksum, SQLite, or output error exits non-zero; an existing output directory is never overwritten. Derived outputs are staged and atomically published only under ignored `data/processed/`; input files are read-only.
 
 Input reading is streamed one JSONL row at a time into a temporary disk-backed SQLite spool, then emitted in stable order. Memory use is bounded relative to total event rows, but disk/index use and aggregate work scale with input size and unique IDs/fingerprints. The committed fixtures are synthetic and validate pipeline behavior only; they are not dataset profiles or model results. This implementation performs no training, feature fitting, negative sampling, source-specific parsing, or data download.
+
+## Temporal splitting and train-only vocabulary
+
+The separate `recfusion-temporal-split` command consumes Step 2.4 canonical preprocessed JSONL. It has two explicit modes. The trusted mode checks each embedded split against its file and preserves membership; optional UTC cutoffs validate that membership but never repair it:
+
+```powershell
+uv run recfusion-temporal-split trusted-pre-split `
+  --train data\processed\synthetic-interactions-v1\interactions.train.processed.jsonl `
+  --validation data\processed\synthetic-interactions-v1\interactions.validation.processed.jsonl `
+  --test data\processed\synthetic-interactions-v1\interactions.test.processed.jsonl `
+  --source-id synthetic-fixtures `
+  --source-version v1 `
+  --train-end-utc 1970-01-01T00:00:02Z `
+  --test-start-utc 1970-01-01T00:00:04Z `
+  --output-dir data\processed\synthetic-temporal-v1
+```
+
+The absolute-cutoff mode requires both cutoffs and one explicitly unpartitioned Step 2.4-shaped JSONL file. It rejects an input containing any `split` field; it will not strip or recompute official membership. The cutoff intervals are train `< t1`, validation `[t1, t2)`, and test `>= t2`. Cutoffs must be ISO-8601 timestamps with an explicit UTC offset and millisecond-or-coarser precision. Equal timestamps remain in one split and sort deterministically by timestamp, source fingerprint, and canonical payload.
+
+```powershell
+uv run recfusion-temporal-split absolute-cutoffs `
+  --input tests\fixtures\splitting\unsplit.jsonl `
+  --source-id synthetic-fixtures `
+  --source-version v1 `
+  --train-end-utc 1970-01-01T00:00:02Z `
+  --test-start-utc 1970-01-01T00:00:04Z `
+  --output-dir data\processed\synthetic-cutoff-split-v1
+```
+
+Outputs are `interactions.train.jsonl`, `interactions.validation.jsonl`, `interactions.test.jsonl`, `evaluation.jsonl`, `vocabulary.users.jsonl`, `vocabulary.items.jsonl`, `candidate-pool.items.jsonl`, and `manifest.json`. The temporal interaction wrapper retains the original Step 2.4 interaction in a nested field. The `recfusion.train-vocabulary.v1` files contain exact source keys ordered with SQLite binary ordering; index 0 is reserved for unknown validation/test IDs. Vocabulary and candidate-pool construction query training rows only. The candidate pool contains distinct training-observed items only; it is not a negative-label set, nor evidence of item availability at prediction time.
+
+All valid held-out records remain in split outputs and `evaluation.jsonl`. Each is labeled warm-user/warm-item, cold-user, cold-item, or both-cold. Only provisional positive-label rows with both IDs observed in train can be warm-metric candidates. The manifest separately reports eligibility and exclusions. Invalid records are counted by reason and input file. Exact duplicates within a split are preserved and assigned stable duplicate ordinals; exact cross-split duplicates, conflicting fingerprints, invalid split labels, split/cutoff contradictions, chronological overlap, and an empty train split block metric eligibility. Valid records remain in their original membership; no repair or silent deduplication occurs. Empty validation/test splits and exact within-split duplicates are report-only warnings. If the source provides no time-effective catalog snapshots, item availability is explicitly unknown.
+
+The manifest records the split policy/schema versions, source ID/version, input and output checksums, cutoff semantics, split counts/rating distributions/timestamp ranges, rejection and duplicate statistics, train-only vocabulary/candidate counts, warm/cold cohorts, and integrity blockers versus warnings. It does not contain row-level identifiers or timestamps. All outputs are atomically published to a new ignored `data\processed` child; raw and Step 2.4 inputs are read-only. A disk-backed SQLite spool bounds event-row memory, while disk/index work scales with input size and distinct users, items, and fingerprints. This step performs no model training, negative sampling, ID pseudonymization, or external dataset access.
