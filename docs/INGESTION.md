@@ -36,7 +36,7 @@ Rerun with a different new output directory to compare deterministic output file
 - Fatal file/header or output errors exit non-zero and do not publish a completed output directory. Row-level parsing, adapter, and validation failures do not abort the run; their reason counts are in the manifest. Raw inputs are read-only and never copied into output.
 - Processing uses a temporary SQLite index on disk for exact duplicate detection. The first train-only eligibility pass and selected-item set require memory proportional to unique training users and selected training items; this is not constant-memory for all state.
 
-This foundation does not implement Amazon-specific field mapping, source-ID pseudonymization, feature generation, database insertion, training, or profiling. Temporal split validation is provided by the separate `recfusion-temporal-split` command below. The JSONL/CSV fixtures are synthetic and are not evidence about real dataset quality, licensing, or resource requirements.
+This foundation does not implement Amazon-specific field mapping, source-ID pseudonymization, database insertion, training, or profiling. Temporal split validation and train-only feature generation are provided by the separate `recfusion-temporal-split` and `recfusion-generate-features` commands. Feature generation and its snapshot-metadata limitation are documented in [FEATURES.md](./FEATURES.md). The JSONL/CSV fixtures are synthetic and are not evidence about real dataset quality, licensing, or resource requirements.
 
 ## Product metadata normalization
 

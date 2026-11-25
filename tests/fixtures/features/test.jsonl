@@ -1,0 +1,2 @@
+{"user_key":"feature_user_a","item_key":"synthetic_headphones","event_time_ms":8000,"rating":4,"split":"test","source_event_fingerprint":"4444444444444444444444444444444444444444444444444444444444444444"}
+{"user_key":"feature_user_b","item_key":"synthetic_cold_item","event_time_ms":9000,"rating":5,"split":"test","source_event_fingerprint":"5555555555555555555555555555555555555555555555555555555555555555"}

@@ -95,6 +95,15 @@
 - **Revisit if:** An approved source requires alternate split semantics, timestamp precision, event de-duplication, or a separately reviewed candidate catalog snapshot.
 - **Open:** Whether proposed provisional rating labels are suitable for any future metric; whether timestamp-effective catalog snapshots are available; whether source-specific official split chronology has additional rules.
 
+## ADR-013 — Leakage-safe feature generation and snapshot metadata boundary
+
+- **Status:** Proposed
+- **Choice:** Generate encoded interactions, strictly prior training-only user/item aggregates, and separate item metadata features from checksum-verified Step 2.5 outputs. Fit category vocabularies and population z-score parameters only from unique, non-conflicting metadata attached to training-candidate items. Keep validation/test histories training-only; exclude simultaneous events. Preserve conflicting item metadata as an audited exclusion, not a row-order selection.
+- **Why:** The source-independent pipeline should provide baseline-ready observed rating records while preventing target, future-event, held-out-label, and held-out-catalog leakage. Product metadata has no effective timestamps, so keep its feature block separately marked snapshot-only; it cannot establish historical product availability. Do not generate price or rating-aggregate features.
+- **Evidence:** Synthetic tests cover train-only fitting, exact as-of boundaries, equal timestamps, held-out-label invariance, unknown/missing values, conflicts, deterministic reordered inputs and output manifests. These tests establish implementation behavior only.
+- **Revisit if:** An approved source provides effective-time catalog snapshots or a separately reviewed temporal feature policy.
+- **Open:** Whether snapshot metadata is appropriate for a future clearly labeled experiment; whether source-specific product evidence can establish historical availability; no dataset usage-rights gate is resolved by this implementation.
+
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |

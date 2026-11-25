@@ -51,6 +51,15 @@ Use multiple seeds and bootstrap confidence intervals across evaluation users/qu
 - Catalog snapshots without effective timestamps cannot establish which items were available at each prediction time. Temporal eligibility does not solve catalog-availability bias.
 - Never build training user history using held-out events.
 - Normalize features / build vocab on train only; document item metadata time validity.
+- Step 2.6 builds user/item histories from eligible training events strictly
+  before each event timestamp. Equal-timestamp events do not contribute to one
+  another, and validation/test histories use training events only. Held-out
+  labels do not update a later held-out event's features.
+- Step 2.6's product-feature sidecar is explicitly snapshot-only because the
+  normalized metadata has no effective timestamp. It is not point-in-time
+  evidence of product availability and must be treated as a separately labeled
+  snapshot-metadata experiment, not silently included in strict temporal
+  results. Prices and rating aggregates are excluded.
 - Keep interactions from train/validation/test in their designated windows; never silently move or delete an official-split record.
 - Candidate pools must not embed future popularity or test-positive lists.
 - Pretrained text models may use external data; document their source and do not equate them with test interaction leakage.

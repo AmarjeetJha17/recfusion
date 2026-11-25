@@ -1,0 +1,5 @@
+{"user_key":"feature_user_a","item_key":"synthetic_laptop","event_time_ms":1000,"rating":5,"split":"train","source_event_fingerprint":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+{"user_key":"feature_user_a","item_key":"synthetic_phone","event_time_ms":2000,"rating":3,"split":"train","source_event_fingerprint":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+{"user_key":"feature_user_b","item_key":"synthetic_headphones","event_time_ms":2000,"rating":4,"split":"train","source_event_fingerprint":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}
+{"user_key":"feature_user_b","item_key":"synthetic_laptop","event_time_ms":3000,"rating":2,"split":"train","source_event_fingerprint":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}
+{"user_key":"feature_user_a","item_key":"synthetic_conflict_product","event_time_ms":4000,"rating":4,"split":"train","source_event_fingerprint":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}

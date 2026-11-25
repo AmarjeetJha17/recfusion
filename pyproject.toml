@@ -17,6 +17,7 @@ dependencies = [
 recfusion-ingest = "recfusion_data.cli:main"
 recfusion-preprocess-interactions = "recfusion_data.interaction_cli:main"
 recfusion-temporal-split = "recfusion_data.temporal_split_cli:main"
+recfusion-generate-features = "recfusion_data.feature_cli:main"
 
 [dependency-groups]
 dev = [

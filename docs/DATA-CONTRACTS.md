@@ -127,6 +127,44 @@ Every valid validation/test interaction remains in its assigned split output and
 
 The versioned `recfusion.temporal-split-manifest.v1` records source identity/version, input/output SHA-256 and byte counts, cutoffs and boundary semantics, accepted/rejected counts by reason and input file, split timestamp/rating distributions, duplicate and conflict counts, chronology checks, train vocabulary/candidate sizes, warm/cold cohorts, metric exclusions, and a blocking-versus-warning status. It contains aggregate statistics only, with configured cutoffs but no row-level identifiers or event timestamps. Item availability is unknown without time-effective catalog snapshots; unobserved products are never declared negative.
 
+## Derived feature-generation contracts
+
+Status: implemented with synthetic canonical data only. `recfusion.feature-schema.v1`
+describes `recfusion.feature-interaction.v1` and `recfusion.item-feature.v1`.
+Feature generation consumes checksum-verified Step 2.5 outputs and an opt-in
+`recfusion.product-normalization.v1` sidecar; it does not change canonical
+product or interaction contracts.
+
+The interaction artifact retains encoded user/item indices (unknown index 0),
+the observed rating and provisional feedback label, timestamp and source
+timestamp provenance, original split membership, event type/presence,
+source-event fingerprint, duplicate ordinal, integrity flags, and evaluation
+eligibility. Raw user/item keys are not emitted. Its history fields contain
+training-only prior interaction counts and mean observed ratings. The event's
+own timestamp and all simultaneous/future events are excluded. Validation and
+test features use training-only history; held-out events never update it.
+
+The item artifact contains one reserved unknown row and rows for the Step 2.5
+training candidate items. Categorical and numerical transforms fit only on
+unique, non-conflicting normalized metadata for those training items. Categorical
+index 0 is reserved for missing, unavailable or unseen values, distinguished by
+status flags.
+Numerical features are population z-scores with recorded training parameters;
+unknown values remain null and are not imputed. Source values, source attribute
+keys, units and parse statuses remain available for local provenance audits.
+Battery capacity is represented in separate mAh and Wh fields; there is no
+cross-unit conversion without voltage.
+
+Product records with conflicts are not merged or selected by row order; all
+product features for the conflicting item are excluded while its interaction
+records remain. Metadata without effective timestamps is explicitly marked
+snapshot-only and cannot establish historical availability. Prices and
+rating-derived product aggregates are not generated as features. The manifest
+records the feature/configuration versions and hashes, source/output checksums,
+fit scope, counts, exclusions, missingness and unknown-ID rates. Artifacts are
+atomically published under ignored `data/processed/` and are not public IDs or
+model predictions.
+
 ## Validation and exclusion behavior
 
 1. Validate JSONL/CSV row parsing and required identifiers, rating range, and timestamp type. Count malformed rows and missing required keys by source file and category.

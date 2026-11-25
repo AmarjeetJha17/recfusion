@@ -1,0 +1,4 @@
+{"user_key":"feature_user_a","item_key":"synthetic_laptop","event_time_ms":5000,"rating":5,"split":"validation","source_event_fingerprint":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
+{"user_key":"feature_user_a","item_key":"synthetic_phone","event_time_ms":5500,"rating":4,"split":"validation","source_event_fingerprint":"1111111111111111111111111111111111111111111111111111111111111111"}
+{"user_key":"feature_user_cold","item_key":"synthetic_phone","event_time_ms":6000,"rating":5,"split":"validation","source_event_fingerprint":"2222222222222222222222222222222222222222222222222222222222222222"}
+{"user_key":"feature_user_a","item_key":"synthetic_cold_item","event_time_ms":7000,"rating":5,"split":"validation","source_event_fingerprint":"3333333333333333333333333333333333333333333333333333333333333333"}
