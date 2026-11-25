@@ -1,0 +1,3 @@
+{"user_key":"synthetic_release_user_a","item_key":"synthetic_release_item_c","event_time_ms":10000,"rating":5}
+{"user_key":"synthetic_release_user_b","item_key":"synthetic_release_item_cold","event_time_ms":10000,"rating":4}
+{"user_key":"synthetic_release_user_a","item_key":"synthetic_release_item_a","event_time_ms":11000,"rating":2}

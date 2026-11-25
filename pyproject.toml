@@ -18,6 +18,7 @@ recfusion-ingest = "recfusion_data.cli:main"
 recfusion-preprocess-interactions = "recfusion_data.interaction_cli:main"
 recfusion-temporal-split = "recfusion_data.temporal_split_cli:main"
 recfusion-generate-features = "recfusion_data.feature_cli:main"
+recfusion-synthetic-release = "recfusion_data.release:main"
 
 [dependency-groups]
 dev = [

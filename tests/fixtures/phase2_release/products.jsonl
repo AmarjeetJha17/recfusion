@@ -1,0 +1,6 @@
+{"item_key":"synthetic_release_item_a","title":"Synthetic release item A","category":"Synthetic laptops","attributes":{"brand":"Release Example","RAM":"8 GB"}}
+{"item_key":"synthetic_release_item_a","title":"Synthetic release item A","category":"Synthetic laptops","attributes":{"brand":"Release Example","RAM":"8 GB"}}
+{"item_key":"synthetic_release_item_b","title":"Synthetic release item B","category":"Synthetic phones","attributes":{"brand":"Release Example","RAM":"8 GB","RAM Capacity":"16 GB","Battery":"5000"}}
+{"item_key":"synthetic_release_item_c","title":"Synthetic release item C","category":"Synthetic audio","attributes":{"brand":"Release Example","Weight":"200 g"}}
+{"item_key":"synthetic_release_item_c","title":"Synthetic release item C conflicting","category":"Synthetic audio","attributes":{"brand":"Other Release Brand","Weight":"220 g"}}
+{malformed-synthetic-product-json
