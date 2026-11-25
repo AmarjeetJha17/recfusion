@@ -1,6 +1,6 @@
 # Dataset feasibility
 
-Status: research only. No dataset has been downloaded, licensed for this project, or profiled locally. Facts below are from the cited sources; choices remain proposals pending review.
+Status: research only. The three official Electronics 5-core timestamp CSV files are present locally at the repository root. Step 2.2B.1 inspected only their file metadata, checksums, and headers; no dataset rows have been ingested or profiled. The source has not been licensed or cleared for the project's intended use. Facts below are from the cited sources; choices remain proposals pending review.
 
 ## Recommended source and scope
 

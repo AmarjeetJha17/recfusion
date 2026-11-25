@@ -33,7 +33,7 @@ The official source describes `timestamp` as integer Unix time and shows 13-digi
 | `rating` | Observed rating, preserving the source value |
 | `timestamp` | Canonical UTC timestamp derived from Unix epoch milliseconds; preserve source integer provenance |
 
-These mappings are planned only. No adapter has been created or run.
+The mapping is implemented by an opt-in adapter and exercised only with small synthetic fixtures matching the four-column source schema. The downloaded Electronics files remain unprocessed. See [AMAZON-ADAPTER.md](./AMAZON-ADAPTER.md).
 
 ## Rights gate and pilot entry criteria
 
@@ -47,4 +47,4 @@ Before a bounded pilot begins:
 4. Validate required fields, ratings, timestamp integer/range behavior, split chronology, and counts with auditable rejection reasons; keep raw files immutable.
 5. Derive histories and all learned transforms from training data only; treat unobserved items as unknown, not negatives.
 
-The current milestone stops before these processing steps. Step 2.7's synthetic release pipeline is committed as `e9a3360`; its fixture-only evidence does not clear this real-data gate.
+Step 2.2B.2 adds only a synthetic-tested adapter. The current milestone stops before all real-data processing. Step 2.7's synthetic release pipeline is committed as `e9a3360`; its fixture-only evidence does not clear this real-data gate.

@@ -32,11 +32,37 @@ Rerun with a different new output directory to compare deterministic output file
 
 - JSONL and CSV reading is row-streamed; decoding/parsing failures are counted as rejected rows. CSV headers must be non-empty and unique, and rows with the wrong number of columns are rejected.
 - Canonical required values are non-empty user/item keys, non-negative integer millisecond timestamps, and finite ratings in `[1, 5]`. Product optional values remain null/empty when absent. An invalid optional price is omitted and counted as a warning, not guessed.
-- Exact interaction duplicates within one split are skipped and counted. Identical source records present across splits remain in their original splits and are counted as cross-split duplicates. Exact product duplicates are skipped; differing rows for one item are retained and counted as conflicts.
+- In default canonical ingestion, exact interaction duplicates within one split are skipped and counted. The opt-in Amazon Electronics adapter instead retains and audits exact source duplicates in canonical ingestion output; Step 2.4 preprocessing applies its documented within-split collapse policy. Identical source records present across splits remain in their original splits and are counted as cross-split duplicates. Exact product duplicates are skipped; differing rows for one item are retained and counted as conflicts.
 - Fatal file/header or output errors exit non-zero and do not publish a completed output directory. Row-level parsing, adapter, and validation failures do not abort the run; their reason counts are in the manifest. Raw inputs are read-only and never copied into output.
 - Processing uses a temporary SQLite index on disk for exact duplicate detection. The first train-only eligibility pass and selected-item set require memory proportional to unique training users and selected training items; this is not constant-memory for all state.
 
-This foundation does not implement Amazon-specific field mapping, source-ID pseudonymization, database insertion, training, or profiling. Temporal split validation and train-only feature generation are provided by the separate `recfusion-temporal-split` and `recfusion-generate-features` commands. Feature generation and its snapshot-metadata limitation are documented in [FEATURES.md](./FEATURES.md). The JSONL/CSV fixtures are synthetic and are not evidence about real dataset quality, licensing, or resource requirements.
+Canonical ingestion remains source-independent by default. The opt-in Amazon adapter is described below; database insertion, model training, and real-data profiling are not implemented. Temporal split validation and train-only feature generation are provided by the separate `recfusion-temporal-split` and `recfusion-generate-features` commands. Feature generation and its snapshot-metadata limitation are documented in [FEATURES.md](./FEATURES.md). The JSONL/CSV fixtures are synthetic and are not evidence about real dataset quality, licensing, or resource requirements.
+
+## Opt-in Amazon Electronics source adapter
+
+The `amazon-reviews-2023-electronics` adapter maps the official 5-core timestamp CSV schema to the existing canonical interaction contract. It is selected explicitly with `--adapter amazon-reviews-2023-electronics --input-format csv`; the existing canonical CSV/JSONL mode remains the default. Pass separate `--train`, `--validation`, and `--test` paths. The file role assigns the split; rows are never re-partitioned. Source path values are supplied at invocation time and may be kept in ignored local configuration. No machine-specific path is embedded in source code.
+
+The adapter requires exactly the four named columns `user_id`, `parent_asin`, `rating`, and `timestamp` (column order may vary). Blank, duplicate, missing, or unexpected header names fail the file before publication. A zero-byte file fails for missing its header; malformed rows with a different number of columns are rejected with row-number and reason details. Invalid UTF-8 fails the input file closed without publishing output. Blank identifiers and invalid timestamps are rejected by the source adapter; ratings use the shared canonical 1–5 validation. Timestamps must be unsigned integer Unix milliseconds representable by Python's UTC datetime range. The adapter checks an explicit timezone-aware UTC conversion but preserves the canonical integer `event_time_ms`; the existing preprocessing step writes its UTC representation and source timestamp provenance.
+
+User IDs are SHA-256 pseudonymized with a source/category namespace before becoming canonical `user_key` values; item keys retain the source `parent_asin` under a source/category namespace. The raw row receives a deterministic source-record fingerprint from the shared ingestion utility; this is not a source-provided event ID. Ratings remain observed ratings, with no event type or relevance label inferred. The source adapter does not fit vocabularies, sample users, join products, or modify its input files.
+
+All valid rows, including exact duplicates, are retained in their explicit train/validation/test file. The shared SQLite duplicate index counts exact duplicate occurrences for audit without rejecting them; distinct source rows retain their source-derived fingerprint, and no unique event IDs are fabricated. Step 2.4 preprocessing applies the existing exact-duplicate policy after ingestion. Canonical outputs are ordered by source-record fingerprint and payload. Per-split `rejections.*.jsonl` reports include invalid rows only, with row number, split, fingerprint when available, and reason codes, without raw user IDs. The manifest records source identity/version, input checksums and sizes, split mapping, duplicate audit counts, adapter configuration, counts, and output hashes. Outputs are atomically published under ignored `data/processed/`; an existing destination is never overwritten. The adapter does not read `.env` automatically: file paths are explicit CLI arguments.
+
+Run the adapter only on the committed synthetic fixtures until the dataset's intended use and applicable terms are cleared:
+
+```powershell
+uv run recfusion-ingest `
+  --adapter amazon-reviews-2023-electronics `
+  --input-format csv `
+  --train tests\fixtures\amazon_electronics\train.csv `
+  --validation tests\fixtures\amazon_electronics\validation.csv `
+  --test tests\fixtures\amazon_electronics\test.csv `
+  --source-id amazon-reviews-2023-electronics `
+  --source-version synthetic-fixture-v1 `
+  --output-dir data\processed\amazon-electronics-synthetic-v1
+```
+
+See [AMAZON-ADAPTER.md](./AMAZON-ADAPTER.md) for detailed source boundaries and limitations. Synthetic tests establish parser and pipeline behavior only. Adapter implementation does not resolve the external dataset usage-rights gate or authorize real-data processing.
 
 ## Product metadata normalization
 

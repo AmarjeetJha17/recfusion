@@ -1,0 +1,12 @@
+user_id,parent_asin,rating,timestamp
+synthetic_user_a,synthetic_item_a,5.0,1628643414041
+synthetic_user_a,synthetic_item_a,5.0,1628643414041
+synthetic_user_a,synthetic_item_a,4.5,1628643414040
+synthetic_user_b,synthetic_item_b,1.0,1600000000000
+,synthetic_item_c,4.0,1600000000001
+synthetic_user_c,,4.0,1600000000002
+synthetic_user_d,synthetic_item_d,6.0,1600000000003
+synthetic_user_e,synthetic_item_e,5.0,not-a-timestamp
+synthetic_user_f,synthetic_item_f,5.0,-1
+synthetic_user_g,synthetic_item_g,5.0,9223372036854775807
+synthetic_user_h,synthetic_item_h,5.0

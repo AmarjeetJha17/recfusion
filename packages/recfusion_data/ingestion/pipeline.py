@@ -11,6 +11,7 @@ import sqlite3
 import tempfile
 from collections import Counter
 from collections.abc import Iterator, Mapping
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TextIO
@@ -45,7 +46,7 @@ _PROCESSED_ROOT = (_REPOSITORY_ROOT / "data" / "processed").resolve()
 class IngestionResult:
     output_dir: Path
     manifest: Mapping[str, object]
-    selected_user_count: int
+    selected_user_count: int | None
 
 
 class _JsonlSink:
@@ -116,6 +117,14 @@ class _DuplicateIndex:
                 payload TEXT NOT NULL,
                 PRIMARY KEY (item_key, fingerprint)
             ) WITHOUT ROWID;
+            CREATE TABLE interaction_payloads (
+                payload_id INTEGER PRIMARY KEY,
+                split TEXT NOT NULL,
+                fingerprint TEXT NOT NULL,
+                payload TEXT NOT NULL
+            );
+            CREATE INDEX interaction_payload_order
+            ON interaction_payloads (split, fingerprint, payload);
             """
         )
 
@@ -171,6 +180,33 @@ class _DuplicateIndex:
             "INSERT INTO normalized_products VALUES (?, ?, ?)",
             (item_key, fingerprint, payload),
         )
+
+    def add_interaction_payload(
+        self, split: DataSplit, fingerprint: str, record: Mapping[str, object]
+    ) -> None:
+        payload = json.dumps(
+            record,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        self.connection.execute(
+            "INSERT INTO interaction_payloads (split, fingerprint, payload) "
+            "VALUES (?, ?, ?)",
+            (split.value, fingerprint, payload),
+        )
+
+    def iter_interaction_payloads(
+        self, split: DataSplit
+    ) -> Iterator[dict[str, object]]:
+        cursor = self.connection.execute(
+            "SELECT payload FROM interaction_payloads WHERE split = ? "
+            "ORDER BY fingerprint, payload",
+            (split.value,),
+        )
+        for (payload,) in cursor:
+            yield json.loads(payload)
 
     def iter_normalized_products(self) -> Iterator[dict[str, object]]:
         cursor = self.connection.execute(
@@ -378,7 +414,11 @@ def _eligible_train_users(
     adapter: SourceAdapter,
 ) -> set[str]:
     eligible: set[str] = set()
-    for row in read_records(path, input_format):
+    for row in read_records(
+        path,
+        input_format,
+        expected_csv_headers=getattr(adapter, "csv_headers", None),
+    ):
         interaction, _ = _normalize_interaction(
             row,
             split=DataSplit.TRAIN,
@@ -396,7 +436,7 @@ def _process_split(
     split: DataSplit,
     path: Path,
     input_format: InputFormat,
-    selected_users: frozenset[str],
+    selected_users: frozenset[str] | None,
     source_id: str,
     source_version: str,
     adapter: SourceAdapter,
@@ -406,8 +446,13 @@ def _process_split(
     failures: Counter[str],
     cross_split_duplicates: Counter[str],
     selected_train_items: set[str],
+    rejection_sink: _JsonlSink | None = None,
 ) -> None:
-    for row in read_records(path, input_format):
+    for row in read_records(
+        path,
+        input_format,
+        expected_csv_headers=getattr(adapter, "csv_headers", None),
+    ):
         counts["input_records"] += 1
         interaction, issues = _normalize_interaction(
             row,
@@ -419,25 +464,84 @@ def _process_split(
         if interaction is None:
             counts["rejected_records"] += 1
             _issue_counts(issues, failures)
+            if rejection_sink is not None:
+                rejection_sink.write(
+                    _rejection_record(
+                        split=split,
+                        row_number=row.row_number,
+                        values=row.values,
+                        issues=issues,
+                        source_id=source_id,
+                        source_version=source_version,
+                    )
+                )
+                counts["rejection_audit_records"] += 1
             continue
 
         counts["valid_records"] += 1
-        if split is DataSplit.TRAIN and interaction.user_key in selected_users:
+        if (
+            selected_users is not None
+            and split is DataSplit.TRAIN
+            and interaction.user_key in selected_users
+        ):
             selected_train_items.add(interaction.item_key)
 
         duplicate_status = duplicate_index.interaction_status(
             interaction.source_event_fingerprint, split
         )
         if duplicate_status == "duplicate":
-            counts["duplicate_rows_skipped"] += 1
-            continue
+            if getattr(adapter, "retain_exact_duplicates", False):
+                counts["exact_duplicate_occurrences"] += 1
+                counts["duplicate_rows_retained"] += 1
+            else:
+                counts["duplicate_rows_skipped"] += 1
+                if rejection_sink is not None:
+                    rejection_sink.write(
+                        {
+                            "reason": "exact_duplicate",
+                            "source_event_fingerprint": (
+                                interaction.source_event_fingerprint
+                            ),
+                            "source_row_number": row.row_number,
+                            "split": split.value,
+                        }
+                    )
+                    counts["rejection_audit_records"] += 1
+                continue
         if duplicate_status == "cross_split":
             cross_split_duplicates["interaction"] += 1
-        if interaction.user_key not in selected_users:
+        if selected_users is not None and interaction.user_key not in selected_users:
             counts["filtered_unselected_users"] += 1
             continue
-        sink.write(_interaction_record(interaction))
+        interaction_record = _interaction_record(interaction)
+        if getattr(adapter, "deterministic_interaction_order", False):
+            duplicate_index.add_interaction_payload(
+                split, interaction.source_event_fingerprint, interaction_record
+            )
+        else:
+            sink.write(interaction_record)
         counts["output_records"] += 1
+
+
+def _rejection_record(
+    *,
+    split: DataSplit,
+    row_number: int,
+    values: Mapping[str, object] | None,
+    issues: tuple[ValidationIssue, ...],
+    source_id: str,
+    source_version: str,
+) -> dict[str, object]:
+    fingerprint: str | None = None
+    if values is not None:
+        with suppress(AdapterError):
+            fingerprint = _fingerprint(values, source_id, source_version)
+    return {
+        "reasons": [{"code": issue.code, "field": issue.field} for issue in issues],
+        "source_event_fingerprint": fingerprint,
+        "source_row_number": row_number,
+        "split": split.value,
+    }
 
 
 def _process_products(
@@ -537,6 +641,10 @@ def ingest_local_files(
 ) -> IngestionResult:
     """Ingest canonical local files and atomically publish a new output directory."""
     source_adapter = adapter or CanonicalSourceAdapter()
+    if product_path is not None and not getattr(
+        source_adapter, "supports_products", True
+    ):
+        raise IngestionError("The selected source adapter does not accept products.")
     files = {
         "train": train_path,
         "validation": validation_path,
@@ -552,25 +660,36 @@ def ingest_local_files(
         seed=seed,
         output_dir=output_dir,
     )
-    eligible_users = _eligible_train_users(
-        train_path,
-        input_format=input_format,
-        source_id=source_id,
-        source_version=source_version,
-        adapter=source_adapter,
-    )
-    selected_users = select_train_users(
-        eligible_users,
-        max_users=max_users,
-        seed=seed,
-        source_id=source_id,
-    )
+    preserve_all_users = getattr(source_adapter, "preserve_all_users", False)
+    if preserve_all_users:
+        eligible_users = None
+        selected_users = None
+        selected_user_count = None
+    else:
+        eligible_users = _eligible_train_users(
+            train_path,
+            input_format=input_format,
+            source_id=source_id,
+            source_version=source_version,
+            adapter=source_adapter,
+        )
+        selected_users = select_train_users(
+            eligible_users,
+            max_users=max_users,
+            seed=seed,
+            source_id=source_id,
+        )
+        selected_user_count = len(selected_users)
 
     final_output.parent.mkdir(parents=True, exist_ok=True)
     staging_dir = Path(
         tempfile.mkdtemp(prefix=f".{final_output.name}.tmp-", dir=final_output.parent)
     )
     split_counts = {split.value: _new_split_counts() for split in _SPLITS}
+    if getattr(source_adapter, "retain_exact_duplicates", False):
+        for split_record_counts in split_counts.values():
+            split_record_counts["exact_duplicate_occurrences"] = 0
+            split_record_counts["duplicate_rows_retained"] = 0
     failures: Counter[str] = Counter()
     warnings: Counter[str] = Counter()
     cross_split_duplicates: Counter[str] = Counter()
@@ -578,6 +697,7 @@ def ingest_local_files(
     output_manifests: list[dict[str, object]] = []
     normalization_counts: Counter[str] = Counter()
     normalized_sink: _JsonlSink | None = None
+    rejection_sinks: dict[DataSplit, _JsonlSink] = {}
 
     try:
         with tempfile.TemporaryDirectory(prefix="recfusion-ingest-index-") as scratch:
@@ -588,6 +708,13 @@ def ingest_local_files(
                 for split in _SPLITS:
                     sink = _JsonlSink(staging_dir / f"interactions.{split.value}.jsonl")
                     split_sinks[split] = sink
+                    rejection_sink = None
+                    if getattr(source_adapter, "record_rejections", False):
+                        rejection_sink = _JsonlSink(
+                            staging_dir / f"rejections.{split.value}.jsonl"
+                        )
+                        rejection_sinks[split] = rejection_sink
+                        split_counts[split.value]["rejection_audit_records"] = 0
                     _process_split(
                         split=split,
                         path=files[split.value],
@@ -602,6 +729,7 @@ def ingest_local_files(
                         failures=failures,
                         cross_split_duplicates=cross_split_duplicates,
                         selected_train_items=selected_train_items,
+                        rejection_sink=rejection_sink,
                     )
                 product_sink = _JsonlSink(staging_dir / "products.jsonl")
                 product_counts = _process_products(
@@ -624,6 +752,10 @@ def ingest_local_files(
                     )
                     for record in duplicate_index.iter_normalized_products():
                         normalized_sink.write(record)
+                if getattr(source_adapter, "deterministic_interaction_order", False):
+                    for split in _SPLITS:
+                        for record in duplicate_index.iter_interaction_payloads(split):
+                            split_sinks[split].write(record)
             finally:
                 for sink in split_sinks.values():
                     sink.close()
@@ -631,28 +763,46 @@ def ingest_local_files(
                     product_sink.close()
                 if normalized_sink is not None:
                     normalized_sink.close()
+                for sink in rejection_sinks.values():
+                    sink.close()
                 duplicate_index.close()
 
         if product_sink is None:
             raise IngestionError("Product output sink was not initialized.")
-        output_manifests = [
-            split_sinks[split].output_manifest() for split in _SPLITS
-        ] + [product_sink.output_manifest()]
+        output_manifests = (
+            [split_sinks[split].output_manifest() for split in _SPLITS]
+            + [product_sink.output_manifest()]
+            + [
+                rejection_sinks[split].output_manifest()
+                for split in _SPLITS
+                if split in rejection_sinks
+            ]
+        )
         if normalized_sink is not None:
             output_manifests.append(normalized_sink.output_manifest())
         configuration: dict[str, object] = {
             "interaction_format": input_format.value,
             "product_format": product_format.value,
             "duplicate_policy": (
-                "skip exact duplicates within a split; retain and count "
+                "retain and count exact source duplicates for Step 2.4 "
+                "preprocessing; do not assign unique event IDs"
+                if getattr(source_adapter, "retain_exact_duplicates", False)
+                else "skip exact duplicates within a split; retain and count "
                 "identical fingerprints appearing in different splits"
             ),
             "product_conflict_policy": (
                 "skip exact duplicate rows; retain and count differing rows "
                 "for the same item key"
             ),
-            "product_filter": "items in selected users' training interactions only",
+            "product_filter": (
+                "items in selected users' training interactions only"
+                if selected_users is not None
+                else "not applicable; source adapter disables product input"
+            ),
         }
+        adapter_configuration = getattr(source_adapter, "manifest_configuration", None)
+        if adapter_configuration is not None:
+            configuration.update(adapter_configuration)
         counts: dict[str, object] = {
             "interactions_by_split": split_counts,
             "products": product_counts,
@@ -678,14 +828,27 @@ def ingest_local_files(
                 "version": source_version,
                 "files": source_manifest,
             },
-            "sampling": {
-                "eligibility": "at least one valid training interaction",
-                "max_users": max_users,
-                "seed": seed,
-                "selected_users": len(selected_users),
-                "train_eligible_users": len(eligible_users),
-                "policy": "SHA-256 rank of eligible training users; order-independent",
-            },
+            "sampling": (
+                {
+                    "eligibility": "all valid source records",
+                    "max_users": None,
+                    "seed": seed,
+                    "selected_users": None,
+                    "train_eligible_users": None,
+                    "policy": "preserve all records and assigned source splits",
+                }
+                if selected_users is None
+                else {
+                    "eligibility": "at least one valid training interaction",
+                    "max_users": max_users,
+                    "seed": seed,
+                    "selected_users": len(selected_users),
+                    "train_eligible_users": len(eligible_users or ()),
+                    "policy": (
+                        "SHA-256 rank of eligible training users; order-independent"
+                    ),
+                }
+            ),
             "configuration": configuration,
             "counts": counts,
             "outputs": output_manifests,
@@ -695,7 +858,7 @@ def ingest_local_files(
         return IngestionResult(
             output_dir=final_output,
             manifest=manifest,
-            selected_user_count=len(selected_users),
+            selected_user_count=selected_user_count,
         )
     except (OSError, sqlite3.Error, SourceReadError, ValueError) as error:
         if staging_dir.exists():

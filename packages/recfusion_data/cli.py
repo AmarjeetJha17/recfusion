@@ -7,6 +7,11 @@ import json
 import sys
 from pathlib import Path
 
+from recfusion_data.ingestion.adapters import (
+    AmazonReviews2023ElectronicsAdapter,
+    CanonicalSourceAdapter,
+    SourceAdapter,
+)
 from recfusion_data.ingestion.errors import IngestionError
 from recfusion_data.ingestion.pipeline import ingest_local_files
 from recfusion_data.ingestion.readers import InputFormat
@@ -20,6 +25,12 @@ def _arguments() -> argparse.ArgumentParser:
     parser.add_argument("--validation", type=Path, required=True)
     parser.add_argument("--test", type=Path, required=True)
     parser.add_argument("--products", type=Path)
+    parser.add_argument(
+        "--adapter",
+        choices=("canonical", "amazon-reviews-2023-electronics"),
+        default="canonical",
+        help="Select an opt-in source-specific interaction schema adapter.",
+    )
     parser.add_argument(
         "--input-format", choices=[item.value for item in InputFormat], default="jsonl"
     )
@@ -52,6 +63,13 @@ def _arguments() -> argparse.ArgumentParser:
 def main() -> int:
     parser = _arguments()
     args = parser.parse_args()
+    adapter: SourceAdapter = CanonicalSourceAdapter()
+    if args.adapter == "amazon-reviews-2023-electronics":
+        if args.input_format != InputFormat.CSV.value:
+            parser.error("The Amazon Electronics adapter requires --input-format csv.")
+        if args.products is not None or args.normalize_products:
+            parser.error("The Amazon Electronics adapter does not accept products.")
+        adapter = AmazonReviews2023ElectronicsAdapter()
     try:
         result = ingest_local_files(
             train_path=args.train,
@@ -65,6 +83,7 @@ def main() -> int:
             source_version=args.source_version,
             seed=args.seed,
             max_users=args.max_users,
+            adapter=adapter,
             normalize_products=args.normalize_products,
         )
     except (IngestionError, OSError, ValueError) as error:

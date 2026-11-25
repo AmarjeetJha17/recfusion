@@ -55,7 +55,9 @@ def read_jsonl(path: Path) -> Iterator[SourceRow]:
             yield SourceRow(row_number, value)
 
 
-def read_csv(path: Path) -> Iterator[SourceRow]:
+def read_csv(
+    path: Path, *, expected_headers: tuple[str, ...] | None = None
+) -> Iterator[SourceRow]:
     try:
         source = path.open("r", encoding="utf-8-sig", newline="")
     except OSError as error:
@@ -67,12 +69,16 @@ def read_csv(path: Path) -> Iterator[SourceRow]:
             headers = next(reader, None)
         except csv.Error as error:
             raise SourceReadError("Cannot parse CSV header.") from error
+        except UnicodeDecodeError as error:
+            raise SourceReadError("CSV source is not valid UTF-8.") from error
         if headers is None or not headers:
             raise SourceReadError("CSV source has no header.")
         if any(not header.strip() for header in headers) or len(set(headers)) != len(
             headers
         ):
             raise SourceReadError("CSV header contains blank or duplicate names.")
+        if expected_headers is not None and set(headers) != set(expected_headers):
+            raise SourceReadError("CSV header does not match the selected adapter.")
 
         while True:
             try:
@@ -82,6 +88,8 @@ def read_csv(path: Path) -> Iterator[SourceRow]:
             except csv.Error:
                 yield SourceRow(reader.line_num, None, "malformed_csv")
                 continue
+            except UnicodeDecodeError as error:
+                raise SourceReadError("CSV source is not valid UTF-8.") from error
 
             if len(values) != len(headers):
                 yield SourceRow(reader.line_num, None, "malformed_csv_row")
@@ -89,10 +97,15 @@ def read_csv(path: Path) -> Iterator[SourceRow]:
             yield SourceRow(reader.line_num, dict(zip(headers, values, strict=True)))
 
 
-def read_records(path: Path, input_format: InputFormat) -> Iterator[SourceRow]:
+def read_records(
+    path: Path,
+    input_format: InputFormat,
+    *,
+    expected_csv_headers: tuple[str, ...] | None = None,
+) -> Iterator[SourceRow]:
     if input_format is InputFormat.JSONL:
         yield from read_jsonl(path)
     elif input_format is InputFormat.CSV:
-        yield from read_csv(path)
+        yield from read_csv(path, expected_headers=expected_csv_headers)
     else:
         raise SourceReadError("Unsupported input format.")
