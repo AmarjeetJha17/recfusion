@@ -69,6 +69,14 @@
 - **Revisit if:** A pilot demonstrates different label behavior or a source with valid exposure/query labels becomes available.
 - **Open:** Rating threshold acceptance, negative-feedback use, exact candidate policy, and whether rating-based LTR is defensible.
 
+## ADR-010 — Conservative product metadata normalization
+
+- **Status:** Proposed
+- **Choice:** Keep canonical product metadata unchanged and add an opt-in, versioned normalized sidecar. Normalize only explicitly keyed brand/category text and recognized specification labels with explicit units; retain raw values, parse states, source fingerprints, and all distinct conflicting product records.
+- **Why:** Electronics metadata is heterogeneous. Deterministic field-level normalization supports later profiling without guessing missing specifications, silently choosing conflicts, changing the Step 2.2A output by default, or coupling the canonical schema to a source-specific representation.
+- **Revisit if:** Synthetic-only tests pass and authorized, terms-reviewed profiling demonstrates the normalized fields and parsing rules are appropriate for a selected source.
+- **Open:** Whether these broad unit/range conventions and the supported attribute aliases are suitable for any future real source; source-specific adapters remain separately gated.
+
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |

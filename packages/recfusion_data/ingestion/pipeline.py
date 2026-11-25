@@ -10,7 +10,7 @@ import shutil
 import sqlite3
 import tempfile
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TextIO
@@ -30,6 +30,7 @@ from recfusion_data.ingestion.manifest import (
     write_manifest,
 )
 from recfusion_data.ingestion.readers import InputFormat, SourceRow, read_records
+from recfusion_data.normalization import normalize_product_metadata
 from recfusion_data.splitting.sampling import select_train_users
 from recfusion_data.validation import validate_interaction, validate_product
 
@@ -109,6 +110,12 @@ class _DuplicateIndex:
                 item_key TEXT PRIMARY KEY,
                 fingerprint TEXT NOT NULL
             ) WITHOUT ROWID;
+            CREATE TABLE normalized_products (
+                item_key TEXT NOT NULL,
+                fingerprint TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                PRIMARY KEY (item_key, fingerprint)
+            ) WITHOUT ROWID;
             """
         )
 
@@ -149,6 +156,39 @@ class _DuplicateIndex:
             )
             return "new"
         return "conflict" if row[0] != fingerprint else "new"
+
+    def add_normalized_product(
+        self, item_key: str, fingerprint: str, record: Mapping[str, object]
+    ) -> None:
+        payload = json.dumps(
+            record,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        self.connection.execute(
+            "INSERT INTO normalized_products VALUES (?, ?, ?)",
+            (item_key, fingerprint, payload),
+        )
+
+    def iter_normalized_products(self) -> Iterator[dict[str, object]]:
+        cursor = self.connection.execute(
+            """
+            SELECT item_key, payload, COUNT(*) OVER (PARTITION BY item_key)
+            FROM normalized_products
+            ORDER BY item_key, fingerprint
+            """
+        )
+        for _item_key, payload, item_count in cursor:
+            record: dict[str, object] = json.loads(payload)
+            normalization = record["normalization"]
+            if not isinstance(normalization, dict):
+                raise IngestionError("Invalid normalized product spool record.")
+            normalization["product_decision"] = (
+                "conflict_retained" if item_count > 1 else "unique_retained"
+            )
+            yield record
 
     def close(self) -> None:
         self.connection.commit()
@@ -412,6 +452,8 @@ def _process_products(
     duplicate_index: _DuplicateIndex,
     failures: Counter[str],
     warnings: Counter[str],
+    normalized_products: bool,
+    normalization_counts: Counter[str],
 ) -> dict[str, int]:
     counts = {
         "input_records": 0,
@@ -452,6 +494,27 @@ def _process_products(
             counts["filtered_not_in_selected_train"] += 1
             continue
         sink.write(_product_record(product))
+        if normalized_products:
+            normalized = normalize_product_metadata(
+                product,
+                raw_price=(row.values.get("price") if row.values is not None else None),
+                invalid_price=any(issue.field == "price" for issue in record_warnings),
+                raw_price_present=(row.values is not None and "price" in row.values),
+            )
+            record = normalized.as_record(
+                _product_record(product), conflict_retained=None
+            )
+            duplicate_index.add_normalized_product(
+                product.item_key, product.source_record_fingerprint, record
+            )
+            fields = {
+                "brand": normalized.brand,
+                "category": normalized.category,
+                "price": normalized.price,
+                **normalized.specifications,
+            }
+            for name, value in fields.items():
+                normalization_counts[f"{name}.{value.status.value}"] += 1
         counts["output_records"] += 1
     return counts
 
@@ -470,6 +533,7 @@ def ingest_local_files(
     seed: str,
     max_users: int,
     adapter: SourceAdapter | None = None,
+    normalize_products: bool = False,
 ) -> IngestionResult:
     """Ingest canonical local files and atomically publish a new output directory."""
     source_adapter = adapter or CanonicalSourceAdapter()
@@ -512,6 +576,8 @@ def ingest_local_files(
     cross_split_duplicates: Counter[str] = Counter()
     selected_train_items: set[str] = set()
     output_manifests: list[dict[str, object]] = []
+    normalization_counts: Counter[str] = Counter()
+    normalized_sink: _JsonlSink | None = None
 
     try:
         with tempfile.TemporaryDirectory(prefix="recfusion-ingest-index-") as scratch:
@@ -549,12 +615,22 @@ def ingest_local_files(
                     duplicate_index=duplicate_index,
                     failures=failures,
                     warnings=warnings,
+                    normalized_products=normalize_products,
+                    normalization_counts=normalization_counts,
                 )
+                if normalize_products:
+                    normalized_sink = _JsonlSink(
+                        staging_dir / "products.normalized.jsonl"
+                    )
+                    for record in duplicate_index.iter_normalized_products():
+                        normalized_sink.write(record)
             finally:
                 for sink in split_sinks.values():
                     sink.close()
                 if product_sink is not None:
                     product_sink.close()
+                if normalized_sink is not None:
+                    normalized_sink.close()
                 duplicate_index.close()
 
         if product_sink is None:
@@ -562,6 +638,38 @@ def ingest_local_files(
         output_manifests = [
             split_sinks[split].output_manifest() for split in _SPLITS
         ] + [product_sink.output_manifest()]
+        if normalized_sink is not None:
+            output_manifests.append(normalized_sink.output_manifest())
+        configuration: dict[str, object] = {
+            "interaction_format": input_format.value,
+            "product_format": product_format.value,
+            "duplicate_policy": (
+                "skip exact duplicates within a split; retain and count "
+                "identical fingerprints appearing in different splits"
+            ),
+            "product_conflict_policy": (
+                "skip exact duplicate rows; retain and count differing rows "
+                "for the same item key"
+            ),
+            "product_filter": "items in selected users' training interactions only",
+        }
+        counts: dict[str, object] = {
+            "interactions_by_split": split_counts,
+            "products": product_counts,
+            "cross_split_duplicate_interactions": cross_split_duplicates["interaction"],
+            "validation_failures": dict(sorted(failures.items())),
+            "warnings": dict(sorted(warnings.items())),
+        }
+        if normalize_products:
+            configuration["normalize_products"] = True
+            configuration["product_normalization_schema_version"] = (
+                "recfusion.product-normalization.v1"
+            )
+            counts["product_normalization"] = {
+                "records": product_counts["output_records"],
+                "field_statuses": dict(sorted(normalization_counts.items())),
+            }
+
         manifest: dict[str, object] = {
             "manifest_schema_version": 1,
             "canonical_schema_version": SCHEMA_VERSION,
@@ -578,28 +686,8 @@ def ingest_local_files(
                 "train_eligible_users": len(eligible_users),
                 "policy": "SHA-256 rank of eligible training users; order-independent",
             },
-            "configuration": {
-                "interaction_format": input_format.value,
-                "product_format": product_format.value,
-                "duplicate_policy": (
-                    "skip exact duplicates within a split; retain and count "
-                    "identical fingerprints appearing in different splits"
-                ),
-                "product_conflict_policy": (
-                    "skip exact duplicate rows; retain and count differing rows "
-                    "for the same item key"
-                ),
-                "product_filter": "items in selected users' training interactions only",
-            },
-            "counts": {
-                "interactions_by_split": split_counts,
-                "products": product_counts,
-                "cross_split_duplicate_interactions": cross_split_duplicates[
-                    "interaction"
-                ],
-                "validation_failures": dict(sorted(failures.items())),
-                "warnings": dict(sorted(warnings.items())),
-            },
+            "configuration": configuration,
+            "counts": counts,
             "outputs": output_manifests,
         }
         write_manifest(staging_dir / "manifest.json", manifest)

@@ -33,6 +33,11 @@ def _arguments() -> argparse.ArgumentParser:
     parser.add_argument("--seed", default="recfusion-phase2-pilot-v1")
     parser.add_argument("--max-users", type=int, default=10_000)
     parser.add_argument(
+        "--normalize-products",
+        action="store_true",
+        help="Write an additional deterministic normalized product metadata file.",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("data") / "processed" / "synthetic-pilot-v1",
@@ -60,6 +65,7 @@ def main() -> int:
             source_version=args.source_version,
             seed=args.seed,
             max_users=args.max_users,
+            normalize_products=args.normalize_products,
         )
     except (IngestionError, OSError, ValueError) as error:
         print(f"Ingestion failed: {error}", file=sys.stderr)

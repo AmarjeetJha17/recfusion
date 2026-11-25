@@ -57,6 +57,13 @@ def test_synthetic_ingestion_is_repeatable_and_auditable(output_root: Path) -> N
 
     assert first_manifest == second_manifest
     assert first_manifest["outputs"] == second_manifest["outputs"]
+    configuration = first_manifest["configuration"]
+    assert isinstance(configuration, dict)
+    assert "normalize_products" not in configuration
+    counts = first_manifest["counts"]
+    assert isinstance(counts, dict)
+    assert "product_normalization" not in counts
+    assert not (first_dir / "products.normalized.jsonl").exists()
     assert _jsonl_records(first_dir / "interactions.train.jsonl") == _jsonl_records(
         second_dir / "interactions.train.jsonl"
     )
@@ -224,3 +231,90 @@ def test_output_outside_gitignored_processed_path_is_rejected(
 ) -> None:
     with pytest.raises(IngestionError, match="ignored data/processed"):
         _ingest(tmp_path / "outside")
+
+
+def test_normalized_product_sidecar_is_stable_and_audits_conflicts(
+    tmp_path: Path, output_root: Path
+) -> None:
+    product_source = _FIXTURES / "products-normalization.jsonl"
+    source_lines = product_source.read_text(encoding="utf-8").splitlines()
+    reordered_products = tmp_path / "reordered-products.jsonl"
+    reordered_products.write_text(
+        "\n".join(reversed(source_lines)) + "\n", encoding="utf-8"
+    )
+    product_ids = sorted({str(json.loads(line)["item_key"]) for line in source_lines})
+    train_path = tmp_path / "normalization-train.jsonl"
+    train_path.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "user_key": "synthetic_normalization_user",
+                    "item_key": item_key,
+                    "event_time_ms": index + 1,
+                    "rating": 5,
+                }
+            )
+            + "\n"
+            for index, item_key in enumerate(product_ids)
+        ),
+        encoding="utf-8",
+    )
+    empty_validation = tmp_path / "empty-validation.jsonl"
+    empty_test = tmp_path / "empty-test.jsonl"
+    empty_validation.write_text("", encoding="utf-8")
+    empty_test.write_text("", encoding="utf-8")
+
+    def run(output_dir: Path, product_path: Path) -> dict[str, object]:
+        result = ingest_local_files(
+            train_path=train_path,
+            validation_path=empty_validation,
+            test_path=empty_test,
+            product_path=product_path,
+            input_format=InputFormat.JSONL,
+            product_format=InputFormat.JSONL,
+            output_dir=output_dir,
+            source_id="synthetic-normalization",
+            source_version="v1",
+            seed="normalization-test",
+            max_users=1,
+            normalize_products=True,
+        )
+        return dict(result.manifest)
+
+    first_dir = output_root / "normalized-first"
+    second_dir = output_root / "normalized-reordered"
+    first_manifest = run(first_dir, product_source)
+    run(second_dir, reordered_products)
+
+    normalized_path = first_dir / "products.normalized.jsonl"
+    reordered_path = second_dir / "products.normalized.jsonl"
+    assert normalized_path.read_bytes() == reordered_path.read_bytes()
+    records = _jsonl_records(normalized_path)
+    assert len(records) == 10
+    conflict_decisions = [
+        record["normalization"]["product_decision"]
+        for record in records
+        if record["product"]["item_key"] == "synthetic_conflict_product"
+    ]
+    assert conflict_decisions == ["conflict_retained", "conflict_retained"]
+    invalid_price = next(
+        record
+        for record in records
+        if record["product"]["item_key"] == "synthetic_invalid_price"
+    )
+    assert invalid_price["normalization"]["price"]["raw_values"] == ["None"]
+    assert invalid_price["normalization"]["price"]["status"] == "invalid"
+
+    counts = first_manifest["counts"]
+    assert isinstance(counts, dict)
+    products = counts["products"]
+    assert isinstance(products, dict)
+    assert products["duplicate_rows_skipped"] == 1
+    assert products["conflicting_item_rows"] == 1
+    normalization_counts = counts["product_normalization"]
+    assert isinstance(normalization_counts, dict)
+    assert normalization_counts["records"] == 10
+    assert normalization_counts["field_statuses"]["price.invalid"] == 1
+    assert normalization_counts["field_statuses"]["ram_capacity_bytes.ambiguous"] == 1
+    assert normalization_counts["field_statuses"]["ram_capacity_bytes.invalid"] == 2
+    assert counts["warnings"] == {"invalid_optional_price": 1}

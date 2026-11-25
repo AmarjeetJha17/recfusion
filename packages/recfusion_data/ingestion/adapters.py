@@ -61,6 +61,8 @@ class CanonicalSourceAdapter:
                 try:
                     adapted[field] = json.loads(value)
                 except json.JSONDecodeError as error:
+                    if field == "price":
+                        continue
                     raise AdapterError("malformed_json_field", field) from error
         return adapted
 

@@ -76,6 +76,14 @@ One record describes a source product snapshot keyed by `parent_asin`. Preserve 
 
 The dataset documentation presents `price` as numeric, while some Hugging Face serialized views expose a string/sentinel; parsers must accept the observed raw source representation, preserve it, and record normalization outcomes. Metadata has no per-row effective timestamp in the documented schema. Treat crawl-time aggregates and prices as temporally unsafe for historical cutoffs unless another source establishes their as-of time.
 
+## Source-independent normalized product representation
+
+The local opt-in `products.normalized.jsonl` sidecar is a versioned wrapper around the canonical `ProductMetadata` record; it does not replace or redefine that contract. Each wrapper contains the canonical `product` and a `normalization` object (`recfusion.product-normalization.v1`) with brand, category, supported specification fields, and price. Each normalized field carries `raw_values`, `value`, `unit`, `status`, and `source_keys`. The canonical product retains the item key, title, explicit category, description, features, images, attributes, canonical explicit-currency price, and source-record fingerprint.
+
+This schema is source-independent and currently accepts canonical local inputs only. Brand is normalized only from explicit `brand` or `brand name` attributes; category only from the canonical `category` field. Both use Unicode NFKC, whitespace collapsing, and casefolding, without alias dictionaries or title inference. Specifications, supported keys, unit conversions, guardrail ranges, and ambiguity states are maintained in [`INGESTION.md`](./INGESTION.md); unknown or conflicting values remain null with status and raw evidence rather than being selected or fabricated.
+
+Product rows with the same item key and different source fingerprints are all retained. Their normalized sidecar records are deterministically ordered by `(item_key, source_record_fingerprint)` and marked `conflict_retained`; exact duplicate rows are skipped and counted by the existing ingestion policy. This is a local normalization output contract, not approval to acquire or process Amazon Reviews 2023. It does not resolve source-specific provenance, category taxonomies, or price-as-of-time concerns.
+
 ## Validation and exclusion behavior
 
 1. Validate JSONL/CSV row parsing and required identifiers, rating range, and timestamp type. Count malformed rows and missing required keys by source file and category.
