@@ -104,6 +104,18 @@
 - **Revisit if:** An approved source provides effective-time catalog snapshots or a separately reviewed temporal feature policy.
 - **Open:** Whether snapshot metadata is appropriate for a future clearly labeled experiment; whether source-specific product evidence can establish historical availability; no dataset usage-rights gate is resolved by this implementation.
 
+## ADR-014 — Limited academic research-use assessment documented
+
+- **Status:** Limited academic research-use assessment documented; project-specific rights clearance remains unresolved.
+- **Date:** 2026-11-25
+- **Declared purpose:** The project owner states that RecFusion is a non-commercial MCA Recommendation Systems course project, with intended local academic preprocessing, training, and offline evaluation using Amazon Reviews 2023 Electronics 5-core timestamp data.
+- **Assessment basis:** The dataset maintainer says the lab cannot assign a license or dictate usage terms, describes the dataset as made available primarily for research, and directs users to applicable ethical and legal standards. A later favorable answer to another student's thesis-use question is specific to that exchange and is not a blanket license or project-specific legal clearance.
+- **Decision:** Record the intended scope as a limited academic research-use assessment. This documentation is not independent legal advice, a license, or a conclusion that all rights are cleared. Real-data processing and any publication remain gated on confirming applicable terms and project-specific requirements.
+- **Publication boundary:** Do not publish raw reviews, source user IDs, dataset CSVs, original product images, or row-level derived data. Commercial deployment and redistribution require additional rights review.
+- **Consequences:** Pilot planning may proceed without reading or processing the local files. Do not claim metadata coverage or feature-release readiness without authorized product metadata and a completed join audit.
+- **Evidence:** [Official dataset page and citation](https://amazon-reviews-2023.github.io/), [5-core processing documentation](https://amazon-reviews-2023.github.io/data_processing/5core.html), [maintainer terms discussion](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023/discussions/1), and [ACL 2026 research publication](https://aclanthology.org/2026.acl-long.147/).
+- **Revisit if:** Project scope changes, terms clarification is obtained, institutional/legal review reaches a conclusion, or proposed storage/publication/derived-data use changes.
+
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |
