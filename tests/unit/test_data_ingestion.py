@@ -8,7 +8,10 @@ from recfusion_core.contracts import DataSplit
 from recfusion_data.ingestion.adapters import CanonicalSourceAdapter
 from recfusion_data.ingestion.errors import AdapterError, RecordValidationError
 from recfusion_data.ingestion.readers import InputFormat, read_records
-from recfusion_data.splitting.sampling import select_train_users
+from recfusion_data.splitting.sampling import (
+    select_train_users,
+    select_train_users_disk_backed,
+)
 from recfusion_data.validation import validate_interaction, validate_product
 
 _FIXTURES = Path(__file__).parents[1] / "fixtures" / "ingestion"
@@ -126,6 +129,44 @@ def test_user_selection_is_stable_under_input_reordering() -> None:
     )
 
     assert first == second
+
+
+def test_disk_backed_user_selection_is_stable_nested_and_fails_when_too_small(
+    tmp_path: Path,
+) -> None:
+    eligible = [f"synthetic_user_{index:02}" for index in range(12)]
+    duplicate_rich = [*eligible, *eligible[:4]]
+    small, small_count = select_train_users_disk_backed(
+        duplicate_rich,
+        max_users=3,
+        seed="fixed-test-seed",
+        source_id="synthetic-source",
+        database_path=tmp_path / "small.sqlite3",
+    )
+    larger, larger_count = select_train_users_disk_backed(
+        reversed(duplicate_rich),
+        max_users=8,
+        seed="fixed-test-seed",
+        source_id="synthetic-source",
+        database_path=tmp_path / "larger.sqlite3",
+    )
+
+    assert small == select_train_users(
+        eligible,
+        max_users=3,
+        seed="fixed-test-seed",
+        source_id="synthetic-source",
+    )
+    assert small < larger
+    assert small_count == larger_count == 12
+    with pytest.raises(ValueError, match="only 12 eligible train users"):
+        select_train_users_disk_backed(
+            eligible,
+            max_users=13,
+            seed="fixed-test-seed",
+            source_id="synthetic-source",
+            database_path=tmp_path / "insufficient.sqlite3",
+        )
 
 
 def test_csv_fixture_contains_only_synthetic_records() -> None:

@@ -42,7 +42,25 @@ def _arguments() -> argparse.ArgumentParser:
     parser.add_argument("--source-id", required=True)
     parser.add_argument("--source-version", required=True)
     parser.add_argument("--seed", default="recfusion-phase2-pilot-v1")
-    parser.add_argument("--max-users", type=int, default=10_000)
+    parser.add_argument(
+        "--max-users",
+        type=int,
+        help=(
+            "Select this many train-eligible users. For the Amazon adapter, "
+            "sampling is opt-in and occurs only when this flag is supplied."
+        ),
+    )
+    parser.add_argument(
+        "--temp-dir",
+        type=Path,
+        help="Existing directory for temporary disk-backed indexes.",
+    )
+    parser.add_argument(
+        "--min-free-disk-bytes",
+        type=int,
+        default=0,
+        help="Optional minimum free bytes required on output and temporary volumes.",
+    )
     parser.add_argument(
         "--normalize-products",
         action="store_true",
@@ -82,9 +100,15 @@ def main() -> int:
             source_id=args.source_id,
             source_version=args.source_version,
             seed=args.seed,
-            max_users=args.max_users,
+            max_users=(10_000 if args.max_users is None else args.max_users),
             adapter=adapter,
             normalize_products=args.normalize_products,
+            sample_users=(
+                args.adapter == "amazon-reviews-2023-electronics"
+                and args.max_users is not None
+            ),
+            temp_dir=args.temp_dir,
+            min_free_disk_bytes=args.min_free_disk_bytes,
         )
     except (IngestionError, OSError, ValueError) as error:
         print(f"Ingestion failed: {error}", file=sys.stderr)

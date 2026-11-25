@@ -93,6 +93,10 @@ def test_cli_preserves_splits_and_reports_counts_deterministically(
     second_manifest = json.loads((second_dir / "manifest.json").read_text())
 
     assert first_manifest == second_manifest
+    assert first_manifest["sampling"]["max_users"] is None
+    assert first_manifest["sampling"]["policy"] == (
+        "preserve all records and assigned source splits"
+    )
     assert first_summary["counts"] == second_summary["counts"]
     counts = first_manifest["counts"]
     assert isinstance(counts, dict)
@@ -198,6 +202,225 @@ def test_cli_output_is_independent_of_train_row_order(
     assert (original_dir / "rejections.train.jsonl").read_bytes() != (
         reordered_dir / "rejections.train.jsonl"
     ).read_bytes()
+
+
+def test_opt_in_sampling_is_bounded_nested_and_train_only(
+    output_root: Path, tmp_path: Path
+) -> None:
+    header = "user_id,parent_asin,rating,timestamp"
+    train_rows = [
+        f"synthetic_user_{index:02},synthetic_item_{index:02},5,1628643414041"
+        for index in range(12)
+    ]
+    train_rows.extend([*train_rows.copy(), "synthetic_invalid,synthetic_item_bad,6,1"])
+    validation_rows = [
+        f"synthetic_user_{index:02},synthetic_valid_item_{index:02},4,1628643414042"
+        for index in range(12)
+    ]
+    validation_rows.append(
+        "synthetic_heldout_only,synthetic_valid_item_x,4,1628643414042"
+    )
+    test_rows = [
+        f"synthetic_user_{index:02},synthetic_test_item_{index:02},3,1658002729837"
+        for index in range(12)
+    ]
+    train = tmp_path / "synthetic-train.csv"
+    validation = tmp_path / "synthetic-validation.csv"
+    test = tmp_path / "synthetic-test.csv"
+    train.write_text("\n".join([header, *train_rows]) + "\n", encoding="utf-8")
+    validation.write_text(
+        "\n".join([header, *validation_rows]) + "\n", encoding="utf-8"
+    )
+    test.write_text("\n".join([header, *test_rows]) + "\n", encoding="utf-8")
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+
+    def run(
+        output: Path,
+        train_input: Path,
+        limit: int,
+        validation_input: Path = validation,
+    ) -> dict[str, object]:
+        result = _run_cli(
+            "--adapter",
+            "amazon-reviews-2023-electronics",
+            "--train",
+            str(train_input),
+            "--validation",
+            str(validation_input),
+            "--test",
+            str(test),
+            "--source-id",
+            "amazon-reviews-2023-electronics",
+            "--source-version",
+            "synthetic-sampling-v1",
+            "--seed",
+            "fixed-synthetic-seed",
+            "--max-users",
+            str(limit),
+            "--temp-dir",
+            str(scratch),
+            "--output-dir",
+            str(output),
+        )
+        assert result.returncode == 0, result.stderr
+        assert list(scratch.iterdir()) == []
+        return json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+
+    small_dir = output_root / "sample-3"
+    large_dir = output_root / "sample-8"
+    small = run(small_dir, train, 3)
+    run(large_dir, train, 8)
+    small_train = _records(small_dir / "interactions.train.jsonl")
+    large_train = _records(large_dir / "interactions.train.jsonl")
+    small_users = {record["user_key"] for record in small_train}
+    large_users = {record["user_key"] for record in large_train}
+    assert len(small_users) == 3
+    assert len(large_users) == 8
+    assert small_users < large_users
+    assert all("heldout_only" not in str(record) for record in small_train)
+
+    counts = small["counts"]["interactions_by_split"]
+    train_counts = counts["train"]
+    assert train_counts["input_records"] == 25
+    assert train_counts["valid_records"] == 24
+    assert train_counts["rejected_records"] == 1
+    assert train_counts["input_records"] == (
+        train_counts["valid_records"] + train_counts["rejected_records"]
+    )
+    assert (
+        train_counts["selected_valid_records"]
+        + train_counts["filtered_unselected_users"]
+        == train_counts["valid_records"]
+    )
+    assert train_counts["output_records"] == train_counts["selected_valid_records"]
+    assert train_counts["exact_duplicate_occurrences"] == 3
+    assert len(small_train) == train_counts["output_records"]
+    assert small["sampling"]["train_eligible_users"] == 12
+
+    reordered = tmp_path / "reordered-train.csv"
+    reordered.write_text(
+        "\n".join([header, *reversed(train_rows[:-1]), train_rows[-1]]) + "\n",
+        encoding="utf-8",
+    )
+    reordered_dir = output_root / "sample-3-reordered"
+    reordered_manifest = run(reordered_dir, reordered, 3)
+    assert (small_dir / "interactions.train.jsonl").read_bytes() == (
+        reordered_dir / "interactions.train.jsonl"
+    ).read_bytes()
+    assert small["outputs"] == reordered_manifest["outputs"]
+    assert small["sampling"] == reordered_manifest["sampling"]
+    assert (
+        small["source"]["files"]["train"]["sha256"]
+        != reordered_manifest["source"]["files"]["train"]["sha256"]
+    )
+
+    relabeled_validation = tmp_path / "relabeled-validation.csv"
+    relabeled_validation.write_text(
+        "\n".join(
+            [
+                header,
+                *[
+                    row.rsplit(",", 2)[0] + ",1," + row.rsplit(",", 1)[1]
+                    for row in validation_rows
+                ],
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    relabeled_dir = output_root / "sample-3-relabeled-heldout"
+    run(relabeled_dir, train, 3, relabeled_validation)
+    assert (small_dir / "interactions.train.jsonl").read_bytes() == (
+        relabeled_dir / "interactions.train.jsonl"
+    ).read_bytes()
+
+    preprocessed = output_root / "sample-3-preprocessed"
+    preprocess = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "recfusion_data.interaction_cli",
+            "--train",
+            str(small_dir / "interactions.train.jsonl"),
+            "--validation",
+            str(small_dir / "interactions.validation.jsonl"),
+            "--test",
+            str(small_dir / "interactions.test.jsonl"),
+            "--source-id",
+            "amazon-reviews-2023-electronics",
+            "--source-version",
+            "synthetic-sampling-v1",
+            "--output-dir",
+            str(preprocessed),
+        ],
+        cwd=_REPOSITORY_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert preprocess.returncode == 0, preprocess.stderr
+    preprocessing_manifest = json.loads(
+        (preprocessed / "manifest.json").read_text(encoding="utf-8")
+    )
+    assert (
+        preprocessing_manifest["quality_report"]["descriptive_all_splits"][
+            "exact_duplicate_rows_skipped"
+        ]
+        == 3
+    )
+    temporal = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "recfusion_data.temporal_split_cli",
+            "trusted-pre-split",
+            "--train",
+            str(preprocessed / "interactions.train.processed.jsonl"),
+            "--validation",
+            str(preprocessed / "interactions.validation.processed.jsonl"),
+            "--test",
+            str(preprocessed / "interactions.test.processed.jsonl"),
+            "--train-end-utc",
+            _T1_UTC,
+            "--test-start-utc",
+            _T2_UTC,
+            "--source-id",
+            "amazon-reviews-2023-electronics",
+            "--source-version",
+            "synthetic-sampling-v1",
+            "--output-dir",
+            str(output_root / "sample-3-temporal"),
+        ],
+        cwd=_REPOSITORY_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert temporal.returncode == 0, temporal.stderr
+    assert json.loads(temporal.stdout)["evaluation_eligible"] is True
+
+    insufficient = _run_cli(
+        "--adapter",
+        "amazon-reviews-2023-electronics",
+        "--train",
+        str(train),
+        "--validation",
+        str(validation),
+        "--test",
+        str(test),
+        "--source-id",
+        "amazon-reviews-2023-electronics",
+        "--source-version",
+        "synthetic-sampling-v1",
+        "--max-users",
+        "13",
+        "--output-dir",
+        str(output_root / "insufficient-users"),
+    )
+    assert insufficient.returncode == 2
+    assert "only 12 eligible train users" in insufficient.stderr
+    assert not (output_root / "insufficient-users").exists()
 
 
 def test_cli_outputs_compatibility_with_preprocessor_and_trusted_splitter(

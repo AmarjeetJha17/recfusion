@@ -32,7 +32,10 @@ from recfusion_data.ingestion.manifest import (
 )
 from recfusion_data.ingestion.readers import InputFormat, SourceRow, read_records
 from recfusion_data.normalization import normalize_product_metadata
-from recfusion_data.splitting.sampling import select_train_users
+from recfusion_data.splitting.sampling import (
+    select_train_users,
+    select_train_users_disk_backed,
+)
 from recfusion_data.validation import validate_interaction, validate_product
 
 SCHEMA_VERSION = "recfusion.canonical.v1"
@@ -431,12 +434,37 @@ def _eligible_train_users(
     return eligible
 
 
+def _iter_eligible_train_users(
+    path: Path,
+    *,
+    input_format: InputFormat,
+    source_id: str,
+    source_version: str,
+    adapter: SourceAdapter,
+) -> Iterator[str]:
+    for row in read_records(
+        path,
+        input_format,
+        expected_csv_headers=getattr(adapter, "csv_headers", None),
+    ):
+        interaction, _ = _normalize_interaction(
+            row,
+            split=DataSplit.TRAIN,
+            source_id=source_id,
+            source_version=source_version,
+            adapter=adapter,
+        )
+        if interaction is not None:
+            yield interaction.user_key
+
+
 def _process_split(
     *,
     split: DataSplit,
     path: Path,
     input_format: InputFormat,
     selected_users: frozenset[str] | None,
+    sampled_user_subset: bool,
     source_id: str,
     source_version: str,
     adapter: SourceAdapter,
@@ -479,10 +507,18 @@ def _process_split(
             continue
 
         counts["valid_records"] += 1
+        if sampled_user_subset and interaction.user_key not in (selected_users or ()):
+            counts["filtered_unselected_users"] += 1
+            continue
+        if "selected_valid_records" in counts and (
+            selected_users is None or interaction.user_key in selected_users
+        ):
+            counts["selected_valid_records"] += 1
         if (
             selected_users is not None
             and split is DataSplit.TRAIN
             and interaction.user_key in selected_users
+            and getattr(adapter, "supports_products", True)
         ):
             selected_train_items.add(interaction.item_key)
 
@@ -638,9 +674,30 @@ def ingest_local_files(
     max_users: int,
     adapter: SourceAdapter | None = None,
     normalize_products: bool = False,
+    sample_users: bool = False,
+    temp_dir: Path | None = None,
+    min_free_disk_bytes: int = 0,
 ) -> IngestionResult:
     """Ingest canonical local files and atomically publish a new output directory."""
     source_adapter = adapter or CanonicalSourceAdapter()
+    is_amazon_adapter = (
+        getattr(source_adapter, "adapter_id", None)
+        == "amazon-reviews-2023-electronics-5core-timestamp"
+    )
+    if sample_users and not is_amazon_adapter:
+        raise IngestionError("Opt-in disk-backed sampling is Amazon-adapter specific.")
+    if min_free_disk_bytes < 0:
+        raise IngestionError("min_free_disk_bytes cannot be negative.")
+    if temp_dir is not None and not temp_dir.is_dir():
+        raise IngestionError("Temporary directory must already exist.")
+    if min_free_disk_bytes:
+        output_free = shutil.disk_usage(_PROCESSED_ROOT).free
+        temp_free = shutil.disk_usage(temp_dir or Path(tempfile.gettempdir())).free
+        if min(output_free, temp_free) < min_free_disk_bytes:
+            raise IngestionError(
+                "Configured minimum free disk space is not available on output "
+                "and temporary volumes."
+            )
     if product_path is not None and not getattr(
         source_adapter, "supports_products", True
     ):
@@ -661,10 +718,30 @@ def ingest_local_files(
         output_dir=output_dir,
     )
     preserve_all_users = getattr(source_adapter, "preserve_all_users", False)
-    if preserve_all_users:
+    if sample_users:
+        with tempfile.TemporaryDirectory(
+            prefix="recfusion-user-selection-", dir=temp_dir
+        ) as selection_scratch:
+            selected_users, eligible_user_count = select_train_users_disk_backed(
+                _iter_eligible_train_users(
+                    train_path,
+                    input_format=input_format,
+                    source_id=source_id,
+                    source_version=source_version,
+                    adapter=source_adapter,
+                ),
+                max_users=max_users,
+                seed=seed,
+                source_id=source_id,
+                database_path=Path(selection_scratch) / "eligible-users.sqlite3",
+            )
+        eligible_users = None
+        selected_user_count = len(selected_users)
+    elif preserve_all_users:
         eligible_users = None
         selected_users = None
         selected_user_count = None
+        eligible_user_count = None
     else:
         eligible_users = _eligible_train_users(
             train_path,
@@ -680,6 +757,7 @@ def ingest_local_files(
             source_id=source_id,
         )
         selected_user_count = len(selected_users)
+        eligible_user_count = len(eligible_users)
 
     final_output.parent.mkdir(parents=True, exist_ok=True)
     staging_dir = Path(
@@ -690,6 +768,7 @@ def ingest_local_files(
         for split_record_counts in split_counts.values():
             split_record_counts["exact_duplicate_occurrences"] = 0
             split_record_counts["duplicate_rows_retained"] = 0
+            split_record_counts["selected_valid_records"] = 0
     failures: Counter[str] = Counter()
     warnings: Counter[str] = Counter()
     cross_split_duplicates: Counter[str] = Counter()
@@ -700,7 +779,9 @@ def ingest_local_files(
     rejection_sinks: dict[DataSplit, _JsonlSink] = {}
 
     try:
-        with tempfile.TemporaryDirectory(prefix="recfusion-ingest-index-") as scratch:
+        with tempfile.TemporaryDirectory(
+            prefix="recfusion-ingest-index-", dir=temp_dir
+        ) as scratch:
             duplicate_index = _DuplicateIndex(Path(scratch) / "duplicates.sqlite3")
             split_sinks: dict[DataSplit, _JsonlSink] = {}
             product_sink: _JsonlSink | None = None
@@ -720,6 +801,7 @@ def ingest_local_files(
                         path=files[split.value],
                         input_format=input_format,
                         selected_users=selected_users,
+                        sampled_user_subset=sample_users,
                         source_id=source_id,
                         source_version=source_version,
                         adapter=source_adapter,
@@ -799,6 +881,23 @@ def ingest_local_files(
                 if selected_users is not None
                 else "not applicable; source adapter disables product input"
             ),
+            "user_sampling_mode": (
+                "explicit Amazon-only --max-users; eligible users come from valid "
+                "train rows and the disk-backed duplicate index receives selected "
+                "users only"
+                if sample_users
+                else (
+                    "not enabled; Amazon adapter preserves all valid users"
+                    if is_amazon_adapter
+                    else "canonical train-only user sampling"
+                )
+            ),
+            "duplicate_audit_scope": (
+                "selected-user interactions across the explicit input splits"
+                if sample_users
+                else "all valid interactions across the explicit input splits"
+            ),
+            "row_count_scope": "all rows in the explicit source files",
         }
         adapter_configuration = getattr(source_adapter, "manifest_configuration", None)
         if adapter_configuration is not None:
@@ -843,7 +942,7 @@ def ingest_local_files(
                     "max_users": max_users,
                     "seed": seed,
                     "selected_users": len(selected_users),
-                    "train_eligible_users": len(eligible_users or ()),
+                    "train_eligible_users": eligible_user_count,
                     "policy": (
                         "SHA-256 rank of eligible training users; order-independent"
                     ),
@@ -866,3 +965,7 @@ def ingest_local_files(
         if isinstance(error, IngestionError):
             raise
         raise IngestionError("Ingestion failed; no output was published.") from error
+    except BaseException:
+        if staging_dir.exists():
+            shutil.rmtree(staging_dir)
+        raise

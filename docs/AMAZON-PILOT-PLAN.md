@@ -1,6 +1,6 @@
 # Amazon Electronics Pilot Plan
 
-**Status:** Step 2.2B.1 inventory and Step 2.2B.2 synthetic adapter are complete. Step 2.2B.3 documents a limited academic research-use assessment and prepares a pilot plan only; no real dataset rows have been read, sampled, ingested, or transformed. The assessment is not independent legal clearance.
+**Status:** Steps 2.2B.1–2.2B.3 are complete. Step 2.2B.4A implements bounded sampling and is verified only with synthetic fixtures. No real dataset rows have been read, sampled, ingested, or transformed. The documented limited academic research-use assessment is not independent legal clearance; the rights gate below remains closed.
 
 ## Verified local inventory
 
@@ -41,18 +41,18 @@ The project owner declares a non-commercial MCA Recommendation Systems course pr
 
 Do not publish raw reviews, source user IDs, any benchmark CSV, original product images, or row-level derived data. Commercial deployment and redistribution remain outside this scope absent additional rights review. Do not claim product-metadata coverage or feature-release readiness: the interaction adapter does not ingest/join product metadata, and no metadata coverage has been measured.
 
-## Proposed bounded pilot workflow (requires Step 2.2B.4)
+## Proposed bounded pilot workflow (sampling implemented in Step 2.2B.4A)
 
-The sequence below is a plan, not an instruction to run now. The current Amazon adapter sets `preserve_all_users=True`; it accepts the generic `--max-users` argument but deliberately ignores it. **Do not run these commands until Step 2.2B.4 implements and tests train-only sampling for this adapter and the applicable terms/use gate is cleared.** The raw split files remain read-only and gitignored.
+The sequence below is a plan, not an instruction to run now. The Amazon adapter preserves all valid users when `--max-users` is omitted; explicitly passing `--max-users K` enables train-only bounded selection. **Do not run these commands until the applicable terms/use gate is cleared and the pilot is separately authorized.** This step has not opened or processed the local benchmark CSVs. The raw split files remain read-only and gitignored.
 
 1. Before processing, record the project-specific terms/institutional review, permitted local use, retention, and derived-data/publication limits. Confirm the three recorded source checksums still match, record the code commit and fixed seed, and confirm adequate destination and temporary disk space. The CLI does not load `.env`; load the ignored path variables into the invoking shell or pass local paths explicitly. Do not place absolute personal paths in source or committed configuration.
-2. Run a 100-train-eligible-user canary using all three explicit official split files. Select users only from valid train rows using the stable SHA-256 rank already used by `select_train_users`, keyed by fixed seed, source ID, and pseudonymized `user_key`. A user enters the eligible population only through a valid training interaction. Keep every interaction for each selected user from train, validation, and test in its original file-assigned split.
+2. Run a 100-train-eligible-user canary using all three explicit official split files and explicit `--max-users 100`. The implementation streams valid train users into a temporary SQLite rank index, retaining only the selected keys in memory. Ranking uses SHA-256 over seed, source ID, and pseudonymized `user_key`, with user key as tie-breaker. A user enters the eligible population only through a valid training interaction. Keep every selected user's interaction from train, validation, and test in its original file-assigned split. The bounded selection uses disk proportional to distinct train users, but scans all input files for checksums/validation and does not avoid I/O over unselected rows.
 3. Review the canary manifests and aggregate data-quality report. Stop if selection is not exactly 100 users, counts do not reconcile, source checksums change, rows move between splits, held-out data contributes to selection, or trusted split integrity fails. Measure elapsed time, peak process RSS, temporary SQLite size, output size, and free disk before proceeding.
-4. If the canary passes and measured resource use leaves the agreed disk/RAM headroom, independently run the 10,000-user sample from the original files with the **same seed and policy**. Since selection is the lowest stable hash ranks, the canary's 100 users are nested in the 10,000-user selection. Do not select the larger pilot from the canary outputs.
+4. If the canary passes and measured resource use leaves the agreed disk/RAM headroom, independently run the 10,000-user sample from the original files with the **same seed and policy**. Since selection takes the lowest stable hash ranks, the canary's 100 users are nested in the 10,000-user selection. Do not select the larger pilot from the canary outputs.
 5. Run Step 2.4 preprocessing separately on each sample's three canonical split outputs; preserve its duplicate audit/deduplication policy. Run Step 2.5 `trusted-pre-split` with the official cutoffs (`train < 1628643414042 ms`, `validation [1628643414042, 1658002729837) ms`, `test >= 1658002729837 ms`) to validate membership, never repartition it. Let the temporal step fit user/item vocabularies from train only, retaining held-out unknown IDs under the existing unknown-index policy. Do not fit from validation or test.
 6. Keep the canary and 10,000-user outputs in separate new ignored `data/processed/` directories. Preserve the original CSVs. Do not publish row-level output; review any aggregate public report against the terms decision.
 
-Planned command shape after Step 2.2B.4 (the commands are **not currently executable for sampled Amazon inputs**):
+Command shape for a future authorized pilot (these commands are **not authorization to run**):
 
 ```powershell
 uv run recfusion-ingest `
@@ -65,10 +65,11 @@ uv run recfusion-ingest `
   --source-version electronics-5core-timestamp-v1 `
   --seed recfusion-amazon-electronics-pilot-v1 `
   --max-users 100 `
+  --temp-dir data\processed\amazon-electronics-temp `
   --output-dir data\processed\amazon-electronics-canary-100-v1
 ```
 
-Repeat with the same inputs, `--seed`, and source version, `--max-users 10000`, and output directory `data\processed\amazon-electronics-pilot-10000-v1`.
+Repeat with the same inputs, `--seed`, and source version, `--max-users 10000`, and output directory `data\processed\amazon-electronics-pilot-10000-v1`. The `--temp-dir` path must already exist. `--min-free-disk-bytes N` can enforce a caller-selected free-space floor on output and temporary volumes; it does not predict required disk capacity.
 
 ### Required manifests and pilot statistics
 
@@ -78,9 +79,9 @@ The aggregate quality report must include source rows read; eligible and selecte
 
 ### Capacity and implementation gaps
 
-The inventoried inputs total **897,479,611 bytes (about 856 MiB)**. The CSV reader is row-streamed and input checksums are computed with bounded-memory reads. The existing generic sampling path scans the full training split to build a Python set of all eligible user keys, then scans each split again; source hashing adds a pass over every file. It does not write a full canonical copy when users are filtered, but duplicate detection currently inserts all valid interactions into temporary SQLite before unselected users are filtered. Thus `--max-users` does not currently bound the full-source scan or duplicate-index disk use. The Amazon adapter presently disables user sampling and writes all valid interactions. The synthetic release orchestrator is fixture-specific and its cross-stage audit materializes interaction lists; it is not a real-data runner. Synthetic memory figures are not estimates for these files.
+The inventoried inputs total **897,479,611 bytes (about 856 MiB)**. The CSV reader is row-streamed and input checksums are computed with bounded-memory reads. Explicit Amazon sampling now uses a disk-backed eligible-user index and a second pass across each split; the duplicate index receives selected interactions only. Whole-source input/valid/rejected counts still cover all rows. The smaller selected-user set and output rows are held/spooled independently of the full eligible-user population; actual disk consumption and runtime have not been measured on the benchmark. The generic canonical sampling path is unchanged and still builds an in-memory set of eligible users. The synthetic release orchestrator is fixture-specific and its cross-stage audit materializes interaction lists; it is not a real-data runner. Synthetic memory figures are not estimates for these files.
 
-Step 2.2B.4 must implement an Amazon-specific opt-in sampled-user mode with the fixed stable rank, train-only eligibility, nested 100/10,000 selections, retention of selected users' interactions across all original splits, and bounded disk use for unselected events while preserving explicit all-row/rejection counts. It must keep manifests reproducible and record which statistics cover the full scanned files versus the selected subset. The canary then measures actual runtime/RSS/disk; no resource-safety claim can be made from file size or synthetic tests alone.
+Step 2.2B.4A implements the Amazon-specific opt-in sampled-user mode and records whole-source versus selected-user count scopes in its manifest. Synthetic tests validate nesting with small K values, order-independent selection/output hashes, held-out-label invariance, reconciliation, and insufficient-population failure. The 100/10,000 real-data pilot remains blocked by the rights/use gate and requires measured runtime/RSS/disk during the separately authorized canary; no resource-safety claim can be made from file size or synthetic tests alone.
 
 ## Rights gate and pilot entry criteria
 
