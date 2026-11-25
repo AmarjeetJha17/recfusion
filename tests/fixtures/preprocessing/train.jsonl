@@ -1,0 +1,11 @@
+{"user_key":"synthetic_train_user_a","item_key":"synthetic_item_a","event_time_ms":1000,"rating":5,"source_event_fingerprint":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","split":"train"}
+{"user_key":"synthetic_train_user_a","item_key":"synthetic_item_a","event_time_ms":1000,"rating":5,"source_event_fingerprint":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","split":"train"}
+{"user_key":"synthetic_train_user_a","item_key":"synthetic_item_a","event_time_ms":2000,"rating":4,"source_event_fingerprint":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","split":"train"}
+{"user_key":"synthetic_train_user_b","item_key":"synthetic_item_b","event_time_ms":2000,"rating":3,"source_event_fingerprint":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","split":"train"}
+{"user_key":"synthetic_train_user_b","item_key":"synthetic_item_c","event_time_ms":2500,"rating":2,"event_type":"review_feedback","source_event_id":"synthetic_event_d","source_event_fingerprint":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","split":"train"}
+{"user_key":"synthetic_train_user_a","item_key":"synthetic_item_d","event_time_ms":3000,"source_timestamp_value":"3000","rating":1.5,"source_event_fingerprint":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","split":"train"}
+{"user_key":"synthetic_invalid_rating","item_key":"synthetic_item_e","event_time_ms":4000,"rating":6,"source_event_fingerprint":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff","split":"train"}
+{"user_key":"","item_key":"synthetic_item_f","event_time_ms":5000,"rating":1,"source_event_fingerprint":"1111111111111111111111111111111111111111111111111111111111111111","split":"train"}
+{"user_key":"synthetic_invalid_timestamp","item_key":"synthetic_item_g","event_time_ms":"not-a-time","rating":4,"source_event_fingerprint":"2222222222222222222222222222222222222222222222222222222222222222","split":"train"}
+{"user_key":"synthetic_impossible_timestamp","item_key":"synthetic_item_h","event_time_ms":100000000000000000000,"rating":4,"source_event_fingerprint":"3333333333333333333333333333333333333333333333333333333333333333","split":"train"}
+{malformed-json

@@ -77,6 +77,15 @@
 - **Revisit if:** Synthetic-only tests pass and authorized, terms-reviewed profiling demonstrates the normalized fields and parsing rules are appropriate for a selected source.
 - **Open:** Whether these broad unit/range conventions and the supported attribute aliases are suitable for any future real source; source-specific adapters remain separately gated.
 
+## ADR-011 — Deterministic interaction preprocessing and quality reports
+
+- **Status:** Proposed
+- **Choice:** Keep interaction preprocessing as a separate source-independent layer over canonical per-split JSONL outputs. Preserve each input split, source fingerprint, rating and timestamp provenance; label observed rating feedback with configurable provisional thresholds; collapse only exact within-split duplicates; reject conflicting variants within a split; retain and report cross-split fingerprint conflicts without changing either partition.
+- **Why:** This enables reproducible data-quality checks without mutating ingestion outputs, introducing a source adapter, interpreting unobserved products as negatives, or allowing validation/test outcomes to determine train-derived state. Timestamp ties use stable fingerprint/payload ordering rather than input order.
+- **Evidence:** Synthetic fixture and contract/integration tests cover rating-label boundaries, exact and conflicting fingerprints, repeated user-item events, split boundaries, cold-start diagnostics, timestamp validation, and reordered inputs. These tests establish implementation behavior only, not real-source quality.
+- **Revisit if:** An approved source requires additional event fields or timestamp semantics, or a separately reviewed training-only vocabulary contract is ready.
+- **Open:** Whether the provisional rating thresholds suit any future experiment; whether/how to fit integer ID mappings from train while representing validation/test unknown users/items; acceptable source-specific treatment of duplicate events.
+
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |

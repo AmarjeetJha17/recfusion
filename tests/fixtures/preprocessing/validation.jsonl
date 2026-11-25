@@ -1,0 +1,3 @@
+{"user_key":"synthetic_train_user_a","item_key":"synthetic_item_a","event_time_ms":1000,"rating":5,"source_event_fingerprint":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","split":"validation"}
+{"user_key":"synthetic_validation_only_user","item_key":"synthetic_validation_only_item","event_time_ms":4000,"rating":4,"source_event_fingerprint":"4444444444444444444444444444444444444444444444444444444444444444","split":"validation"}
+{"user_key":"synthetic_train_user_a","item_key":"synthetic_validation_item","event_time_ms":4000,"rating":3.5,"source_event_fingerprint":"5555555555555555555555555555555555555555555555555555555555555555","split":"validation"}

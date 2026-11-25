@@ -1,0 +1,2 @@
+{"user_key":"synthetic_test_only_user","item_key":"synthetic_test_only_item","event_time_ms":5000,"rating":2,"source_event_fingerprint":"6666666666666666666666666666666666666666666666666666666666666666","split":"test"}
+{"user_key":"synthetic_train_user_b","item_key":"synthetic_item_b","event_time_ms":5000,"rating":4,"source_event_fingerprint":"7777777777777777777777777777777777777777777777777777777777777777","split":"test"}

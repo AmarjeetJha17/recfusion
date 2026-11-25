@@ -57,3 +57,40 @@ Supported specification keys and conversions:
 Only explicit numeric values with recognized units are normalized. Missing or explicit-null values stay `missing` and remain represented in `raw_values`; conflicting non-missing aliases stay `ambiguous`; malformed numbers/ranges are `invalid`; unknown units or unsupported formats are `unsupported`. A field with any unresolved conflict has a null normalized value; its raw values and source keys remain available. Broad sanity bounds reject RAM outside 1 MiB–4 TiB, storage outside 1 MB–100 TB, display outside 25–3000 mm, weight outside 1–100,000 g, charge capacity outside 1–1,000,000 mAh, and energy capacity outside 0.001–10,000 Wh. These are parser guardrails, not claims about catalog coverage.
 
 Prices remain as the existing canonical `Money` value only when amount and currency are both explicit. The sidecar preserves the original supplied price value and reports normalized/missing/invalid status. A non-JSON price string (including a sentinel such as `"None"`) is passed to price validation as raw input so it is counted as an invalid optional price rather than rejecting the entire product row. It never infers a currency, converts exchange rates, or treats a historical price as current. Exact product duplicates are skipped by the ingestion pipeline; differing records for an item are not overwritten or merged, are counted, and each is labeled as a retained conflict in the normalized sidecar.
+
+## Interaction preprocessing and quality report
+
+The separate `recfusion-preprocess-interactions` command consumes only canonical per-split JSONL files created by `recfusion-ingest`. It does not read raw source schemas or alter ingestion outputs. For the committed synthetic fixture, run:
+
+```powershell
+uv run recfusion-ingest `
+  --train tests\fixtures\ingestion\train.jsonl `
+  --validation tests\fixtures\ingestion\validation.jsonl `
+  --test tests\fixtures\ingestion\test.jsonl `
+  --products tests\fixtures\ingestion\products.jsonl `
+  --source-id synthetic-fixtures `
+  --source-version v1 `
+  --seed recfusion-phase2-pilot-v1 `
+  --max-users 2 `
+  --output-dir data\processed\synthetic-ingestion-v1
+
+uv run recfusion-preprocess-interactions `
+  --train data\processed\synthetic-ingestion-v1\interactions.train.jsonl `
+  --validation data\processed\synthetic-ingestion-v1\interactions.validation.jsonl `
+  --test data\processed\synthetic-ingestion-v1\interactions.test.jsonl `
+  --source-id synthetic-fixtures `
+  --source-version v1 `
+  --output-dir data\processed\synthetic-interactions-v1
+```
+
+The preprocessor requires the explicit split and source fingerprint fields written by ingestion. It rejects a row whose embedded split disagrees with its split file; it never reassigns rows. It accepts the existing canonical user/item identifiers, timestamp, and rating, plus optional source event ID/type and raw timestamp provenance fields. Missing event IDs and event types remain absent (represented as null with `*_present: false`); no purchase/click/impression event is inferred.
+
+The output directory contains `interactions.train.processed.jsonl`, `interactions.validation.processed.jsonl`, `interactions.test.processed.jsonl`, and `manifest.json`. JSONL outputs use schema `recfusion.interaction-preprocessing.v1`, preserve each retained record's split and source fingerprint, retain the input rating value and timestamp value, and add normalized UTC time and a configurable rating-feedback label. Defaults classify ratings >=4 as observed positive signals, <=2 as observed low-rating signals, exactly 3 as neutral, and values in gaps as unclassified. Override thresholds with `--positive-min-rating`, `--neutral-rating`, and `--low-max-rating`; non-ordered or out-of-range thresholds fail before output publication. Labels remain provisional review/rating semantics, not purchase relevance or verified negative feedback. Unobserved items are never labeled negative.
+
+Exact repeated source fingerprints with identical payloads are collapsed within each split and counted. Different fingerprints for repeated user-item interactions remain distinct. Identical source events present across splits remain in each original split and are reported. Conflicting payload variants under one fingerprint within the same split are all excluded and counted rather than resolved by row order. If a fingerprint conflicts only across splits, both split records remain in their original partitions and the conflict is reported; held-out data cannot invalidate a training record. Output rows are sorted by timestamp, source fingerprint, and canonical payload signature, so equal-timestamp order and output files are deterministic when input order changes.
+
+The manifest includes input SHA-256/byte counts, source identity/version, schema version, thresholds and policies, output hashes, and a quality report. Whole-data descriptive statistics include per-split input/valid/retained/rejected counts, rating and label distributions, event-type presence, exact duplicate rate/counts and fingerprint-conflict counts, unique IDs, timestamp ranges, and validation/test cold-start counts relative to training. A clearly separated train-only section reports retained training statistics; this step fits no transform and selects no users using held-out data. Integer user/item mappings are deferred until a train-only vocabulary and unknown-ID policy are designed. Manifests do not contain raw IDs or row-level data.
+
+Malformed JSON and schema failures are counted by reason. Unrepresentable/negative timestamps, invalid ratings, missing identifiers/fingerprints, split mismatches, unsupported fields, and conflicting fingerprints are rejected with explicit counts. A fatal file, checksum, SQLite, or output error exits non-zero; an existing output directory is never overwritten. Derived outputs are staged and atomically published only under ignored `data/processed/`; input files are read-only.
+
+Input reading is streamed one JSONL row at a time into a temporary disk-backed SQLite spool, then emitted in stable order. Memory use is bounded relative to total event rows, but disk/index use and aggregate work scale with input size and unique IDs/fingerprints. The committed fixtures are synthetic and validate pipeline behavior only; they are not dataset profiles or model results. This implementation performs no training, feature fitting, negative sampling, source-specific parsing, or data download.

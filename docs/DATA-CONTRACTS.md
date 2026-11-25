@@ -84,6 +84,34 @@ This schema is source-independent and currently accepts canonical local inputs o
 
 Product rows with the same item key and different source fingerprints are all retained. Their normalized sidecar records are deterministically ordered by `(item_key, source_record_fingerprint)` and marked `conflict_retained`; exact duplicate rows are skipped and counted by the existing ingestion policy. This is a local normalization output contract, not approval to acquire or process Amazon Reviews 2023. It does not resolve source-specific provenance, category taxonomies, or price-as-of-time concerns.
 
+## Derived interaction preprocessing record
+
+Status: implemented for canonical local JSONL outputs from the source-independent ingestion step and synthetic fixtures only. This derived record is versioned as `recfusion.interaction-preprocessing.v1`; it does not change the shared `Interaction` contract or any source adapter.
+
+Each input line must contain the canonical `user_key`, `item_key`, `event_time_ms`, `rating`, `split`, and `source_event_fingerprint` fields produced by ingestion. Optional `source_event_id`, `event_type`, and `source_timestamp_value` are retained only when explicitly supplied. User/item keys and fingerprints remain restricted internal identifiers and are written only to ignored local processed-data outputs; manifests and console summaries contain aggregate counts, not record-level IDs.
+
+The derived record retains the canonical IDs, rating, timestamp, split, and source fingerprint, plus:
+
+| Field | Contract |
+|---|---|
+| `schema_version` | `recfusion.interaction-preprocessing.v1`. |
+| `event_time_utc` | UTC ISO-8601 representation derived from non-negative integer Unix milliseconds. |
+| `source_timestamp_value`, `source_timestamp_unit` | Original canonical input timestamp value and explicit `unix_ms` unit. If an explicit `source_timestamp_value` is present, preserve it; otherwise retain `event_time_ms`. |
+| `source_rating_value` | Original JSON rating value before conversion to the canonical finite Decimal rating. |
+| `rating_label` | Configured descriptive label for observed rating feedback; it is not a purchase, click, or impression label. |
+| `event_type`, `event_type_present` | Optional source event type passthrough and presence flag; missing values are not inferred. |
+| `source_event_id`, `source_event_id_present` | Optional source event identifier passthrough and presence flag; no stable ID is invented. |
+
+The default rating thresholds are provisional and configurable: values at or above 4 are `observed_positive_signal`, values at or below 2 are `observed_low_rating`, exactly 3 is `neutral`, and values in gaps (for example 2.5 or 3.5) are `unclassified`. Thresholds must satisfy `1 <= low_max < neutral_rating < positive_min <= 5`. Raw/canonical ratings remain available in all cases. These categories describe only observed rating feedback; unobserved items are unknown and never negatives.
+
+Only Unix-millisecond canonical timestamps are accepted. Negative values, malformed values, booleans, and values not representable by Python's UTC datetime range are rejected with reason counts. The source value and unit are retained alongside UTC normalization. Equal timestamps are ordered by `(event_time_ms, source_event_fingerprint, canonical payload signature)`; this tie-break does not alter event timestamps or split membership.
+
+Exact duplicate source fingerprints with identical payloads are collapsed within each split and counted. Non-identical repeated interactions between the same user and item remain separate when their source fingerprints differ. An identical fingerprint/payload found in multiple splits is retained in every original split and counted as a cross-split duplicate. If one fingerprint has conflicting payloads within a split, all variants in that split are rejected, independent of input order. If a fingerprint has different payloads across splits but no within-split conflict, each row remains in its original split and a cross-split fingerprint conflict is reported; held-out data cannot reject a train record. No first-row-wins behavior is used.
+
+Quality reports distinguish whole-dataset descriptive statistics from train-only statistics. The train-only section includes counts and distributions from retained training records and is not fitted from validation/test. Validation/test cold-start counts are descriptive comparisons against the training IDs, not training eligibility or feature transforms. No integer user/item mapping is created in this step: map fitting is deferred until a separate train-only vocabulary contract and unknown-ID policy are approved.
+
+The versioned processing manifest records source identity/version, input checksums and byte sizes, label/duplicate/timestamp configuration, rejection reasons, per-split and whole-data counts, training-only descriptive counts, and output checksums. It omits record-level IDs and run-specific timestamps. Outputs are sorted deterministically and atomically published under ignored `data/processed/`; inputs are never modified. The SQLite spool bounds row retention in process memory, while indexes and aggregate queries still consume disk and work proportional to input size and unique user/item/event cardinality.
+
 ## Validation and exclusion behavior
 
 1. Validate JSONL/CSV row parsing and required identifiers, rating range, and timestamp type. Count malformed rows and missing required keys by source file and category.
