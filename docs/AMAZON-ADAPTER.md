@@ -1,6 +1,6 @@
 # Amazon Electronics CSV Adapter
 
-**Status:** Implemented and validated only with synthetic fixtures. The adapter does not resolve or bypass the dataset's external usage-rights gate.
+**Status:** Implemented and validated only with synthetic fixtures. The adapter does not establish legal clearance; the documented owner scope decision and remaining uncertainties are in the [dataset assessment](./DATASETS.md) and [pilot plan](./AMAZON-PILOT-PLAN.md).
 
 ## Source boundary
 
@@ -57,4 +57,4 @@ Without `--max-users`, the train fixture contains 11 data rows: 4 pass canonical
 
 ## Rights and limitations
 
-Amazon Reviews 2023 usage terms remain unresolved for the project's intended research use. The official site and repository availability are not authorization. Do not ingest, sample, profile, transform, train on, or redistribute the downloaded files until applicable terms and intended use are reviewed and cleared. Synthetic adapter tests neither read nor validate those files, and do not establish real-source compatibility or data quality. See [DATASETS.md](./DATASETS.md) and the [Amazon pilot plan](./AMAZON-PILOT-PLAN.md).
+The project owner has documented a narrow decision for local, non-commercial academic coursework preprocessing, offline training, and evaluation. The reviewed project docs and maintainer discussion identify no specific additional university approval requirement or explicit source-term prohibition for that narrow use, but institution-specific rules and applicable law have not been independently verified. This decision is not a dataset license, legal opinion, or clearance; the owner remains responsible for applicable law and source terms. Keep source and derived data local and gitignored; do not commit or publish raw reviews, source user IDs, benchmark CSVs, row-level outputs, or original product images. Commercial use and redistribution are outside this decision. Synthetic adapter tests neither read nor validate the real files, and do not establish real-source compatibility or data quality. See [DATASETS.md](./DATASETS.md) and the [Amazon pilot plan](./AMAZON-PILOT-PLAN.md).

@@ -58,7 +58,7 @@
 - **Why:** The source documents 43.9M Electronics reviews and provides a processed 5-core Electronics timestamp split (13.1M / 1.2M / 1.2M train/validation/test interactions). The 5-core filtering is useful for a dense pilot but changes the original population.
 - **Evidence:** [Dataset overview](https://amazon-reviews-2023.github.io/) and [5-core processing and split documentation](https://amazon-reviews-2023.github.io/data_processing/5core.html).
 - **Revisit if:** Profiling shows insufficient metadata coverage, unsuitable temporal support, or prohibitive resource needs.
-- **Open:** Actual metadata join/field coverage, license/terms review, pilot resource usage, and whether to proceed.
+- **Open:** Actual metadata join/field coverage, any additional source-term or institution-specific limits, pilot resource usage, and whether to expand beyond local coursework use.
 
 ## ADR-009 — Review feedback and temporal evaluation
 
@@ -104,24 +104,24 @@
 - **Revisit if:** An approved source provides effective-time catalog snapshots or a separately reviewed temporal feature policy.
 - **Open:** Whether snapshot metadata is appropriate for a future clearly labeled experiment; whether source-specific product evidence can establish historical availability; no dataset usage-rights gate is resolved by this implementation.
 
-## ADR-014 — Limited academic research-use assessment documented
+## ADR-014 — Scoped local academic coursework use
 
-- **Status:** Limited academic research-use assessment documented; project-specific rights clearance remains unresolved.
+- **Status:** Owner-scoped local coursework decision documented; legal clearance is not established.
 - **Date:** 2026-11-25
-- **Declared purpose:** The project owner states that RecFusion is a non-commercial MCA Recommendation Systems course project, with intended local academic preprocessing, training, and offline evaluation using Amazon Reviews 2023 Electronics 5-core timestamp data.
-- **Assessment basis:** The dataset maintainer says the lab cannot assign a license or dictate usage terms, describes the dataset as made available primarily for research, and directs users to applicable ethical and legal standards. A later favorable answer to another student's thesis-use question is specific to that exchange and is not a blanket license or project-specific legal clearance.
-- **Decision:** Record the intended scope as a limited academic research-use assessment. This documentation is not independent legal advice, a license, or a conclusion that all rights are cleared. Real-data processing and any publication remain gated on confirming applicable terms and project-specific requirements.
-- **Publication boundary:** Do not publish raw reviews, source user IDs, dataset CSVs, original product images, or row-level derived data. Commercial deployment and redistribution require additional rights review.
-- **Consequences:** Pilot planning may proceed without reading or processing the local files. Do not claim metadata coverage or feature-release readiness without authorized product metadata and a completed join audit.
+- **Context:** The project owner confirms that RecFusion is non-commercial MCA coursework. The intended experiment is local preprocessing, offline training, and offline evaluation of Amazon Reviews 2023 Electronics 5-core timestamp data.
+- **Assessment:** The reviewed project docs and maintainer discussion identify no specific university approval requirement or explicit source term prohibiting this narrowly described local coursework use. This is not a finding that no such requirement exists: institution-specific rules and applicable law have not been independently verified.
+- **Decision:** Record the owner's informed choice to limit project use to local, non-commercial academic coursework preprocessing, training, and evaluation. This internal scope decision is not a dataset license, legal opinion, or clearance; it does not mark any legal requirement as satisfied. The owner remains responsible for applicable law, source terms, and institution policy. The maintainer's favorable reply to another student's thesis question is not treated as permission for RecFusion.
+- **Safeguards:** Keep source and derived data local and gitignored. Do not commit or publish raw reviews, source user IDs, benchmark CSVs, row-level outputs, or original product images. Use appropriate attribution in academic reporting, with reviewed aggregate results only. Commercial use and redistribution remain outside this decision and require separate review.
+- **Consequences:** A 100-user local canary may be considered under this scope after project-owner review of this clarification and normal technical preflight. No real data is processed by this decision record alone. No metadata coverage or feature-release readiness is implied.
 - **Evidence:** [Official dataset page and citation](https://amazon-reviews-2023.github.io/), [5-core processing documentation](https://amazon-reviews-2023.github.io/data_processing/5core.html), [maintainer terms discussion](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023/discussions/1), and [ACL 2026 research publication](https://aclanthology.org/2026.acl-long.147/).
-- **Revisit if:** Project scope changes, terms clarification is obtained, institutional/legal review reaches a conclusion, or proposed storage/publication/derived-data use changes.
+- **Revisit if:** Applicable source terms or law are clarified, institutional policy requires review, project scope changes, or storage/publication/derived-data use changes.
 
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |
 |---|---|---|
 | Initial app catalog | laptops first, expand to smartphones/headphones | user confirms scope |
-| Dataset | Amazon Reviews 2023 Electronics, dense 5-core pilot first | license/terms review, schema profile, and use conditions |
+| Dataset | Amazon Reviews 2023 Electronics, dense 5-core pilot first | confirm applicable terms/institution rules, schema profile, and use conditions |
 | Catalog freshness | synthetic/curated demo with visible source | source and permitted asset usage |
 | User data | guest first; optional sign-in later | consent/retention policy |
 | ML hardware | local CPU + optional GPU | actual device capacity |
