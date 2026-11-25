@@ -1,0 +1,8 @@
+{"user_key":"synthetic_user_a","item_key":"synthetic_item_a","event_time_ms":1000,"rating":5}
+{"user_key":"synthetic_user_a","item_key":"synthetic_item_b","event_time_ms":2000,"rating":4}
+{"user_key":"synthetic_user_b","item_key":"synthetic_item_c","event_time_ms":3000,"rating":3}
+{"user_key":"synthetic_user_a","item_key":"synthetic_item_a","event_time_ms":1000,"rating":5}
+{malformed-json
+{"user_key":"synthetic_user_bad_time","item_key":"synthetic_item_d","event_time_ms":"not-a-time","rating":4}
+{"user_key":"synthetic_user_bad_rating","item_key":"synthetic_item_e","event_time_ms":5000,"rating":6}
+{"user_key":"","item_key":"synthetic_item_f","event_time_ms":6000,"rating":1}

@@ -1,0 +1,37 @@
+# Local ingestion foundation
+
+Status: implemented for canonical-format local files and synthetic fixtures only. This is a source-independent parsing/validation foundation, not an Amazon Reviews adapter or dataset profile. Amazon Reviews 2023 retrieval and use remain blocked pending the terms review in `DATASETS.md`.
+
+## Setup and fixture run
+
+From the repository root, install the already locked environment and run the committed synthetic data:
+
+```powershell
+uv sync --frozen
+uv run recfusion-ingest `
+  --train tests\fixtures\ingestion\train.jsonl `
+  --validation tests\fixtures\ingestion\validation.jsonl `
+  --test tests\fixtures\ingestion\test.jsonl `
+  --products tests\fixtures\ingestion\products.jsonl `
+  --source-id synthetic-fixtures `
+  --source-version v1 `
+  --seed recfusion-phase2-pilot-v1 `
+  --max-users 2 `
+  --output-dir data\processed\synthetic-pilot-v1
+```
+
+The command accepts `jsonl` or `csv` for the interaction splits and product file (`--input-format` and `--product-format`). Inputs must already use the canonical field names. Source ID, version, and seed are restricted to safe ASCII tokens. The output path must be a new child of the ignored `data/processed/` directory; an existing destination is never overwritten. The CLI has no network or dataset-download behavior.
+
+The fixture run produces `interactions.train.jsonl`, `interactions.validation.jsonl`, `interactions.test.jsonl`, `products.jsonl`, and `manifest.json`. The manifest contains source-file SHA-256 hashes and byte counts; schema and source versions; sampling configuration; observed input, output, duplicate, filtered, rejected and warning counts; and output hashes. It deliberately omits run timestamps, absolute source paths, and selected user IDs. Counts describe only the supplied local fixture/input and are not Amazon measurements.
+
+Rerun with a different new output directory to compare deterministic output files and manifest contents. With unchanged inputs, source metadata, seed and limits, those contents are stable. User selection ranks the distinct valid training users by SHA-256 over seed, source ID and user key, so source row order does not affect the selected set. Validation/test users cannot qualify unless they also have a valid training interaction; all records for selected users retain their input split membership. Product rows are retained only for items in selected users' training interactions.
+
+## Validation and failure behavior
+
+- JSONL and CSV reading is row-streamed; decoding/parsing failures are counted as rejected rows. CSV headers must be non-empty and unique, and rows with the wrong number of columns are rejected.
+- Canonical required values are non-empty user/item keys, non-negative integer millisecond timestamps, and finite ratings in `[1, 5]`. Product optional values remain null/empty when absent. An invalid optional price is omitted and counted as a warning, not guessed.
+- Exact interaction duplicates within one split are skipped and counted. Identical source records present across splits remain in their original splits and are counted as cross-split duplicates. Exact product duplicates are skipped; differing rows for one item are retained and counted as conflicts.
+- Fatal file/header or output errors exit non-zero and do not publish a completed output directory. Row-level parsing, adapter, and validation failures do not abort the run; their reason counts are in the manifest. Raw inputs are read-only and never copied into output.
+- Processing uses a temporary SQLite index on disk for exact duplicate detection. The first train-only eligibility pass and selected-item set require memory proportional to unique training users and selected training items; this is not constant-memory for all state.
+
+This foundation does not implement Amazon-specific field mapping, source-ID pseudonymization, temporal splitting, feature generation, database insertion, training, or profiling. The JSONL/CSV fixtures are synthetic and are not evidence about real dataset quality, licensing, or resource requirements.

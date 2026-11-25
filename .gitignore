@@ -92,6 +92,8 @@ data/processed/
 *.joblib
 *.pkl
 *.pickle
+# Small synthetic CSV fixtures are source files, not generated datasets.
+!tests/fixtures/ingestion/*.csv
 
 # Vector indexes and model registries
 indexes/

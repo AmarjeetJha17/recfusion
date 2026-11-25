@@ -1,6 +1,6 @@
 # TESTING — Verification strategy
 
-**Status:** The repository bootstrap and API foundation have unit and contract tests, and CI runs the current quality checks. Integration, ML, agent, security and end-to-end coverage remains planned as those features are implemented.
+**Status:** The repository bootstrap/API foundation and local synthetic ingestion foundation have unit, contract, and integration tests, and CI runs the current quality checks. Service-backed integration, ML, agent, security and end-to-end coverage remains planned as those features are implemented.
 
 ## 1. Test pyramid
 

@@ -1,6 +1,6 @@
 # RecFusion — documentation-first project starter
 
-**Status:** Phase 1 repository, API, local infrastructure, and CI foundations. No recommendation features, trained models, performance measurements, live inventory, or product integrations are implied by this implementation.
+**Status:** Phase 1 repository/API foundations and a Phase 2 source-independent ingestion foundation exercised only with synthetic local fixtures. No recommendation features, trained models, performance measurements, live inventory, or product integrations are implied by this implementation.
 
 RecFusion is an **evaluation-driven hybrid electronics recommender**: classical and neural retrieval generate candidates; deterministic constraints and a learned ranker order products; a bounded agent workflow extracts preferences, calls typed tools, and explains catalog-grounded results. It is **not** an LLM that invents shopping recommendations.
 
@@ -62,6 +62,10 @@ uv run uvicorn recfusion_api.main:app --host 127.0.0.1 --port 8000 --no-access-l
 | `GET /ready` | Local application initialization only | `{"status":"ready"}` |
 
 Readiness does not check PostgreSQL, Qdrant, or other external services. Swagger UI (`/docs`) and OpenAPI (`/openapi.json`) are enabled outside production and disabled in production. Run the tests with `uv run pytest`.
+
+## Synthetic local data ingestion
+
+The source-independent CSV/JSONL ingestion prototype accepts canonical local data only. It has no external data adapter or download behavior; Amazon Reviews 2023 remains behind its documented terms-review gate. See [`docs/INGESTION.md`](docs/INGESTION.md) for the exact synthetic-fixture command, output manifest, validation policy, and limitations.
 
 ## Local PostgreSQL and Qdrant
 

@@ -1,0 +1,7 @@
+{"item_key":"synthetic_item_a","title":"Synthetic Widget A","category":"synthetic category","features":["synthetic feature"],"price":{"amount":"10.25","currency":"USD"},"attributes":{"source_note":"synthetic only"}}
+{"item_key":"synthetic_item_a","title":"Synthetic Widget A","category":"synthetic category","features":["synthetic feature"],"price":{"amount":"10.25","currency":"USD"},"attributes":{"source_note":"synthetic only"}}
+{"item_key":"synthetic_item_a","title":"Synthetic Widget A alternate","category":"synthetic category","price":{"amount":"not-a-price","currency":"USD"}}
+{"item_key":"synthetic_item_b","description":null,"features":[]}
+{"item_key":"synthetic_item_c","title":"Synthetic Widget C","images":[{"url":"https://example.invalid/synthetic-image"}]}
+{"item_key":"synthetic_item_j","title":"Held-out-only synthetic item"}
+{malformed-json

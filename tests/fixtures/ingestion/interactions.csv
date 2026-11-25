@@ -1,0 +1,5 @@
+user_key,item_key,event_time_ms,rating
+synthetic_user_csv,synthetic_item_csv,1000,5
+synthetic_user_csv,synthetic_item_csv_2,2000,4
+synthetic_user_csv,synthetic_item_bad_timestamp,not-a-time,3
+synthetic_user_csv,synthetic_item_bad_row,3000
