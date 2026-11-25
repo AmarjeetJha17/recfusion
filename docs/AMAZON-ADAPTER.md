@@ -1,6 +1,6 @@
 # Amazon Electronics CSV Adapter
 
-**Status:** Implemented and validated only with synthetic fixtures. The adapter does not establish legal clearance; the documented owner scope decision and remaining uncertainties are in the [dataset assessment](./DATASETS.md) and [pilot plan](./AMAZON-PILOT-PLAN.md).
+**Status:** Implemented, covered by synthetic fixtures, and exercised against bounded real Electronics 5-core samples in Steps 2.2B.4B/C. See aggregate pilot results in [AMAZON-PILOT-PLAN.md](./AMAZON-PILOT-PLAN.md). The adapter does not establish legal clearance; the owner-scoped use decision and remaining uncertainties are in the [dataset assessment](./DATASETS.md).
 
 ## Source boundary
 
@@ -37,7 +37,7 @@ Sampling uses the same ordering key as the generic selector: SHA-256 of `seed|so
 
 Canonical interaction output bytes and their output hashes are stable when valid source rows are reordered. Source-file checksums in the manifest intentionally change when source bytes/order change, and rejection audit hashes can change when invalid rows move because source row numbers are preserved; therefore the full manifest is not expected to be byte-identical across reordered inputs.
 
-The `--temp-dir` option directs both temporary SQLite databases to an existing local directory; omitted, the system temporary directory is used. `--min-free-disk-bytes` optionally enforces a caller-chosen free-space floor on the output and temporary volumes. This is a threshold check, not an estimate of required disk space. Temporary databases are removed on normal completion or handled failures, and output is staged beside the final destination and atomically published. No full canonical source copy is made. Processing still scans/hashes the complete explicit files and selected output/index disk use scales with selected interactions; actual runtime and resource requirements are unknown until an authorized pilot. The adapter does not fit vocabularies/features, perform negative sampling, join product metadata, or modify source files. Products and normalization options are rejected.
+The `--temp-dir` option directs both temporary SQLite databases to an existing local directory; omitted, the system temporary directory is used. `--min-free-disk-bytes` optionally enforces a caller-chosen free-space floor on the output and temporary volumes. This is a threshold check, not an estimate of required disk space. Temporary databases are removed on normal completion or handled failures, and output is staged beside the final destination and atomically published. No full canonical source copy is made. Processing still scans/hashes the complete explicit files and selected output/index disk use scales with selected interactions. Step 2.2B.4C measured this specific 10,000-user run; its launcher-only memory sample did not capture pipeline RSS, and the observations do not establish capacity beyond that run. The adapter does not fit vocabularies/features, perform negative sampling, join product metadata, or modify source files. Products and normalization options are rejected.
 
 ## Synthetic fixture command
 

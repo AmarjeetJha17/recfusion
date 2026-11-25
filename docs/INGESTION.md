@@ -1,6 +1,6 @@
 # Local ingestion foundation
 
-Status: implemented for canonical-format local files and synthetic fixtures only. This is a source-independent parsing/validation foundation, not an Amazon Reviews adapter or dataset profile. Amazon Reviews 2023 retrieval and use remain blocked pending the terms review in `DATASETS.md`.
+Status: implemented for canonical-format local files and synthetic fixtures, with an opt-in Amazon Electronics CSV adapter exercised in the bounded local pilots documented in `AMAZON-PILOT-PLAN.md`. This remains a source-independent parsing/validation foundation, not a full Amazon Reviews dataset profile. The documented owner-scoped academic-use assessment is not legal clearance; see `DATASETS.md`.
 
 ## Setup and fixture run
 
@@ -62,7 +62,7 @@ uv run recfusion-ingest `
   --output-dir data\processed\amazon-electronics-synthetic-v1
 ```
 
-See [AMAZON-ADAPTER.md](./AMAZON-ADAPTER.md) for detailed source boundaries and limitations. Synthetic tests establish parser and pipeline behavior only. Adapter implementation does not resolve the external dataset usage-rights gate or authorize real-data processing.
+See [AMAZON-ADAPTER.md](./AMAZON-ADAPTER.md) for detailed source boundaries and limitations. Synthetic tests establish parser and pipeline behavior; the local bounded pilots provide a limited real-source compatibility and aggregate-quality check. Adapter implementation does not resolve legal uncertainty or independently authorize future real-data processing.
 
 ## Product metadata normalization
 

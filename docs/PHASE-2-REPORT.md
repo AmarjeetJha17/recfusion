@@ -8,9 +8,12 @@ trusted temporal split, and feature-generation stages. It does not establish
 real-data quality, license/terms approval, production capacity, or Phase 3
 model-training readiness.
 
-**Real-data validation: BLOCKED** pending dataset usage-rights review and an
-authorized pilot. No external dataset was downloaded, processed, or used for
-this report. **Phase 3 readiness with real data is not established.**
+**Real-data pilot status:** Separate local 100-user and 10,000-user Electronics
+5-core pilots have since completed under the limited owner-scoped coursework
+decision. See `AMAZON-PILOT-PLAN.md` for aggregate findings. This synthetic
+release report does not include or publish their row-level outputs, establish
+legal clearance, or establish recommender-model readiness. **Phase 3 readiness
+with real data is not established.**
 
 ## Reproduction
 
@@ -143,6 +146,7 @@ directory.
   built or run.
 
 The synthetic release may be reviewed as a reproducible pipeline artifact.
-Real-data validation remains blocked until source rights are reviewed and a
-specific authorized pilot is approved and executed. Synthetic success alone
-does not authorize acquisition or processing and does not advance Phase 3.
+The separate bounded real-data pilots provide technical evidence only for the
+tested source snapshot and sample sizes; they do not establish legal clearance,
+capacity beyond the measured run, or model quality. Synthetic success alone
+does not authorize additional data processing and does not advance Phase 3.
