@@ -1,6 +1,6 @@
 # Amazon Electronics Metadata Adapter
 
-**Status:** Synthetic-only implementation complete for Phases 4.2A and 4.2B.1.
+**Status:** Synthetic-only implementation and capacity/safety review complete for Phases 4.2A, 4.2B.1, and 4.2B.2.
 No real Amazon metadata or interaction output was opened, scanned, joined, or
 profiled by this implementation step. Real-source use remains gated by the separate project-owner review in
 [`AMAZON-METADATA-PLAN.md`](./AMAZON-METADATA-PLAN.md).
@@ -46,7 +46,11 @@ unmatched; no placeholder product is fabricated.
 (8 MiB default, configurable), hashes the exact source bytes in
 bounded-memory chunks, and uses a temporary disk-backed SQLite index for the
 train-only item vocabulary, fingerprints, duplicate counts, and matched
-records. The temporary database is removed after the run. The metadata input,
+records. The required `--temp-dir` selects the SQLite database directory and
+must already exist. On Windows, SQLite may also use the OS temp directory for
+spill files; set process-scoped `TMP` and `TEMP` to the intended volume and
+verify `System.IO.Path.GetTempPath()` before a large run. The temporary
+database is removed after the run. The metadata input,
 vocabulary, and temporal manifest are checksummed before/after processing to
 detect changes during the run.
 
@@ -65,8 +69,9 @@ records. Reconciliation requires:
 
 The versioned manifest separates declared provenance (URL, retrieval time and
 method, publisher hash) from locally verified facts (file representation,
-byte size, and SHA-256). Unprovided declared facts remain null. A publisher hash
-is compared to the locally computed hash when supplied. The manifest records
+byte size, and SHA-256). Unprovided declared facts remain null. A supplied
+publisher hash is compared to the locally computed hash; a mismatch aborts
+before output staging is created. The manifest records
 the repository commit and whether tracked/untracked Git state was dirty when
 the run began, the normalization schema, verified train vocabulary fingerprint,
 and explicit snapshot-only/effective-time status. A declared URL or retrieval
@@ -104,8 +109,13 @@ uv run recfusion-ingest-amazon-metadata `
   --temporal-manifest data\processed\synthetic-temporal\manifest.json `
   --source-id synthetic-amazon-electronics `
   --source-version fixture-v1 `
+  --temp-dir data\processed\synthetic-amazon-metadata-temp `
   --output-dir data\processed\synthetic-amazon-metadata-v1
 ```
+
+The temp directory must be created before invocation. Do not use the synthetic
+example as a capacity estimate. The B.2 preflight records a synthetic probe
+and planning-only disk scenarios; actual source expansion remains unknown.
 
 The test suite builds all source and temporal inputs synthetically in ignored
 temporary directories; it does not include or access real Amazon metadata.

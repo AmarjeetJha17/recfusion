@@ -58,6 +58,7 @@ def _arguments() -> argparse.ArgumentParser:
     parser.add_argument(
         "--temp-dir",
         type=Path,
+        required=True,
         help="Existing directory for the temporary SQLite target and metadata indexes.",
     )
     parser.add_argument(

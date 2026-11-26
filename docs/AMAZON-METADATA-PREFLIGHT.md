@@ -1,11 +1,10 @@
 # Amazon Electronics Metadata Use Assessment and Acquisition Preflight
 
 **Assessment date:** 2026-11-26 (source HEAD and local resource recheck)
-**Status:** Source-specific assessment prepared; **PENDING OWNER REVIEW**.
-**Recommendation:** **NO-GO for Phase 4.2C acquisition at this time.** The
-synthetic adapter/provenance/coverage checks pass, but the owner has not
-recorded a decision for this separate metadata source. No metadata or
-interaction output was downloaded or opened.
+**Status:** Phase 4.2B.2 capacity and safety review documented using synthetic
+inputs only; source-specific assessment remains **PENDING OWNER REVIEW**.
+**Recommendation:** **NO-GO for acquisition or real-data processing.** No
+metadata or interaction output was downloaded, opened, or processed.
 
 ## 1. Scope and decision status
 
@@ -144,10 +143,11 @@ Observed local environment on 2026-11-26:
 |---|---|
 | OS | Windows, reported version `10.0.26300.0`, x64. |
 | Python / uv | Python 3.13.11 64-bit; uv 0.13.1. |
-| Project/output volume | Repository and ignored `data/processed/` output are on D:. Free space observed: 185,889,366,016 bytes (about 173.1 GiB) via `System.IO.DriveInfo`; `data/processed/` is Git-ignored. |
-| Temporary volume | The process temporary directory is on C:. Free space observed: 21,400,223,744 bytes (about 19.93 GiB) via `System.IO.DriveInfo`. |
-| Proposed raw location | `data/raw/amazon-reviews-2023/electronics/metadata/`; `data/raw/` is Git-ignored. This path does not currently exist. |
-| SQLite location | Use a distinct, run-specific temporary directory on D: under ignored `data/processed/`, passed with `--temp-dir`. The CLI requires this directory to exist. This avoids relying on C:'s smaller free-space pool. No directory was created. |
+| Project/output volume | Repository and ignored `data/processed/` output are on D:. Free space observed: 185,896,460,288 bytes (about 173.1 GiB) via `System.IO.DriveInfo`; `data/processed/` is Git-ignored. |
+| Ambient temporary volume | `System.IO.Path.GetTempPath()` resolves to C:\; free space observed: 21,459,423,232 bytes (about 19.98 GiB). SQLite may use this OS temp location for spill files independently of the adapter's `--temp-dir`. |
+| Process temporary override | Process-scoped `$env:TMP` and `$env:TEMP` set to an existing D: directory were verified to make `GetTempPath()` resolve on D:. No persistent environment setting was changed. |
+| Proposed raw location | `D:\RecFusionData\AmazonReviews2023\Electronics\metadata\` (proposal only; not created). Keep raw input outside the repository. |
+| SQLite location | Use a distinct, run-specific existing temporary directory on D:, passed with required `--temp-dir`. Before launch, set process-scoped `TMP` and `TEMP` to that D: directory and verify `GetTempPath()` is also on D:. No directory was created. |
 | Memory | Physical RAM could not be queried because the local CIM request was denied. No RAM/capacity claim is made. |
 
 The adapter uses an 8 MiB maximum JSONL record by default and an
@@ -167,7 +167,8 @@ additional free space across the selected raw/temp/output volumes >=
 ```
 
 Here `C` is the retained input (4.89 GiB for the HEAD-advertised uncompressed
-JSONL, or unknown for gzip), `T` is temporary SQLite state, `Ocanonical` and
+JSONL, or unknown for gzip), `T` is temporary SQLite state including OS-temp
+spill files, `Ocanonical` and
 `Onormalized` are the two outputs, `A` is any atomic staging copy (the current
 implementation stages one output tree and renames it, so this is not a second
 full output copy), and `R` is a separately chosen recovery reserve. `T`,
@@ -175,6 +176,35 @@ output expansion, and `R` cannot be inferred reliably from synthetic fixtures.
 Current free space exceeds the advertised raw JSONL input size alone, but does
 not establish that a complete run fits. Recheck the actual file, both volumes,
 and selected directories before processing. Do not reserve disk space here.
+
+### Synthetic capacity probe and planning scenarios
+
+A temporary probe processed 1,000 invented JSONL records (64,560 input bytes)
+against a 64-item synthetic train vocabulary. It matched 64 rows (6.4%),
+completed in 0.5043 seconds, peaked at 28,315,648 bytes of process working set
+(about 27.0 MiB, including the interpreter), used a 188,416-byte SQLite file,
+staged 124,780 output bytes, and emitted 21,814 canonical plus 102,966
+normalized bytes. Cleanup completed. These measurements validate the probe
+instrumentation and cleanup path only; they are not a reliable capacity
+estimate for the real source.
+
+The following are planning scenarios, not measured requirements. They use the
+advertised 4.89 GiB raw JSONL size, reserve one source-size download `.partial`
+file, and apply scenario multipliers to SQLite+spill and each output. Logs and
+reports reserve 0.1 GiB; recovery reserve is 25% for low/medium and 50% for
+high. Same-volume atomic rename adds no second full output tree.
+
+| Scenario | Source | Download partial | SQLite + spill | Canonical output | Normalized output | Logs/reports | Extra atomic copy | Recovery reserve | Indicative total |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Low | 4.89 GiB | 4.89 GiB | 2.45 GiB (0.5x) | 2.45 GiB (0.5x) | 2.45 GiB (0.5x) | 0.10 GiB | 0 | 4.31 GiB | 21.50 GiB |
+| Medium | 4.89 GiB | 4.89 GiB | 9.78 GiB (2x) | 4.89 GiB (1x) | 4.89 GiB (1x) | 0.10 GiB | 0 | 7.35 GiB | 36.77 GiB |
+| High | 4.89 GiB | 4.89 GiB | 24.45 GiB (5x) | 14.67 GiB (3x) | 14.67 GiB (3x) | 0.10 GiB | 0 | 31.79 GiB | 95.43 GiB |
+
+Totals are rounded planning scenarios only. They do not establish actual
+SQLite growth, output expansion, or RAM capacity. D: currently has enough
+free space for these scenarios, while ambient C: free space is below the high
+scenario. Verify actual free space and temp root immediately before any
+separately authorized run.
 
 ## 5. Canonical join and synthetic CLI verification
 
@@ -191,12 +221,14 @@ The CLI name and flags below were checked using the installed
 `recfusion-ingest-amazon-metadata --help`. Its exact adapter selector is
 `amazon-reviews-2023-electronics-metadata`; it accepts `--metadata`,
 `--train-vocabulary`, `--temporal-manifest`, `--source-id`, `--source-version`,
-`--output-dir`, optional `--temp-dir`, `--max-record-bytes`, and optional
+`--output-dir`, required `--temp-dir`, `--max-record-bytes`, and optional
 declared-provenance flags `--source-url`, `--retrieved-at`,
 `--retrieval-method`, and `--publisher-sha256`. Both `.jsonl` and `.jsonl.gz`
 inputs are supported; representation is inferred from the suffix and the
 exact local bytes are hashed.
-No network downloader is implemented in this CLI.
+No network downloader is implemented in this CLI. A supplied
+`--publisher-sha256` is compared with the locally computed source checksum;
+mismatch aborts before output staging is created.
 
 The synthetic integration test ran the actual CLI `main()` with invented gzip
 JSONL and generated Step 2.5 artifacts. It covers valid matched items,
@@ -224,13 +256,19 @@ identical canonical and normalized output hashes and sorted rows. The manifest
 source-file hash changes when the compressed input order changes, as expected;
 the entire manifest is therefore not byte-identical across those inputs.
 Configured temporary SQLite state was removed. A corrupt gzip run published no
-output and left no temporary state. A mismatched vocabulary checksum is
-rejected. A focused test now also proves that an existing output directory is
-preserved and never overwritten. The source-processing code contains no HTTP,
+output and left no temporary state. Mismatched vocabulary and publisher
+checksums are rejected; publisher mismatch is rejected before output staging.
+An injected publication failure verified staging/SQLite cleanup and a
+deterministic retry. The successful synthetic source-hash test confirms the
+input bytes stayed unchanged. An existing output directory is preserved and
+never overwritten. The source-processing code contains no HTTP,
 URL, or downloader calls; this synthetic path requires no external connection.
 
-Validation for these adapter checks: **28 focused unit/integration tests
-passed** after adding the child-ASIN and overwrite tests.
+Validation for the latest safety additions: **19 focused unit/integration
+tests passed** across the metadata CLI integration and adapter unit modules.
+The tests cover an injected failure before atomic publication; hard process
+termination was not simulated and may require manual cleanup of that run's
+temporary/staging files.
 
 ## 6. Snapshot, privacy, and leakage audit
 
@@ -264,24 +302,30 @@ passed** after adding the child-ASIN and overwrite tests.
    transfer. If no official checksum exists, hash the complete local file with
    SHA-256 after transfer. Do not substitute the Parquet mirror without a
    separately reviewed immutable revision and format decision.
-3. Recheck free space on D: and C:, then create distinct ignored paths for
-   immutable raw input, temporary SQLite state, and a new output run. Ensure
-   the chosen output does not exist. Preserve the downloaded raw file
+3. Recheck free space on D: and C:, then create distinct storage paths for
+   immutable raw input outside the repository, a run-specific temporary
+   directory on D:, a new ignored output run under `data/processed/`, and a
+   private D: log/report directory. Ensure the chosen output does not exist. Preserve the downloaded raw file
    read-only; record exact URL, retrieval time, size, hash, and source response
    headers in a private provenance record.
-4. Only after source verification, transfer to a `.partial` file and verify
-   byte count and hash before atomically renaming it to the immutable raw
-   filename. Resume only if range support was observed and the transfer client
-   verifies the existing partial; otherwise restart from the beginning. No
-   download/resume command is prescribed while host behavior is unknown.
+4. Only after owner review and source verification, transfer to a `.partial`
+   file and verify byte count and hash before atomically renaming it to the
+   immutable raw filename. HEAD advertises range support for the pinned raw
+   JSONL, but no ranged GET was tested. Resume only after a transfer client
+   validates HTTP 206 and `Content-Range`; otherwise restart. No acquisition
+   command has been executed or validated.
 5. Before the real join, pass any known declared source URL, retrieval date,
    retrieval method, and publisher checksum to the CLI. The v2 manifest now
    captures declared versus locally verified provenance, code commit/dirty
    state, and checksummed split-level interaction coverage. Also record
    measured runtime/RSS/temp/output sizes in the private run report and retain
    the rights-decision reference there.
-6. Use the supported adapter invocation shape below only after separate
-   Phase 4.2C authorization. The command name and option names are verified;
+6. Set process-scoped `$env:TMP` and `$env:TEMP` to the existing D: temp
+   directory, then verify
+   `[System.IO.Path]::GetPathRoot([System.IO.Path]::GetTempPath()) -eq 'D:\'`.
+   Keep row-level stdout/stderr logs private on D:. Use the supported adapter
+   invocation shape below only after separate Phase 4.2C authorization. The
+   command name and option names are verified;
    angle-bracket values are placeholders, not an executable command:
 
    ```text
@@ -323,14 +367,16 @@ Before a later controlled pilot, the owner should explicitly confirm:
 
 **Current blockers:** owner decision pending; the official direct gzip URL
 returned 404; gzip file size/checksum, authentication, range support, and
-resume behavior remain unknown; physical RAM could not be queried. The
+resume behavior remain unknown; physical RAM could not be queried; the pinned
+raw JSONL representation has metadata-only HEAD verification, and ranged GET
+has not been tested. The
 alternate raw JSONL HEAD is reachable and advertises size/hash/range metadata,
 but its bytes have not been downloaded or locally verified, and the owner has
 not selected this alternate representation. Synthetic tests do not resolve
 rights or actual source content.
 
-**Recommendation:** **NO-GO for Phase 4.2C now.** Reconsider a conditional GO
-only after the owner reviews this record, the official source is reachable and
-its provenance/rights conditions are documented, the audit gaps above are
-closed, and an actual local capacity check passes. This report does not
-authorize acquisition or real-data processing.
+**Recommendation:** **NO-GO for Phase 4.2C now.** Synthetic technical checks
+support only a later, separately reviewed preflight. Reconsider after owner
+review, exact source selection, verified acquisition behavior, and actual
+per-volume capacity checks. This report does not authorize acquisition or
+real-data processing.

@@ -1,8 +1,8 @@
 # Amazon Electronics Product Metadata Plan
 
-**Status:** Phase 4.1 feasibility, Phase 4.2A synthetic adapter, Phase 4.2B source/rights preflight, and Phase 4.2B.1 provenance/coverage hardening are documented. No real Amazon metadata or interaction output was opened, profiled, or joined. The source-specific rights decision remains pending. The official gzip URL returned 404 to HEAD; an alternate pinned raw JSONL URL returned HTTP 200 to metadata-only HEAD. See [AMAZON-METADATA-PREFLIGHT.md](./AMAZON-METADATA-PREFLIGHT.md).
+**Status:** Phase 4.2B.2 synthetic capacity and safety gate is documented. No real Amazon metadata or interaction output was opened, profiled, or joined. The source-specific rights decision remains **PENDING OWNER REVIEW**. The official gzip URL returned 404 to HEAD; an alternate pinned raw JSONL URL returned HTTP 200 to metadata-only HEAD. See [AMAZON-METADATA-PREFLIGHT.md](./AMAZON-METADATA-PREFLIGHT.md) and the [owner decision template](./AMAZON-METADATA-OWNER-DECISION-TEMPLATE.md).
 
-**Decision:** The synthetic adapter is implemented and tested; this plan does not authorize acquisition or processing. The Amazon Reviews 2023 metadata rights question remains unresolved for this additional source and must be reviewed by the project owner before any real metadata is read.
+**Decision:** The synthetic adapter is implemented and tested; capacity checks used invented data only. This plan does not authorize acquisition or processing. The metadata rights decision remains **PENDING OWNER REVIEW** and must be recorded before any real metadata is read.
 
 ## 1. Purpose and scope
 
@@ -117,7 +117,7 @@ Before any real metadata source is opened, Phase 4.2 should require:
 
 Reuse the `AmazonReviews2023ElectronicsAdapter` item-key namespace, `ProductMetadata` contract, product validation and normalization routines, SQLite-backed ingestion/feature-store patterns, bounded-memory hashing, ignored `data/processed/` storage, atomic publication helpers, and the Step 2.5 train-only item vocabulary. Continue using the existing warm/cold and conflict rules in `DATA-CONTRACTS.md`, `FEATURES.md`, `DATA-PROFILING-PLAN.md`, and `EVALUATION.md`.
 
-Phase 4.2A implements bounded JSONL and JSONL.GZ streaming, schema-specific mapping, disk-backed exact-key join, duplicate/conflict audit, checksummed v2 provenance manifest, normalized sidecar, and per-split interaction join coverage. Synthetic adapter/integration tests cover both representations. Real-source processing and actual metadata quality/coverage remain unverified and gated; no feature-release readiness is claimed.
+Phase 4.2A implements bounded JSONL and JSONL.GZ streaming, schema-specific mapping, disk-backed exact-key join, duplicate/conflict audit, checksummed v2 provenance manifest, normalized sidecar, and per-split interaction join coverage. Phase 4.2B.2 records synthetic capacity and failure-cleanup checks only. `--temp-dir` is required for the SQLite database; because SQLite can place spill files in the OS temp directory, a Windows run must set process-scoped `TMP` and `TEMP` to the same existing D: directory and verify `GetTempPath()` before launch. The publisher SHA-256 is enforced against local bytes before output staging. Real-source processing and actual metadata quality/coverage remain unverified and gated; no feature-release readiness is claimed. See the preflight for measured synthetic usage and explicitly non-predictive disk scenarios.
 
 ## 11. Rights and privacy gate
 
@@ -127,4 +127,4 @@ If later approved, keep processing local and non-commercial. Do not commit or pu
 
 ## 12. Phase boundary
 
-Phase 4.1 feasibility and Phase 4.2A synthetic adapter implementation are complete. The next real-data step must first receive project-owner review of this separate metadata source, then perform a source-specific preflight covering pinned provenance, rights and terms, local ignored storage, and overwrite protection. Until that gate is cleared, do not download, inspect, ingest, or profile real metadata. No real Amazon metadata was opened or processed in Phase 4.2A.
+Phase 4.1 feasibility and Phase 4.2A synthetic adapter implementation are complete; Phase 4.2B.2 has documented capacity scenarios and temp-path safeguards. The next real-data step must first receive project-owner review of this separate metadata source, then perform a source-specific preflight covering pinned provenance, rights and terms, local ignored storage, actual free space on every volume, and overwrite protection. Until that gate is cleared, do not download, inspect, ingest, or profile real metadata. No real Amazon metadata was opened or processed in Phase 4.2B.2.

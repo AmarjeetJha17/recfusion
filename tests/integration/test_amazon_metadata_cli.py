@@ -4,11 +4,13 @@ import gzip
 import hashlib
 import json
 import shutil
+from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
 
 import pytest
 
+from recfusion_data.ingestion import amazon_metadata_pipeline
 from recfusion_data.metadata_cli import main
 from recfusion_data.splitting.temporal import process_trusted_pre_split
 
@@ -394,6 +396,7 @@ def test_plain_jsonl_matches_gzip_and_reports_split_join_coverage(
     assert (
         plain_manifest["source"]["locally_verified"]["publisher_sha256_match"] is True
     )
+    assert hashlib.sha256(plain.read_bytes()).hexdigest() == publisher_hash
     assert gzip_manifest["source"]["declared_provenance"]["source_url"] is None
     assert plain_manifest["source"]["locally_verified"]["sha256"]
     assert plain_manifest["provenance"]["snapshot_only"] is True
@@ -465,6 +468,33 @@ def test_corrupt_gzip_does_not_publish_or_leave_temp_files(
     assert "valid complete gzip" in capsys.readouterr().err
     assert not output.exists()
     assert list(temp_dir.iterdir()) == []
+
+
+def test_cli_requires_an_explicit_sqlite_temp_directory(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as error:
+        main(
+            [
+                "--adapter",
+                "amazon-reviews-2023-electronics-metadata",
+                "--metadata",
+                "missing.jsonl",
+                "--train-vocabulary",
+                "vocabulary.items.jsonl",
+                "--temporal-manifest",
+                "manifest.json",
+                "--source-id",
+                "synthetic-source",
+                "--source-version",
+                "fixture-v1",
+                "--output-dir",
+                "data/processed/synthetic-metadata-output",
+            ]
+        )
+
+    assert error.value.code == 2
+    assert "--temp-dir" in capsys.readouterr().err
 
 
 def test_vocabulary_manifest_checksum_is_required(
@@ -541,4 +571,116 @@ def test_existing_output_is_never_overwritten(
     assert result == 2
     assert "new, non-existing child directory" in capsys.readouterr().err
     assert sentinel.read_text(encoding="utf-8") == "preserve existing output"
+    assert list(temp_dir.iterdir()) == []
+
+
+def test_publisher_checksum_mismatch_rejects_before_publication(
+    run_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    vocabulary, temporal_manifest, _ = _prepare_temporal_inputs(run_root)
+    complete_content = b"".join(_metadata_rows())
+    source = _write_jsonl(tmp_path / "metadata.jsonl", _metadata_rows())
+    source.write_bytes(complete_content[:-12])
+    temp_dir = tmp_path / "sqlite-temp-publisher-checksum"
+    temp_dir.mkdir()
+    output = run_root / "publisher-checksum-run"
+
+    result = main(
+        [
+            "--adapter",
+            "amazon-reviews-2023-electronics-metadata",
+            "--metadata",
+            str(source),
+            "--train-vocabulary",
+            str(vocabulary),
+            "--temporal-manifest",
+            str(temporal_manifest),
+            "--source-id",
+            "synthetic-amazon-electronics",
+            "--source-version",
+            "fixture-v1",
+            "--publisher-sha256",
+            hashlib.sha256(complete_content).hexdigest(),
+            "--output-dir",
+            str(output),
+            "--temp-dir",
+            str(temp_dir),
+        ]
+    )
+
+    assert result == 2
+    assert "publisher SHA-256 mismatch" in capsys.readouterr().err
+    assert not output.exists()
+    assert list(temp_dir.iterdir()) == []
+
+
+def test_failed_manifest_write_cleans_staging_and_retry_is_deterministic(
+    run_root: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vocabulary, temporal_manifest, _ = _prepare_temporal_inputs(run_root)
+    source = _write_gzip(tmp_path / "retry-metadata.jsonl.gz", _metadata_rows())
+    temp_dir = tmp_path / "sqlite-temp-retry"
+    temp_dir.mkdir()
+    expected = _run_cli(
+        source=source,
+        vocabulary=vocabulary,
+        temporal_manifest=temporal_manifest,
+        output=run_root / "expected-run",
+        temp_dir=temp_dir,
+        capsys=capsys,
+    )
+    expected_manifest = (run_root / "expected-run" / "manifest.json").read_bytes()
+    failed_output = run_root / "retry-run"
+    original_write_manifest = amazon_metadata_pipeline.write_manifest
+
+    def fail_after_manifest_write(path: Path, manifest: Mapping[str, object]) -> bytes:
+        original_write_manifest(path, manifest)
+        raise OSError("synthetic interruption before publication")
+
+    monkeypatch.setattr(
+        amazon_metadata_pipeline, "write_manifest", fail_after_manifest_write
+    )
+    result = main(
+        [
+            "--adapter",
+            "amazon-reviews-2023-electronics-metadata",
+            "--metadata",
+            str(source),
+            "--train-vocabulary",
+            str(vocabulary),
+            "--temporal-manifest",
+            str(temporal_manifest),
+            "--source-id",
+            "synthetic-amazon-electronics",
+            "--source-version",
+            "fixture-v1",
+            "--output-dir",
+            str(failed_output),
+            "--temp-dir",
+            str(temp_dir),
+        ]
+    )
+
+    assert result == 2
+    assert "no output was published" in capsys.readouterr().err
+    assert not failed_output.exists()
+    assert not list(run_root.glob(".retry-run.tmp-*"))
+    assert list(temp_dir.iterdir()) == []
+
+    monkeypatch.setattr(
+        amazon_metadata_pipeline, "write_manifest", original_write_manifest
+    )
+    retried = _run_cli(
+        source=source,
+        vocabulary=vocabulary,
+        temporal_manifest=temporal_manifest,
+        output=failed_output,
+        temp_dir=temp_dir,
+        capsys=capsys,
+    )
+    assert retried["outputs"] == expected["outputs"]
+    assert (failed_output / "manifest.json").read_bytes() == expected_manifest
     assert list(temp_dir.iterdir()) == []

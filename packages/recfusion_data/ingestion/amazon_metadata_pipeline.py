@@ -678,6 +678,8 @@ def ingest_amazon_electronics_metadata(
         r"[0-9a-fA-F]{64}", publisher_sha256
     ):
         raise IngestionError("Publisher SHA-256 must contain exactly 64 hex digits.")
+    if temp_dir is None:
+        raise IngestionError("An explicit temporary directory is required.")
     representation = _metadata_representation(metadata_path)
     final_output = _validate_paths(
         metadata_path=metadata_path,
@@ -693,6 +695,11 @@ def ingest_amazon_electronics_metadata(
         expected_target_count,
     ) = _verified_train_vocabulary(train_vocabulary_path, temporal_manifest_path)
     input_checksum, input_size = sha256_file(metadata_path)
+    if (
+        publisher_sha256 is not None
+        and input_checksum.lower() != publisher_sha256.lower()
+    ):
+        raise IngestionError("Metadata publisher SHA-256 mismatch.")
     final_output.parent.mkdir(parents=True, exist_ok=True)
     staging_dir = Path(
         tempfile.mkdtemp(prefix=f".{final_output.name}.tmp-", dir=final_output.parent)

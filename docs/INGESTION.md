@@ -69,7 +69,13 @@ Amazon Reviews 2023 Electronics metadata JSONL.GZ. It requires an attested Step
 2.5 train-only item vocabulary, exact `parent_asin` key reuse, and a new ignored
 `data/processed` output directory. It streams bounded records, joins through a
 temporary SQLite index, records duplicate/conflict and rejection counts, and
-emits canonical plus normalized product JSONL and a manifest. See
+emits canonical plus normalized product JSONL and a manifest. The CLI requires
+an existing `--temp-dir` for the SQLite database. On Windows, SQLite spill
+files may use the process OS temp path independently; for a large run, set
+process-scoped `TMP` and `TEMP` to the intended volume and verify
+`System.IO.Path.GetTempPath()` before execution. A supplied publisher SHA-256
+must match the locally hashed source or processing fails before output staging.
+See
 [`AMAZON-METADATA-ADAPTER.md`](./AMAZON-METADATA-ADAPTER.md) for its field
 mapping and limitations. Its tests generate synthetic inputs; they do not
 authorize or perform real metadata processing. The separate metadata rights
