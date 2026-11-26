@@ -28,6 +28,14 @@ not be mixed with the Phase 3 temporal Electronics evaluations or interpreted
 as real-data evidence. See [CONTENT-BENCHMARK.md](./CONTENT-BENCHMARK.md) for
 the exact protocol and aggregate results.
 
+Phase 4.4A adds only a synthetic retrieval integration smoke test. It reports
+candidate, exclusion, coverage, overlap, attribution, and RRF-contribution
+diagnostics to validate interface behavior. It does not use held-out relevance
+labels to construct candidates or claim ranking quality. Do not combine its
+smoke counts with Phase 3 metrics or the Phase 4.3B content benchmark. The
+candidate and source contracts are in
+[HYBRID-RETRIEVAL.md](./HYBRID-RETRIEVAL.md).
+
 ## 3. Metric definitions
 
 For eligible evaluation users/queries `U` and held-out relevant set `Rel(u)`:

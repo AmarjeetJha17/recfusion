@@ -86,3 +86,6 @@ Phase 4.3B adds an aggregate-only synthetic benchmark with separate warm-only
 and content-eligible candidate policies, cold-item metrics, fixed controls, and
 metadata-quality ablations. Its scope, results, reproducibility hashes, and
 limitations are documented in [CONTENT-BENCHMARK.md](./CONTENT-BENCHMARK.md).
+Phase 4.4A connects this index to train-scoped collaborative rankings with
+source-specific candidate pools and deterministic RRF; see
+[HYBRID-RETRIEVAL.md](./HYBRID-RETRIEVAL.md).

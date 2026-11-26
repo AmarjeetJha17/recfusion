@@ -45,6 +45,7 @@ class RRFResult:
     eligible_counts: Mapping[str, int]
     depth_truncated_counts: Mapping[str, int]
     outside_pool_counts: Mapping[str, int]
+    source_candidate_excluded_counts: Mapping[str, int]
     seen_excluded_counts: Mapping[str, int]
     eligible_union_size: int
     source_jaccard: Mapping[tuple[str, str], float]
@@ -57,8 +58,9 @@ def fuse_ranked_candidates(
     k: int,
     config: RRFConfig = RRFConfig(),
     seen_items: Set[str] = frozenset(),
+    source_candidate_items: Mapping[str, Set[str]] | None = None,
 ) -> RRFResult:
-    """Fuse one-based source ranks, applying catalog and seen-item filters."""
+    """Fuse one-based ranks with global, source-specific, and seen filters."""
     if isinstance(k, bool) or not isinstance(k, int) or k <= 0:
         raise ValueError("K must be a positive integer.")
     if any(not isinstance(item, str) or not item.strip() for item in candidate_items):
@@ -70,7 +72,12 @@ def fuse_ranked_candidates(
     depths = config.source_depths or {}
     if weights is not None and set(source_rankings) - set(weights):
         raise ValueError("Every ranked source must have a configured weight.")
-    names = tuple(sorted(set(source_rankings) | set(weights or {}) | set(depths)))
+    source_pools = source_candidate_items or {}
+    names = tuple(
+        sorted(
+            set(source_rankings) | set(weights or {}) | set(depths) | set(source_pools)
+        )
+    )
     if any(not isinstance(name, str) or not name.strip() for name in names):
         raise ValueError("Source names must be non-empty strings.")
     effective_weights = {
@@ -81,6 +88,15 @@ def fuse_ranked_candidates(
 
     pool = set(candidate_items)
     seen = set(seen_items)
+    for _, allowed_items in source_pools.items():
+        if any(not isinstance(item, str) or not item.strip() for item in allowed_items):
+            raise ValueError(
+                "Source candidate pool identifiers must be non-empty strings."
+            )
+        if set(allowed_items) - pool:
+            raise ValueError(
+                "Each source candidate pool must be a subset of the global pool."
+            )
     scores: dict[str, float] = {}
     provenance: dict[str, list[str]] = {}
     contributions: dict[str, dict[str, float]] = {}
@@ -88,6 +104,7 @@ def fuse_ranked_candidates(
     eligible_counts: dict[str, int] = {}
     truncated_counts: dict[str, int] = {}
     outside_counts: dict[str, int] = {}
+    source_excluded_counts: dict[str, int] = {}
     seen_counts: dict[str, int] = {}
     eligible_by_source: dict[str, set[str]] = {}
 
@@ -103,11 +120,16 @@ def fuse_ranked_candidates(
         source_eligible: set[str] = set()
         source_contributions: dict[str, float] = {}
         outside = 0
+        source_excluded = 0
         seen_excluded = 0
         weight = effective_weights[name]
+        source_pool = source_pools.get(name)
         for rank, item in enumerate(ranked[:depth], start=1):
             if item not in pool:
                 outside += 1
+                continue
+            if source_pool is not None and item not in source_pool:
+                source_excluded += 1
                 continue
             if item in seen:
                 seen_excluded += 1
@@ -123,6 +145,7 @@ def fuse_ranked_candidates(
         contributions[name] = source_contributions
         eligible_counts[name] = len(source_eligible)
         outside_counts[name] = outside
+        source_excluded_counts[name] = source_excluded
         seen_counts[name] = seen_excluded
 
     ordered = tuple(sorted(scores, key=lambda item: (-scores[item], item))[:k])
@@ -145,6 +168,7 @@ def fuse_ranked_candidates(
         eligible_counts=eligible_counts,
         depth_truncated_counts=truncated_counts,
         outside_pool_counts=outside_counts,
+        source_candidate_excluded_counts=source_excluded_counts,
         seen_excluded_counts=seen_counts,
         eligible_union_size=len(scores),
         source_jaccard=overlaps,

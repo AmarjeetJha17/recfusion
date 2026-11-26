@@ -135,6 +135,16 @@
 - **Limitations:** RRF weights and rank constant are not tuned or known to be optimal. Popularity may concentrate results; sparse sources may produce short lists. Fusion does not add cold-item coverage or remove validation checkpoint-selection optimism. Aggregate union coverage is not final top-K coverage.
 - **Revisit if:** The fixed validation experiment shows no useful trade-off, source candidate generation changes, or a separate ranking protocol is approved. Keep the reserved test split untouched until validation-based selection is complete.
 
+## ADR-017 — Source-scoped synthetic hybrid retrieval
+
+- **Status:** Proposed
+- **Date:** 2026-11-26
+- **Choice:** Reuse the Phase 3 RRF ranker and add optional source-specific candidate pools. For hybrid retrieval, collaborative lists are restricted to train-known items; the content list may use warm and cold items present in the fitted `ContentIndex` candidate keys. Provide separate warm-only and content-eligible global policies, preserve original source ranks while filtering, and report source-pool exclusions separately. Keep explicit source weights/depths and no fallback.
+- **Why:** A single global pool cannot both admit eligible cold content items and prevent collaborative sources from introducing cold products. Filtering source rankings before fusion would also compress their ranks. An optional source-pool filter in the existing RRF engine preserves Phase 3 defaults and one-based ranks.
+- **Evidence:** Synthetic unit and end-to-end tests exercise source-specific eligibility, cold-item retrieval, train-seen filtering, fixed RRF scores, deterministic output, and aggregate diagnostics. These tests establish interface behavior only.
+- **Limitations:** Callers must supply collaborative rankings trained from training-only representations; the interface cannot inspect their model fitting. The synthetic smoke run is not a relevance comparison or quality claim. Real metadata remains gated separately under Phase 4.2C.
+- **Revisit if:** Phase 4.4B freezes its evaluation protocol or candidate-source interfaces change. Do not tune weights against the smoke test.
+
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |

@@ -42,10 +42,37 @@ def test_rrf_applies_source_depth_before_pool_and_seen_filters() -> None:
         (
             result.depth_truncated_counts["model"],
             result.outside_pool_counts["model"],
+            result.source_candidate_excluded_counts["model"],
             result.seen_excluded_counts["model"],
             result.eligible_counts["model"],
         )
     )
+
+
+def test_rrf_applies_source_candidate_pool_without_rank_compression() -> None:
+    result = fuse_ranked_candidates(
+        {"collaborative": ["cold", "warm"]},
+        candidate_items={"cold", "warm"},
+        source_candidate_items={"collaborative": {"warm"}},
+        k=2,
+        config=RRFConfig(rank_constant=1),
+    )
+
+    assert result.recommended_items == ("warm",)
+    assert result.scores == {"warm": pytest.approx(1 / 3)}
+    assert result.source_candidate_excluded_counts == {"collaborative": 1}
+    assert result.raw_generated_counts["collaborative"] == 2
+    assert result.eligible_counts["collaborative"] == 1
+
+
+def test_rrf_source_candidate_pools_must_be_subsets_of_global_pool() -> None:
+    with pytest.raises(ValueError, match="source candidate pool"):
+        fuse_ranked_candidates(
+            {"model": ["a"]},
+            candidate_items={"a"},
+            source_candidate_items={"model": {"outside"}},
+            k=1,
+        )
 
 
 def test_rrf_accepts_missing_and_empty_sources_without_fallback() -> None:

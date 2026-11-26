@@ -37,6 +37,15 @@ reports cold-item eligibility, metadata diagnostics, and aggregate metrics;
 it does not alter the Phase 3 evaluator or use real Amazon data. See
 `docs/CONTENT-BENCHMARK.md` for its protocol and limitations.
 
+Phase 4.4A adds a reusable synthetic hybrid interface in
+`recfusion_ml.retrieval.hybrid`. It generates or accepts a content ranking,
+restricts collaborative sources to train-known IDs, and uses the existing
+source-weighted RRF engine with source-specific candidate pools. Warm-only and
+content-eligible cold-item policies remain explicit. The hybrid diagnostics
+are aggregate-safe; no collaborative model is trained or loaded by this
+interface. Its smoke-test results are contract checks only, not relevance or
+performance claims. See `docs/HYBRID-RETRIEVAL.md`.
+
 Phase 3.1 implements an initial deterministic B0 from positive training review
 counts (rating >=4), with stable item-key tie-breaking and train-seen exclusion.
 It is an offline baseline over the Step 2.5 train-known candidate pool; review
