@@ -91,9 +91,14 @@ def _atomic_json(path: Path, value: Mapping[str, object]) -> None:
 def _memory_status() -> dict[str, int | None]:
     if os.name != "nt":
         return {"total_bytes": None, "available_bytes": None}
+    windll = getattr(ctypes, "windll", None)
+    kernel32 = getattr(windll, "kernel32", None)
+    memory_status_ex = getattr(kernel32, "GlobalMemoryStatusEx", None)
+    if memory_status_ex is None:
+        return {"total_bytes": None, "available_bytes": None}
     buffer = ctypes.create_string_buffer(64)
     ctypes.c_uint32.from_buffer(buffer).value = 64
-    if not ctypes.windll.kernel32.GlobalMemoryStatusEx(buffer):
+    if not memory_status_ex(buffer):
         return {"total_bytes": None, "available_bytes": None}
     return {
         "total_bytes": ctypes.c_uint64.from_buffer(buffer, 8).value,
@@ -103,6 +108,9 @@ def _memory_status() -> dict[str, int | None]:
 
 def _peak_working_set_bytes() -> int | None:
     if os.name != "nt":
+        return None
+    win_dll = getattr(ctypes, "WinDLL", None)
+    if win_dll is None:
         return None
 
     class ProcessMemoryCounters(ctypes.Structure):
@@ -120,8 +128,8 @@ def _peak_working_set_bytes() -> int | None:
         ]
 
     try:
-        psapi = ctypes.WinDLL("Psapi.dll", use_last_error=True)
-        kernel32 = ctypes.WinDLL("Kernel32.dll", use_last_error=True)
+        psapi = win_dll("Psapi.dll", use_last_error=True)
+        kernel32 = win_dll("Kernel32.dll", use_last_error=True)
         kernel32.GetCurrentProcess.restype = ctypes.c_void_p
         psapi.GetProcessMemoryInfo.argtypes = [
             ctypes.c_void_p,

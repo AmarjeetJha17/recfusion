@@ -263,7 +263,8 @@ def _metric_values(metric: RankingMetrics) -> dict[str, float | int | None]:
 
 
 def _peak_working_set_bytes() -> int | None:
-    if sys.platform != "win32":
+    win_dll = getattr(ctypes, "WinDLL", None)
+    if win_dll is None:
         return None
 
     class MemoryCounters(ctypes.Structure):
@@ -281,8 +282,8 @@ def _peak_working_set_bytes() -> int | None:
         ]
 
     try:
-        psapi = ctypes.WinDLL("Psapi.dll", use_last_error=True)
-        kernel32 = ctypes.WinDLL("Kernel32.dll", use_last_error=True)
+        psapi = win_dll("Psapi.dll", use_last_error=True)
+        kernel32 = win_dll("Kernel32.dll", use_last_error=True)
         kernel32.GetCurrentProcess.restype = ctypes.c_void_p
         psapi.GetProcessMemoryInfo.argtypes = [
             ctypes.c_void_p,
