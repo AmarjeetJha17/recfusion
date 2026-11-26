@@ -117,3 +117,75 @@ The aggregate-only result is local and ignored by Git at
 It records source report/checkpoint hashes, cohort, protocol, bootstrap
 settings, per-K aggregate metrics, concentration, overlap, and paired
 uncertainty. It contains no row-level output, source identifier, or raw review.
+
+## Phase 3.4B deterministic fusion experiment
+
+The predeclared experiment completed on the unchanged validation-only cohort:
+1,369 evaluable users, 1,911 eligible targets, and 45,331 train-known items.
+The four standalone recommendation lists were recomputed and matched their
+saved reports. The source CSVs were checked by recorded size only; their
+contents were not opened. Train and validation artifacts were verified and
+used; the test artifact was checksum-verified without parsing or evaluation.
+No models were trained, no weights were tuned, and no per-user rankings were
+persisted.
+
+Both configurations use RRF rank constant 60, source depth 100, and equal
+source weights. Config A combines popularity, item-CF, BPR, and Two-Tower;
+Config B combines Two-Tower and BPR. The evaluator, relevance definition,
+cohort, candidate pool, train-seen exclusions, metrics, and 2,000 paired user
+bootstrap resamples (seed 33033) are unchanged. Missing source outputs receive
+no fallback.
+
+Macro metrics and catalog coverage at K=10:
+
+| Ranking source | Recall@10 | NDCG@10 | Unique items | Catalog coverage |
+|---|---:|---:|---:|---:|
+| Popularity | 0.022784 | 0.009878 | 15 | 0.0331% |
+| Item-CF | 0.005990 | 0.003259 | 750 | 1.6545% |
+| BPR | 0.011566 | 0.005384 | 1,312 | 2.8943% |
+| Two-Tower | 0.025889 | 0.015572 | 31 | 0.0684% |
+| Equal four-model RRF | 0.016521 | 0.009649 | 106 | 0.2338% |
+| Two-Tower + BPR RRF | 0.017981 | 0.009890 | 299 | 0.6596% |
+
+Paired NDCG@10 differences (fusion minus baseline):
+
+| Comparison | Mean difference | Paired bootstrap 95% CI | Wins / losses / ties |
+|---|---:|---:|---:|
+| Equal four-model RRF − Popularity | −0.000229 | [−0.003338, 0.002843] | 19 / 29 / 1,321 |
+| Equal four-model RRF − Two-Tower | −0.005923 | [−0.009267, −0.002944] | 11 / 37 / 1,321 |
+| Two-Tower + BPR RRF − Popularity | 0.000012 | [−0.003230, 0.003250] | 21 / 30 / 1,318 |
+| Two-Tower + BPR RRF − Two-Tower | −0.005682 | [−0.009168, −0.002327] | 14 / 36 / 1,319 |
+
+The measured result is a coverage/quality trade-off, not a demonstrated
+quality improvement. At K=10 the equal four-model configuration did not
+improve NDCG over popularity; the Two-Tower+BPR result was effectively tied
+with popularity under the paired interval and below Two-Tower. Both fusions
+covered more distinct train-known items than popularity or Two-Tower. Most
+paired users tied, reflecting sparse eligible targets and overlapping lists.
+These are exploratory validation results conditional on BPR epoch 13 and
+Two-Tower epoch 2, both selected using this cohort. The intervals are
+unadjusted for the many comparisons and do not remove selection optimism.
+
+The aggregate-only report is local and ignored by Git at
+`data/processed/amazon-electronics-pilot-10000-fusion-v1/fusion-report.json`.
+It contains all K=5/10/20 metrics, relative/absolute metric differences,
+paired comparisons, candidate-union and final-list diagnostics, source
+attribution and overlap, manifests and checkpoint hashes, and runtime/memory
+measurements. It contains no user IDs, item IDs, reviews, or row-level
+rankings. The report SHA-256 is
+`4a5c8d2b374687a837a2331eb6cedbeb26edc1c1a5f56d1446bea6348c5c550c` (88,836
+bytes). The run took 1,475.35 seconds (24m 35s) and peaked at 2,049,433,600
+bytes process working set. Evaluation and bootstrap accounted for 1,239.70
+seconds; no capacity guarantee is inferred from this one run.
+
+This experiment does not establish cold-item coverage, metadata quality, or
+commercial utility. The source-use decision remains the documented narrow,
+local non-commercial academic assessment, not blanket legal clearance;
+applicable terms and law still govern. The test split remains reserved.
+
+Reproduce with the same ignored inputs and a fresh output directory:
+
+```powershell
+uv run python -m recfusion_ml.evaluation.fusion_pilot `
+  --output-dir data/processed/amazon-electronics-pilot-10000-fusion-reproduction-v1
+```

@@ -332,10 +332,25 @@ candidate pool. Also report short-list counts, item-frequency buckets, top-item
 placement shares, per-source attribution, and mean source disagreement
 (`1 - Jaccard`) as aggregates.
 
-The proposed Phase 3.4B configurations are equal-weight RRF across all four
-existing ranked models and a Two-Tower+BPR ablation, both with rank constant
-60 and source depth 100. No validation-based weight search is planned. No real
-fusion experiment has been run as part of Phase 3.4A. Fusion cannot create
-cold-item candidates, calibrate raw model scores, or remove checkpoint
-selection optimism; the reserved test split remains untouched until a single
-validation-selected protocol is frozen.
+Phase 3.4B executed both predeclared equal-weight configurations on validation:
+four-source RRF and Two-Tower+BPR RRF, each with rank constant 60 and source
+depth 100. The unchanged 1,369-user cohort, 1,911-target denominator,
+45,331-item train-known candidate pool, metrics, and seen-item exclusions
+were used. Saved standalone metrics were reproduced; source rankings were
+unique, in-pool, and train-seen-free; source counts reconciled; deterministic
+replay matched; test rows were not parsed or evaluated. No training, weight
+search, fallback, or row-level output persistence occurred.
+
+At K=10, equal four-source RRF reached Recall 0.016521, NDCG 0.009649, 106
+unique items, and 0.2338% train-catalog coverage. Two-Tower+BPR RRF reached
+Recall 0.017981, NDCG 0.009890, 299 unique items, and 0.6596% coverage.
+Popularity had NDCG 0.009878 and 15 unique items; Two-Tower had NDCG 0.015572
+and 31 unique items. Both paired fusion-versus-popularity NDCG intervals
+include zero, while both fusion-versus-Two-Tower intervals are below zero.
+These exploratory results show a coverage/quality trade-off, not an established
+quality gain. Checkpoint-selection optimism, unadjusted multiple comparisons,
+and sparse per-user targets limit interpretation. Fusion cannot create
+cold-item candidates, calibrate raw scores, or establish metadata quality.
+The reserved test split remains untouched. Full aggregates and reproduction
+details are in [MODEL-COMPARISON.md](./MODEL-COMPARISON.md); the local report is
+ignored under `data/processed/amazon-electronics-pilot-10000-fusion-v1/`.

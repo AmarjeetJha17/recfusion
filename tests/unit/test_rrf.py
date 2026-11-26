@@ -3,6 +3,7 @@ from decimal import Decimal
 import pytest
 
 from recfusion_ml.evaluation.fusion import summarize_fusion
+from recfusion_ml.evaluation.fusion_pilot import _orient_paired_statistic
 from recfusion_ml.evaluation.metrics import build_validation_cohort, evaluate_rankings
 from recfusion_ml.ranking.rrf import RRFConfig, fuse_ranked_candidates
 from recfusion_ml.types import RatingEvent
@@ -118,6 +119,18 @@ def test_fusion_diagnostics_distinguish_union_from_final_catalog_coverage() -> N
         "alpha": 2,
         "beta": 2,
     }
+    assert diagnostics.by_k[5]["source_attribution_counts"] == {
+        "alpha": 2,
+        "beta": 2,
+    }
+    assert diagnostics.by_k[5]["source_exclusive_attribution_counts"] == {
+        "alpha": 1,
+        "beta": 1,
+    }
+    assert diagnostics.by_k[5]["source_attribution_shares"] == {
+        "alpha": pytest.approx(2 / 3),
+        "beta": pytest.approx(2 / 3),
+    }
     assert diagnostics.source_pair_mean_jaccard[("alpha", "beta")] == 1 / 3
     assert diagnostics.source_pair_mean_disagreement[
         ("alpha", "beta")
@@ -184,3 +197,25 @@ def test_fused_lists_remain_compatible_with_frozen_validation_evaluator() -> Non
     assert result.eligible_positive_target_count == 1
     assert result.metrics_by_k[1].recall == 1
     assert result.metrics_by_k[5].candidate_coverage == 2 / 3
+
+
+def test_paired_statistics_reverse_orientation_and_confidence_interval() -> None:
+    oriented = _orient_paired_statistic(
+        {
+            "mean_difference": -0.2,
+            "wins": 2,
+            "losses": 6,
+            "ties": 1,
+            "win_rate": 2 / 9,
+            "loss_rate": 6 / 9,
+            "tie_rate": 1 / 9,
+            "bootstrap_95_percentile_ci": [-0.3, -0.1],
+        },
+        reverse=True,
+    )
+
+    assert oriented["mean_difference"] == 0.2
+    assert oriented["wins"] == 6
+    assert oriented["losses"] == 2
+    assert oriented["ties"] == 1
+    assert oriented["bootstrap_95_percentile_ci"] == [0.1, 0.3]

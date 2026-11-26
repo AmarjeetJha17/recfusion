@@ -69,6 +69,14 @@ def summarize_fusion(
         recommendations = [result.recommended_items[:k] for result in results.values()]
         item_counts = Counter(item for items in recommendations for item in items)
         recommendation_count = sum(item_counts.values())
+        attributed = Counter({name: 0 for name in all_sources})
+        exclusive = Counter({name: 0 for name in all_sources})
+        for result in results.values():
+            for item in result.recommended_items[:k]:
+                sources = result.source_provenance[item]
+                attributed.update(sources)
+                if len(sources) == 1:
+                    exclusive.update(sources)
         top_shares = {
             str(n): (
                 sum(count for _, count in item_counts.most_common(n))
@@ -94,11 +102,24 @@ def summarize_fusion(
             "recommendation_count": recommendation_count,
             "unique_recommended_item_count": len(item_counts),
             "final_catalog_coverage": len(item_counts) / len(pool) if pool else None,
+            "mean_final_list_length": (
+                recommendation_count / user_count if user_count else None
+            ),
             "users_short_of_k": sum(len(items) < k for items in recommendations),
             "frequency_histogram": {
                 bucket: histogram[bucket] for bucket in ("0", "1", "2-5", "6-10", ">10")
             },
             "top_item_placement_shares": top_shares,
+            "source_attribution_counts": dict(sorted(attributed.items())),
+            "source_attribution_shares": {
+                name: count / recommendation_count if recommendation_count else 0.0
+                for name, count in sorted(attributed.items())
+            },
+            "source_exclusive_attribution_counts": dict(sorted(exclusive.items())),
+            "source_exclusive_attribution_shares": {
+                name: count / recommendation_count if recommendation_count else 0.0
+                for name, count in sorted(exclusive.items())
+            },
         }
 
     return FusionDiagnostics(

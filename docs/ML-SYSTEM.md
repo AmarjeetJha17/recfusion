@@ -352,17 +352,22 @@ catalog-frequency buckets, top-item placement shares, and source attribution.
 Mean source disagreement is reported as one minus Jaccard overlap. Aggregate
 diagnostics do not emit row-level identities.
 
-Phase 3.4B is proposed, not executed. Freeze source depth 100 before examining
-validation labels and report K=5/10/20. Config A uses equal weights for
-Two-Tower, BPR, item-CF, and popularity; Config B uses equal weights for
-Two-Tower and BPR. Use rank constant 60, no weight search, and the unchanged
-Phase 3.3C users, train-known pool, eligible target denominator, metrics, and
-seen-item filter. Missing model outputs contribute zero without fallback.
-These configurations are hypotheses, not tuned or optimal settings. Fusion
-cannot establish cold-item coverage, metadata quality, or commercial utility;
-popularity concentration and validation checkpoint-selection optimism remain
-limitations. The test split stays reserved until validation-based selection
-is complete.
+Phase 3.4B executed two predeclared equal-weight RRF validation experiments:
+popularity + item-CF + BPR + Two-Tower, and Two-Tower + BPR, using rank
+constant 60 and source depth 100. No weights were tuned; missing source
+outputs received no fallback. The Phase 3.3C validation cohort, train-known
+candidate pool, metric denominator, and seen-item exclusions stayed fixed.
+The K=10 NDCG scores were 0.009649 and 0.009890, with 106 and 299 unique
+recommended items (0.2338% and 0.6596% catalog coverage). Neither result
+establishes improved ranking quality: the equal-four result was below
+popularity, Two-Tower+BPR was statistically indistinguishable from popularity
+under the paired interval, and both were below the validation-selected
+Two-Tower checkpoint. These are exploratory results conditional on the
+existing validation-selected checkpoints, with unadjusted comparisons and
+sparse targets. The reserved test split was not parsed or evaluated. See
+`docs/MODEL-COMPARISON.md` for the aggregate results and uncertainty. Fusion
+does not supply cold-item candidates, product metadata, or commercial
+evidence.
 
 ## 4. Hybrid retrieval pipeline
 
