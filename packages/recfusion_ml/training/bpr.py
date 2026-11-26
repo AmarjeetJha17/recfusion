@@ -157,6 +157,34 @@ class NegativeSampler:
                 return candidate
         return None
 
+    def sample_many(
+        self, user_id: str, rng: random.Random, count: int
+    ) -> tuple[str, ...]:
+        """Sample distinct train-unobserved items, bounded by available items."""
+        if isinstance(count, bool) or not isinstance(count, int) or count < 1:
+            raise ValueError("count must be a positive integer.")
+        seen = self._seen[user_id]
+        requested = min(count, len(self._items) - len(seen))
+        selected: list[str] = []
+        selected_set: set[str] = set()
+        for _ in range(self.max_retries * requested):
+            candidate = self._items[rng.randrange(len(self._items))]
+            if candidate not in seen and candidate not in selected_set:
+                selected.append(candidate)
+                selected_set.add(candidate)
+                if len(selected) == requested:
+                    return tuple(selected)
+        if len(selected) < requested:
+            start = rng.randrange(len(self._items))
+            for offset in range(len(self._items)):
+                candidate = self._items[(start + offset) % len(self._items)]
+                if candidate not in seen and candidate not in selected_set:
+                    selected.append(candidate)
+                    selected_set.add(candidate)
+                    if len(selected) == requested:
+                        break
+        return tuple(selected)
+
 
 @dataclass(frozen=True, slots=True)
 class TrainingSummary:

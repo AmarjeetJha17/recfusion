@@ -1,6 +1,8 @@
 # ML-SYSTEM — Recommender and ranking design
 
-**Status:** Planned model and serving contracts, not trained system.
+**Status:** Phase 3.2B.2 has a local validation-only BPR run. Phase 3.3A adds a
+synthetic-only Two-Tower implementation; it has not used real data or been
+promoted for serving.
 
 ## 1. ML objective
 
@@ -48,7 +50,7 @@ and lock workflow. uv maps only `torch` to the named, explicit official
 dependencies continue to use PyPI. No CUDA, `torchvision`, or `torchaudio`
 package is included.
 
-The forthcoming BPR baseline is intended to train and evaluate on CPU first.
+The BPR baseline and Two-Tower implementation run on CPU first.
 The lock selects the `+cpu` wheel for Windows/Linux, which provides CPU tensor
 and autograd operations and does not include CUDA support. Correct execution
 must not depend on CUDA being available. The current development target is
@@ -144,6 +146,70 @@ confidence intervals or significance analysis and does not establish
 generalization or deployment readiness.
 
 ## 3. Two-tower details
+
+#### Step 3.3A synthetic implementation
+
+`recfusion_ml.models.two_tower.TwoTowerNetwork` is a distinct two-tower
+retriever, not the BPR embedding-dot-product model. The user tower concatenates
+a train-known user identity embedding with the mean of that user's prior
+training-item history embeddings, then applies a configurable GELU MLP
+projection. The separate item tower maps a train-known item identity embedding
+through its own MLP projection. Both produce vectors of the configured
+retrieval dimension and score by their dot product. The item tower can encode
+items independently of a user request. This ID-only item tower does not
+support content-based cold-item retrieval.
+
+User and item vocabularies are fit from eligible train-split events only,
+sorted deterministically, and assigned indices starting at 1. Index 0 is
+reserved for padding and is initialized to zero. The history encoder mean-pools
+unique item IDs from a maximum of 50 most-recent prior items; it uses prior
+observations regardless of their rating. A training target uses only events
+whose `event_time_ms` is strictly earlier than the target. Equal-time events
+are simultaneous and do not enter one another's histories. The target item is
+masked from its own history even if an earlier event for that item exists.
+Repeated positive user/item targets are collapsed to their earliest positive
+event, and repeated items in history are represented once using their latest
+prior timestamp. Step 2.5-ineligible rows are excluded. An empty history is a
+zero pooled vector, while the user identity remains available.
+
+The training target is one distinct train user/item pair with rating >=4. Each
+example uses up to four distinct negatives sampled from train-known items that
+the user has never observed in train; the existing bounded, seeded negative
+sampler is reused. No in-batch negatives are used. The loss is sampled
+softmax/cross-entropy over one positive and the available sampled negatives,
+with logits divided by temperature 0.1 and the positive in column zero. A
+masked padding column is excluded from the loss when a user's available
+negative count is below the configured maximum. The configured L2 penalty is
+applied to active user, positive-item, and negative-item retrieval vectors.
+An unobserved item remains an unknown signal, not a verified dislike, and can
+still be a false negative because the source has no exposure labels.
+
+Training uses deterministic mini-batch ordering and CPU initialization with
+seed 42 by default. Defaults are 32-dimensional ID/history embeddings, one
+64-unit hidden layer per tower, a 32-dimensional retrieval space, 10 epochs,
+batch size 128, Adam at 0.001, L2 coefficient 0.0001, and a 50-item history
+cap. Loss and gradient finiteness are checked; epoch statistics record the
+sampled-softmax, regularization, total loss, example/negative counts, and
+duration. Storage is sparse in observed interactions rather than a dense
+user/item matrix; histories are capped and negatives are bounded per example.
+The model and training tests use synthetic events only. Exact reproducibility
+is expected for the pinned CPU/PyTorch environment and fixed inputs/config;
+bitwise equality across PyTorch versions, platforms, or CPU implementations is
+not promised.
+
+`TwoTowerRecommender.recommend_many` returns rankings compatible with the
+existing evaluator. It scores the exact train-known candidate pool in bounded
+chunks, uses a train-only final user history, excludes every train-observed
+item, and breaks ties by canonical item ID. Unknown users return no results;
+direct score or item-vector requests for unknown IDs fail explicitly. Checkpoints
+are weights-only CPU artifacts written only under ignored `data/processed/` and
+retain private vocabularies, seen-item/history state, the training fingerprint,
+source artifact fingerprints, configuration, epoch statistics, and PyTorch
+version. No real Amazon artifacts or their validation/test splits were accessed
+during Step 3.3A; the evaluator integration test uses synthetic data.
+
+The following serving and metadata directions remain planned rather than
+implemented:
 
 **User tower:** trainable ID embedding for seen users, aggregated historical item embeddings and explicit preference feature vector (when available). Support anonymous query/session via metadata/context encoder or fallback; no assumption that historical review users map to app users.
 
