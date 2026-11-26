@@ -327,6 +327,43 @@ implemented:
 
 **Index:** export item embeddings with model/corpus version, vector dimensionality and IDs; build ANN index; reindex when incompatible embeddings or product set change. Semantic text vector and neural collaborative vector require separate named spaces/collections or fields.
 
+### Phase 3.4A deterministic rank fusion
+
+The synthetic-only Phase 3.4A implementation fuses ranked candidate lists with
+weighted Reciprocal Rank Fusion:
+`score(item) = sum(weight(source) / (rank_constant + one_based_rank))`.
+Raw model scores are not combined or normalized. The default rank constant is
+60; per-source candidate depth is independently configurable and defaults to
+the full supplied list. A configured depth truncates by original rank before
+catalog or seen-item filtering, so filtering never promotes a lower-ranked
+item. Duplicate item IDs within one source list are rejected.
+
+Only candidates in the caller-supplied train-known pool can be returned, and
+the user's train-seen items are excluded. A zero-weight source cannot add
+candidates. Missing and empty sources contribute zero; there is no implicit
+popularity fallback and an empty fused list remains empty. Source provenance,
+per-source RRF contributions, raw/eligible/truncated/excluded counts, eligible
+union size, and pairwise Jaccard overlap on candidates remaining after depth,
+catalog, and seen-item filters are retained for audit. Stable source iteration
+and canonical item-key tie-breaking make results independent of mapping
+insertion order. Aggregate diagnostics distinguish eligible-union
+coverage from coverage in final top-K lists, report users with short lists,
+catalog-frequency buckets, top-item placement shares, and source attribution.
+Mean source disagreement is reported as one minus Jaccard overlap. Aggregate
+diagnostics do not emit row-level identities.
+
+Phase 3.4B is proposed, not executed. Freeze source depth 100 before examining
+validation labels and report K=5/10/20. Config A uses equal weights for
+Two-Tower, BPR, item-CF, and popularity; Config B uses equal weights for
+Two-Tower and BPR. Use rank constant 60, no weight search, and the unchanged
+Phase 3.3C users, train-known pool, eligible target denominator, metrics, and
+seen-item filter. Missing model outputs contribute zero without fallback.
+These configurations are hypotheses, not tuned or optimal settings. Fusion
+cannot establish cold-item coverage, metadata quality, or commercial utility;
+popularity concentration and validation checkpoint-selection optimism remain
+limitations. The test split stays reserved until validation-based selection
+is complete.
+
 ## 4. Hybrid retrieval pipeline
 
 ```mermaid

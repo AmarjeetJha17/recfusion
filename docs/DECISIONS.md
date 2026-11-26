@@ -125,6 +125,16 @@
 - **Evidence:** Synthetic unit and integration tests plus the aggregate-only 10,000-user validation report. These do not establish deployment readiness or superiority.
 - **Open:** Whether alternate support/history/neighbor caps or a graded rating signal should be evaluated; assess only through validation protocol and preserve test as untouched until model selection is complete.
 
+## ADR-016 — Deterministic collaborative rank fusion
+
+- **Status:** Proposed
+- **Date:** 2026-11-26
+- **Choice:** Use weighted Reciprocal Rank Fusion over ranked collaborative and popularity candidate sources. Default rank constant 60, one-based ranks, optional independent source-depth caps, canonical item-key tie breaks, train-known catalog filtering, and train-seen exclusion. Preserve source provenance and audit counts. Missing/empty sources contribute zero with no implicit popularity fallback. Phase 3.4B should compare equal-weight all-source fusion with a Two-Tower+BPR ablation at fixed depth 100 and K=5/10/20.
+- **Why:** Rank fusion does not require raw model-score calibration and gives a deterministic test of complementary ranking and coverage behavior observed in Phase 3.3C.
+- **Evidence:** Synthetic unit and evaluator-compatibility tests only. No real fusion run or quality gain is claimed.
+- **Limitations:** RRF weights and rank constant are not tuned or known to be optimal. Popularity may concentrate results; sparse sources may produce short lists. Fusion does not add cold-item coverage or remove validation checkpoint-selection optimism. Aggregate union coverage is not final top-K coverage.
+- **Revisit if:** The fixed validation experiment shows no useful trade-off, source candidate generation changes, or a separate ranking protocol is approved. Keep the reserved test split untouched until validation-based selection is complete.
+
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |

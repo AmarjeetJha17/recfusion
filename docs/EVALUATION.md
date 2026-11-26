@@ -308,3 +308,34 @@ Deployment recommendation / no-go:
 ## 9. Gates for v1
 
 Before claiming evaluation-driven quality, publish at least B0/B1/B2 comparisons, a neural candidate model, a hybrid ablation, and data leakage tests. Report measured results as measured, targets as targets, and missing measurements as unknown. No fabricated improvement percentages.
+
+## Phase 3.4A deterministic fusion contract
+
+Phase 3.4A adds a synthetic-tested RRF utility; it does not change cohort
+construction, relevance labels, denominators, metrics, candidate eligibility,
+or test-set policy. Fuse each source's ranked list using
+`weight / (60 + one_based_source_rank)` and sum contributions. Source depth is
+independent of final K; the proposed Phase 3.4B depth is 100, frozen before
+validation inspection. Ties use canonical item ID order. Duplicate IDs within
+a source list are invalid. Filtering preserves original ranks.
+
+Supply the exact train-known candidate pool and each user's training-seen set.
+Filter out-of-pool and seen items; never add items from validation targets or
+the test split. A missing/empty model list contributes nothing. There is no
+automatic fallback, including popularity; report an empty or short list as it
+is. Record per-source raw counts, eligible counts, depth truncation, exclusion
+counts, contributions, provenance, and Jaccard overlap over candidates
+remaining after depth, train-known-pool, and seen-item filters. Eligible
+source-union coverage is diagnostic only. Ranking metrics and catalog coverage
+must use the actual final top-K lists over the unchanged evaluator cohort and
+candidate pool. Also report short-list counts, item-frequency buckets, top-item
+placement shares, per-source attribution, and mean source disagreement
+(`1 - Jaccard`) as aggregates.
+
+The proposed Phase 3.4B configurations are equal-weight RRF across all four
+existing ranked models and a Two-Tower+BPR ablation, both with rank constant
+60 and source depth 100. No validation-based weight search is planned. No real
+fusion experiment has been run as part of Phase 3.4A. Fusion cannot create
+cold-item candidates, calibrate raw model scores, or remove checkpoint
+selection optimism; the reserved test split remains untouched until a single
+validation-selected protocol is frozen.
