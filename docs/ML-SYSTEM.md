@@ -60,9 +60,59 @@ the wheel index before use.
 
 Training remains an offline concern. If a future serving implementation
 requires PyTorch inference, review that dependency separately rather than
-pulling the training stack into the API runtime by default. Store model
-checkpoints only in ignored local artifact paths and load them only with
-verified provenance; a CPU-only installation provides no GPU acceleration.
+pulling the training stack into the API runtime by default. A CPU-only
+installation provides no GPU acceleration.
+
+#### Step 3.2B.1 BPR implementation
+
+`recfusion_ml.models.implicit_mf.ImplicitMF` provides trainable user and item
+embeddings and dot-product scores. The model is trained on CPU with Adam. The
+pairwise objective is the mean `softplus(score(u, negative) -
+score(u, positive))`; the configured L2 term adds the mean squared norms of
+the sampled user, positive-item, and negative-item embeddings, scaled by the
+regularization coefficient. Non-finite scores, loss, gradients, and parameters
+raise errors instead of being silently propagated.
+
+`fit_bpr` accepts **training-split events only**. It builds sorted user/item
+vocabularies from those events, takes ratings >=4 as positive observations,
+and deduplicates repeated positive user/item pairs in this derived training
+view. Ratings 1-2 remain observed history and rating 3 remains neutral; both
+exclude an item from that user's negative candidates. One negative is sampled
+per distinct positive pair each epoch from train-known items not observed for
+that user. Sampling uses a fixed seed, sorted candidates, bounded rejection,
+and a seeded deterministic scan fallback. Users with no permissible negative
+are skipped and counted; training errors if no triplets can be formed. A
+sampled unobserved item is a BPR training assumption, not a verified dislike.
+
+The defaults are 32 dimensions, 20 epochs, batches of 1,024 triplets, Adam
+learning rate 0.001, L2 coefficient 0.0001, seed 42, and 16 bounded negative
+rejection attempts before the seeded scan fallback. Training-example
+ordering, initialization, and negative sampling are seed-controlled and
+independent of input-row order. Reproducibility is expected within the pinned
+CPU/PyTorch environment; exact bitwise results across different PyTorch
+versions, platforms, or CPU implementations are not guaranteed.
+
+Scoring uses train-known items only, scores candidates in bounded chunks,
+excludes every item observed by the user in training (including low/neutral
+ratings), and sorts by score descending then canonical item ID ascending.
+Unknown users yield no recommendations; direct scoring rejects unknown users
+and items. This interface can provide candidate rankings to the Phase 3.1
+evaluator, but this implementation step does not evaluate validation or test.
+
+Checkpoints are written atomically only beneath ignored `data/processed/` and
+are never public model artifacts. They contain the architecture/training
+configuration, train-only ordered identifier vocabularies and seen-item sets,
+training-view SHA-256 fingerprint, optional caller-supplied source artifact
+SHA-256 fingerprints, sampling strategy, summary, epoch losses, PyTorch
+version, and tensor state. The training-view fingerprint covers the sorted
+user/item/rating event triples; it is not a raw-source file checksum. Loading
+is CPU-mapped and uses `weights_only=True`; arbitrary
+Python object deserialization is not enabled. Identifier mappings and learned
+embeddings remain local and private. The current tests use only small
+synthetic events: they verify score/loss gradients, deterministic fitting,
+sampling exclusions, duplicate-pair handling, ranking behavior, leakage
+rejection, and checkpoint score equivalence. No real Amazon data or
+validation/test artifact has been used for BPR in this step.
 
 ## 3. Two-tower details
 
