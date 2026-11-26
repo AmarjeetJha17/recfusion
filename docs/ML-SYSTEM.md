@@ -253,6 +253,66 @@ checkpoint reload/full validation took 26.981 seconds. Peak working set was
 describe this local run and are not capacity guarantees. No product metadata
 was joined, so cold-item retrieval and metadata coverage remain unsupported.
 
+#### Step 3.3B.1 saved-checkpoint diagnostics
+
+The saved epoch-2 checkpoint was verified against its SHA-256, the trusted
+train/validation artifact hashes, both manifests, and rebuilt train-only
+vocabulary/history state. The validation cohort remains 1,369 users, 1,911
+eligible positive targets, and the exact 45,331 train-known candidates. No
+model was retrained, and test rows were not parsed or evaluated.
+
+No ranking implementation defect was found. On a deterministic 16-user
+comparison, `recommend_many` matched single-user ranking. The multi-user path
+preserves sorted item-vector indexing, user-specific vectors, seen-item
+exclusion, descending-score/key tie-breaking, and bounded chunks. The item
+vector cache is local to each `recommend_many` call, so loading a different
+checkpoint cannot reuse stale cached vectors. Synthetic regression tests now
+cover per-user ranking, item mapping, ties, seen-item filtering, chunk-size
+invariance, and refreshed vectors.
+
+The concentration is measurable but not unique to Two-Tower: the same-cohort
+popularity control recommended 15 unique items at K=10, versus 31 for
+Two-Tower. At K=10, the top 10 items account for 93.02% of Two-Tower placements
+and 98.24% for popularity. Full-catalog normalized entropy was 0.2293 versus
+0.2200; Gini was 0.999770 versus 0.999776. These Gini values include all
+45,331 candidates, including zero-frequency items. Mean sampled pairwise K=10
+list overlap was 0.900 for Two-Tower and 0.961 for popularity (128
+deterministically sampled users; overlap is intersection divided by the
+shorter list length). Two-Tower recommendation frequency had Pearson
+correlation 0.593 with train positive-review counts. At K=10 it shared 11 of
+its 31 unique items with popularity; mean per-user list overlap was 0.791.
+Thus the model has some user-specific ordering, but remains strongly
+concentrated around popular items.
+
+Empty-history inference retained the same candidate pool and train-seen
+filter. Its K=10 Recall/NDCG were 0.026254/0.015737, compared with
+0.025889/0.015572 using train histories; coverage fell from 31 unique items
+to 15. Normal and empty-history K=10 lists overlapped by 0.973 on average.
+Across 256 deterministic sampled users, normal and empty-history vectors had
+mean cosine 0.972 and mean coordinate absolute difference 0.0172. This
+confirms that history changes representations, while its effect on rankings
+is small in this saved checkpoint. It does not establish why the history
+signal is weak.
+
+Representation summaries used 256 sampled user vectors and 1,024 sampled item
+vectors. Mean pairwise cosine was 0.812 for normal-history users (p95 0.976),
+0.911 for empty-history users, and 0.250 for item vectors (median 0.501, p95
+0.943). Sampled user-item scores had mean -0.0268, population variance
+0.00211, median -0.0308, p05 -0.0865, and p95 0.0431. Adjacent sorted sample
+scores were near-equal within 1e-6 in 1.17% of comparisons and exactly equal
+in 0.0034%. These statistics do not, individually or together, establish
+representation collapse.
+
+The existing 20-epoch log shows training loss falling from 1.5297 (epoch 1)
+to 0.07474 (epoch 20); validation NDCG@10 peaked at epoch 2 (0.015572), fell
+to 0.009573 at epoch 3, and was 0.001794 at epoch 20. Per-epoch catalog
+coverage was not recorded and is unavailable. This is evidence consistent
+with overfitting, but not evidence of its cause. The aggregate-only diagnostic
+report is private under ignored
+`data/processed/amazon-electronics-pilot-10000-twotower-diagnostics-v1/diagnostics-v3.json`.
+It contains no IDs, embeddings, or recommendation lists. Sampling seed is
+33031; exact selection and additional aggregates are recorded there.
+
 The following serving and metadata directions remain planned rather than
 implemented:
 

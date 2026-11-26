@@ -325,6 +325,72 @@ def test_cached_multi_user_retrieval_matches_single_user_rankings() -> None:
     assert cached == uncached
 
 
+def test_multi_user_ranking_preserves_item_mapping_user_vectors_and_chunk_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events = (
+        event("u1", "a", "5", 10),
+        event("u2", "b", "5", 10),
+        event("u3", "c", "5", 10),
+        event("u3", "d", "5", 20),
+        event("u3", "e", "5", 30),
+    )
+    recommender = fit_two_tower(
+        events,
+        config=TwoTowerConfig(
+            embedding_dim=4,
+            hidden_dims=(4,),
+            retrieval_dim=2,
+            epochs=1,
+            batch_size=2,
+            seed=31,
+            negative_count=1,
+        ),
+    )
+    vectors = {
+        "a": (0.0, 0.0),
+        "b": (0.0, 0.0),
+        "c": (3.0, 0.0),
+        "d": (0.0, 4.0),
+        "e": (3.0, 0.0),
+    }
+
+    def encode_users(user_indices: torch.Tensor, history: torch.Tensor) -> torch.Tensor:
+        del history
+        return torch.stack(
+            [
+                torch.tensor((1.0, 0.0))
+                if index == recommender._user_indices["u1"]
+                else torch.tensor((0.0, 1.0))
+                for index in user_indices.tolist()
+            ]
+        )
+
+    def item_vectors(
+        model: TwoTowerRecommender, item_ids: tuple[str, ...]
+    ) -> torch.Tensor:
+        del model
+        return torch.tensor([vectors[item] for item in item_ids])
+
+    monkeypatch.setattr(recommender.model, "encode_users", encode_users)
+    monkeypatch.setattr(TwoTowerRecommender, "item_vectors", item_vectors)
+
+    chunked = recommender.recommend_many(("u1", "u2"), k=4, chunk_size=2)
+    unchunked = recommender.recommend_many(("u1", "u2"), k=4, chunk_size=5)
+
+    assert chunked == unchunked
+    assert chunked["u1"] == ("c", "e", "b", "d")
+    assert chunked["u2"] == ("d", "a", "c", "e")
+    assert not set(chunked["u1"]) & recommender.data.seen_items_by_user["u1"]
+    assert not set(chunked["u2"]) & recommender.data.seen_items_by_user["u2"]
+
+    vectors["c"] = (0.0, 5.0)
+    vectors["e"] = (0.0, 5.0)
+    refreshed = recommender.recommend_many(("u1", "u2"), k=4, chunk_size=2)
+    assert refreshed["u1"] != chunked["u1"]
+    assert refreshed["u1"] == ("b", "c", "d", "e")
+
+
 def test_independent_item_vectors_are_repeatable_and_checkpoint_round_trips(
     tmp_path: Path,
 ) -> None:

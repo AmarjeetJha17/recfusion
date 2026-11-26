@@ -183,6 +183,28 @@ experiment did not alter that decision.
 
 Metrics must include `K`, user count, item universe, exclusions, split manifest, source and seed. Compare full-catalog ranking when feasible; explicitly label sampled candidate/negative evaluation and use the *same* candidate policy for models.
 
+### Phase 3.3B.1 Two-Tower diagnostics
+
+Diagnostics used the saved epoch-2 checkpoint (`a9521c9035660a5f1d8c796595c7a796b9f8c85c74ea586fd181514ddf99a46f`) and verified it against the train/validation fingerprints and preprocessing/temporal manifests. The frozen cohort and exact train-known candidate policy were unchanged: 1,369 evaluated users, 1,911 eligible targets, 45,331 candidates, and train-seen exclusion. No model was retrained and test rows were not parsed or evaluated. Deterministic representation and overlap samples use seed 33031.
+
+Two-Tower and popularity were recomputed on the same users, candidate set, and seen-item exclusions. Coverage and concentration include all 45,331 candidates, including zero-frequency items. Entropy is Shannon entropy divided by `log(candidate_count)`; Gini is computed over the full frequency vector. Sampled pairwise list overlap is intersection size divided by the shorter list length, using 128 SHA-256-selected users (8,128 pairs).
+
+| K | Two-Tower unique / coverage | Popularity unique / coverage | Normalized entropy (TT / pop) | Gini (TT / pop) | Mean pairwise overlap (TT / pop) |
+|---:|---:|---:|---:|---:|---:|
+| 5 | 16 / 0.000353 | 9 / 0.000199 | 0.1680 / 0.1573 | 0.999882 / 0.999887 | 0.857 / 0.948 |
+| 10 | 31 / 0.000684 | 15 / 0.000331 | 0.2293 / 0.2200 | 0.999770 / 0.999776 | 0.900 / 0.961 |
+| 20 | 60 / 0.001324 | 25 / 0.000551 | 0.2937 / 0.2830 | 0.999542 / 0.999554 | 0.903 / 0.970 |
+
+At K=10 the top 1/5/10 items account for 9.88%/49.15%/93.02% of Two-Tower recommendation placements; popularity's shares are 9.91%/49.41%/98.24%. Exact ordered K=10 lists were not identical across models. Their mean per-user overlap was 0.791; their unique-item sets shared 11 items (Jaccard 0.314). Two-Tower K=10 recommendation frequency had Pearson correlation 0.593 with train positive-review counts across the candidate pool. Top items reached 98.76% of evaluated users in Two-Tower and 99.05% in popularity. These results show somewhat greater coverage and list variation than popularity, alongside strong concentration in both systems.
+
+The inference-only empty-history ablation kept model weights, candidates, and seen-item filtering fixed. At K=10, normal-history versus empty-history Recall/NDCG/coverage were 0.025889/0.015572/31 unique items versus 0.026254/0.015737/15 items. Mean normal-versus-empty K=10 list overlap was 0.973. Across 256 deterministic sampled users, user-vector cosine between normal and empty-history inference averaged 0.972; mean vector coordinate absolute difference was 0.0172. History changes the vectors but had limited effect on these rankings. The ablation is not a separately trained baseline and was not used to select a checkpoint.
+
+Representation statistics were computed for 256 users and 1,024 items selected by seeded SHA-256 ordering; identifiers and vectors were not written. Mean pairwise cosine was 0.812 for normal-history users (median 0.864, p95 0.976), 0.911 for empty-history users (median 0.931, p95 0.985), and 0.250 for items (median 0.501, p95 0.943). Sampled scores over 262,093 permitted user/item pairs had mean -0.0268, variance 0.00211, median -0.0308, p05 -0.0865, and p95 0.0431. Near-equal adjacent sorted scores within 1e-6 occurred in 1.17% of comparisons; exact ties were 0.0034%. These summaries alone do not establish representation collapse.
+
+The saved 20-epoch logs show training loss decreasing from 1.529707 to 0.074736. Validation NDCG@10 was 0.005708, 0.015572, and 0.009573 at epochs 1, 2, and 3; it was 0.001794 at epoch 20. Epoch 2 remains the best saved validation epoch. Per-epoch catalog coverage was not recorded. This supports an overfitting hypothesis for this run, but does not identify its cause. No ranking correctness defect was found: cached multi-user output matched single-user output on a deterministic sample, candidate indexing and user-specific vectors were preserved, and the evaluator validated train-seen exclusions. The cache is per-call rather than global. Training history audits covered all 65,842 positive targets; a separate deterministic sample of 256 targets passed negative-item/seen-item exclusion checks. The aggregate diagnostic artifact is ignored under `data/processed/amazon-electronics-pilot-10000-twotower-diagnostics-v1/` and contains no identifiers, embeddings, or row-level recommendations.
+
+The aggregate report is `data/processed/amazon-electronics-pilot-10000-twotower-diagnostics-v1/diagnostics-v3.json`. The next minimal experiment should change one training factor at a time while fixing the data, seed, candidate policy, and evaluation cohort; retain per-epoch catalog coverage and compare against the same popularity control. This diagnostic step does not make a Phase 3.3C model-comparison or deployment conclusion.
+
 ## 4. Core experiments
 
 | Experiment | Control | Treatment | Output |
