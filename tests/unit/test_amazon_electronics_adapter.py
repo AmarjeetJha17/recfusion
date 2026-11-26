@@ -4,7 +4,10 @@ from decimal import Decimal
 import pytest
 
 from recfusion_core.contracts import DataSplit
-from recfusion_data.ingestion.adapters import AmazonReviews2023ElectronicsAdapter
+from recfusion_data.ingestion.adapters import (
+    AmazonReviews2023ElectronicsAdapter,
+    amazon_electronics_item_key,
+)
 from recfusion_data.ingestion.errors import AdapterError, RecordValidationError
 from recfusion_data.validation import validate_interaction
 
@@ -29,6 +32,32 @@ def test_amazon_row_maps_to_canonical_interaction_without_source_fields() -> Non
     assert interaction.rating == Decimal("4.5")
     assert interaction.event_time_ms == 1628643414042
     assert interaction.split is DataSplit.VALIDATION
+
+
+def test_metadata_and_interaction_adapters_share_exact_item_key_mapping() -> None:
+    parent_asin = "Synthetic-Parent-01"
+
+    assert amazon_electronics_item_key(parent_asin) == (
+        "ar23:Electronics:item:Synthetic-Parent-01"
+    )
+    mapped = AmazonReviews2023ElectronicsAdapter().interaction_fields(
+        {
+            "user_id": "synthetic_user_1",
+            "parent_asin": parent_asin,
+            "rating": "5",
+            "timestamp": "1628643414042",
+        },
+        DataSplit.TRAIN,
+    )
+    assert mapped["item_key"] == amazon_electronics_item_key(parent_asin)
+
+
+def test_amazon_item_key_mapping_does_not_normalize_source_identifier() -> None:
+    parent_asin = " synthetic-ID "
+
+    assert amazon_electronics_item_key(parent_asin) == (
+        "ar23:Electronics:item: synthetic-ID "
+    )
 
 
 def test_amazon_timestamp_converts_to_aware_utc_datetime() -> None:

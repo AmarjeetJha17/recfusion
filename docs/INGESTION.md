@@ -64,6 +64,17 @@ uv run recfusion-ingest `
 
 See [AMAZON-ADAPTER.md](./AMAZON-ADAPTER.md) for detailed source boundaries and limitations. Synthetic tests establish parser and pipeline behavior; the local bounded pilots provide a limited real-source compatibility and aggregate-quality check. Adapter implementation does not resolve legal uncertainty or independently authorize future real-data processing.
 
+The separate `recfusion-ingest-amazon-metadata` command is implemented for
+Amazon Reviews 2023 Electronics metadata JSONL.GZ. It requires an attested Step
+2.5 train-only item vocabulary, exact `parent_asin` key reuse, and a new ignored
+`data/processed` output directory. It streams bounded records, joins through a
+temporary SQLite index, records duplicate/conflict and rejection counts, and
+emits canonical plus normalized product JSONL and a manifest. See
+[`AMAZON-METADATA-ADAPTER.md`](./AMAZON-METADATA-ADAPTER.md) for its field
+mapping and limitations. Its tests generate synthetic inputs; they do not
+authorize or perform real metadata processing. The separate metadata rights
+gate and local source preflight remain required.
+
 ## Product metadata normalization
 
 The opt-in normalized sidecar reuses the canonical `ProductMetadata` record and adds field results containing raw values, normalized value/unit, parse status, and source attribute keys. The original title, category, description, attributes, price, item key, and source fingerprint remain in the nested canonical product. Brand is read only from `brand`/`brand name` attributes; category uses the explicit canonical `category`. Both are Unicode NFKC-normalized, whitespace-collapsed, and casefolded. No aliases, brands, categories, or product attributes are inferred from titles or other fields.

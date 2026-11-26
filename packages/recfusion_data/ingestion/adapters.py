@@ -49,6 +49,13 @@ _JSON_FIELDS = frozenset(
 )
 
 
+def amazon_electronics_item_key(parent_asin: str) -> str:
+    """Return the exact source/category-scoped key for an Electronics parent ASIN."""
+    if not parent_asin.strip():
+        raise AdapterError("invalid_source_identifier", "parent_asin")
+    return f"ar23:Electronics:item:{parent_asin}"
+
+
 class CanonicalSourceAdapter:
     """Accept files already using source-independent canonical field names."""
 
@@ -167,7 +174,7 @@ class AmazonReviews2023ElectronicsAdapter:
         assert utc_value.tzinfo is UTC
         return {
             "user_key": f"ar23:Electronics:user:{user_digest}",
-            "item_key": f"ar23:Electronics:item:{parent_asin}",
+            "item_key": amazon_electronics_item_key(parent_asin),
             "rating": record["rating"],
             "event_time_ms": int(timestamp),
         }

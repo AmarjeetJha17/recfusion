@@ -1,12 +1,12 @@
 # Amazon Electronics Product Metadata Plan
 
-**Status:** Phase 4.1 feasibility plan; research only. No metadata was downloaded, opened, profiled, or joined for this document. The official split CSV files and their prior pilot outputs were not read in this step.
+**Status:** Phase 4.1 feasibility findings plus Phase 4.2A synthetic-only adapter implementation. No real Amazon metadata was opened, profiled, or joined during Phase 4.2A. The official split CSV files and their prior pilot outputs were not read in this step.
 
-**Decision:** Proceed with an implementation design for a later, separately reviewed metadata pilot. This plan does not authorize acquisition or processing. The Amazon Reviews 2023 metadata rights question remains unresolved for this additional source and must be reviewed by the project owner before Phase 4.2 reads it.
+**Decision:** The synthetic adapter is implemented and tested; this plan does not authorize acquisition or processing. The Amazon Reviews 2023 metadata rights question remains unresolved for this additional source and must be reviewed by the project owner before any real metadata is read.
 
 ## 1. Purpose and scope
 
-RecFusion needs to determine whether product metadata can be joined to the existing Amazon Reviews 2023 Electronics interactions and normalized into the current product contract. The intended eventual use is local, non-commercial academic coursework: preprocessing, offline training, and offline evaluation. This phase only documents source and join feasibility. It does not implement an adapter, download metadata, process source data, create features, or establish coverage or model readiness.
+RecFusion needs to determine whether product metadata can be joined to the existing Amazon Reviews 2023 Electronics interactions and normalized into the current product contract. The intended eventual use is local, non-commercial academic coursework: preprocessing, offline training, and offline evaluation. Phase 4.1 documents source and join feasibility. Phase 4.2A implements and verifies the adapter using synthetic inputs only; it does not download, inspect, or process real metadata or establish source coverage or model readiness.
 
 The dataset paper to cite in later academic reporting is Hou et al., “Bridging Language and Items for Retrieval and Recommendation: Benchmarking LLMs as Semantic Encoders,” *Proceedings of ACL 2026*, [ACL Anthology 2026.acl-long.147](https://aclanthology.org/2026.acl-long.147/). The official project page also links the earlier [arXiv:2403.03952](https://arxiv.org/abs/2403.03952).
 
@@ -90,23 +90,23 @@ A future private manifest should record at minimum:
 
 All public-facing reports must contain reviewed aggregates only. Keep raw metadata, source identifiers, row-level derived records, source image URLs when considered sensitive, and temporary indexes local and ignored.
 
-## 9. Acceptance criteria for a later metadata pilot
+## 9. Acceptance criteria for a real metadata pilot
 
 Before any real metadata source is opened, Phase 4.2 should require:
 
 1. A project-owner review explicitly covering the separate metadata source and the specific local academic purpose. The existing interaction-data decision does not automatically clear metadata. Applicable law, source terms, and institution requirements remain the owner’s responsibility.
 2. A pinned source and immutable provenance plan, sufficient storage preflight, ignored temp/output paths, and no overwrite of an existing run.
-3. Synthetic tests for exact `parent_asin` key reuse, wrong-category isolation, child `asin` non-join, missing metadata, optional field variants, invalid rows, exact duplicates, conflicts, deterministic fingerprints/order/manifests, and input-order invariance.
+3. Synthetic adapter tests for exact `parent_asin` key reuse, child `asin` non-join, missing metadata, optional field variants, invalid rows, exact duplicates, conflicts, deterministic fingerprints/order, and input-order-invariant output hashes are implemented. Additional real-pilot acceptance checks remain listed below.
 4. Reconciliation of scanned = accepted + rejected; accepted records = output records plus explicitly classified exact-duplicate/conflict handling; and exact join denominators. Duplicate and conflict records are not mislabeled as malformed.
 5. Train-only vocabulary and transform fitting, unchanged official split membership, no held-out label/model selection, and no use of snapshot aggregates as features.
 6. Private aggregate quality report with source row totals, accepted/rejected/duplicate/conflict counts, distinct-key and event-level coverage, field availability/status, missingness, timestamp limitations, resource usage, output hashes, and unavailable metadata explicitly distinguished from observed zero values.
 7. No claims of full feature readiness until the actual product metadata has been authorized, inspected, joined, and its coverage and quality reported.
 
-## 10. Existing components to reuse and Phase 4.2 work required
+## 10. Existing components reused and remaining Phase 4.2 work
 
 Reuse the `AmazonReviews2023ElectronicsAdapter` item-key namespace, `ProductMetadata` contract, product validation and normalization routines, SQLite-backed ingestion/feature-store patterns, bounded-memory hashing, ignored `data/processed/` storage, atomic publication helpers, and the Step 2.5 train-only item vocabulary. Continue using the existing warm/cold and conflict rules in `DATA-CONTRACTS.md`, `FEATURES.md`, `DATA-PROFILING-PLAN.md`, and `EVALUATION.md`.
 
-Missing capabilities for a later implementation include an Amazon metadata JSONL.GZ source reader, schema-specific validator/mapping, disk-backed exact-key join, duplicate/conflict audit, metadata manifest and aggregate profile, and synthetic-only adapter/integration tests. They belong in Phase 4.2; none are implemented here.
+Phase 4.2A implements the bounded Amazon metadata JSONL.GZ reader, schema-specific mapping, disk-backed exact-key join, duplicate/conflict audit, checksummed manifest, normalized sidecar, and synthetic adapter/integration tests. A real-source preflight and aggregate quality report remain unimplemented and gated. Product metadata coverage, field quality, and feature readiness are unknown.
 
 ## 11. Rights and privacy gate
 
@@ -116,4 +116,4 @@ If later approved, keep processing local and non-commercial. Do not commit or pu
 
 ## 12. Phase boundary
 
-Phase 4.1 is complete when this plan and its source limitations are reviewed. The next step may implement a synthetic-tested metadata source adapter and bounded join, but real metadata download, inspection, ingestion, or profiling must wait for a separate owner review and preflight. No metadata was downloaded or processed as part of Phase 4.1.
+Phase 4.1 feasibility and Phase 4.2A synthetic adapter implementation are complete. The next real-data step must first receive project-owner review of this separate metadata source, then perform a source-specific preflight covering pinned provenance, rights and terms, local ignored storage, and overwrite protection. Until that gate is cleared, do not download, inspect, ingest, or profile real metadata. No real Amazon metadata was opened or processed in Phase 4.2A.
