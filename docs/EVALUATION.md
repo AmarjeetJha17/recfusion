@@ -1,8 +1,8 @@
 # EVALUATION — Recommender and agent assessment
 
 **Status:** Frozen offline protocol with local validation-only BPR and
-Two-Tower Electronics experiments. Results below are single-run measurements,
-not statistical or deployment claims.
+Two-Tower Electronics experiments and a paired four-model comparison. Results
+below are validation-only, single-seed measurements, not deployment claims.
 
 ## 1. Research questions
 
@@ -203,7 +203,33 @@ Representation statistics were computed for 256 users and 1,024 items selected b
 
 The saved 20-epoch logs show training loss decreasing from 1.529707 to 0.074736. Validation NDCG@10 was 0.005708, 0.015572, and 0.009573 at epochs 1, 2, and 3; it was 0.001794 at epoch 20. Epoch 2 remains the best saved validation epoch. Per-epoch catalog coverage was not recorded. This supports an overfitting hypothesis for this run, but does not identify its cause. No ranking correctness defect was found: cached multi-user output matched single-user output on a deterministic sample, candidate indexing and user-specific vectors were preserved, and the evaluator validated train-seen exclusions. The cache is per-call rather than global. Training history audits covered all 65,842 positive targets; a separate deterministic sample of 256 targets passed negative-item/seen-item exclusion checks. The aggregate diagnostic artifact is ignored under `data/processed/amazon-electronics-pilot-10000-twotower-diagnostics-v1/` and contains no identifiers, embeddings, or row-level recommendations.
 
-The aggregate report is `data/processed/amazon-electronics-pilot-10000-twotower-diagnostics-v1/diagnostics-v3.json`. The next minimal experiment should change one training factor at a time while fixing the data, seed, candidate policy, and evaluation cohort; retain per-epoch catalog coverage and compare against the same popularity control. This diagnostic step does not make a Phase 3.3C model-comparison or deployment conclusion.
+### Phase 3.3C four-model controlled comparison
+
+Popularity, item-CF, BPR, and the saved epoch-2 Two-Tower checkpoint were
+reproduced on the same 1,369-user, 1,911-target warm validation cohort and
+45,331 train-known candidates. Recomputed metrics at K=5/10/20 matched the
+saved reports exactly. The comparison parsed only trusted train and validation
+artifacts; the test artifact was checksum-verified through its manifest and
+its rows were not read.
+
+Paired per-user Recall, NDCG, HitRate, and MRR differences use 2,000 seeded
+user-bootstrap percentile resamples. At K=10 Two-Tower has the highest
+observed macro metrics; it covers only 31 unique items (0.068% of candidates)
+and has 0.904 mean pairwise overlap in a deterministic 128-user list sample.
+Popularity covers 15 items with 0.961 overlap. Item-CF and BPR cover 750 and
+1,312 items, with lower sampled overlap (0.016 and 0.071), and much lower
+ranking metrics. The BPR versus item-CF NDCG@10 interval includes zero.
+
+These intervals are unadjusted and conditional on checkpoints selected using
+the same validation cohort; they do not remove selection optimism or seed
+variation. Results justify a **conditional** next validation-only experiment
+with deterministic rank fusion to test whether broader coverage and stronger
+ranking can be combined. They do not justify model promotion. See
+[MODEL-COMPARISON.md](./MODEL-COMPARISON.md) for paired results, uncertainty,
+concentration statistics, limitations, and the private ignored aggregate
+report location.
+
+The aggregate report is `data/processed/amazon-electronics-pilot-10000-twotower-diagnostics-v1/diagnostics-v3.json`. The next minimal experiment should change one training factor at a time while fixing the data, seed, candidate policy, and evaluation cohort; retain per-epoch catalog coverage and compare against the same popularity control. Those diagnostics alone did not provide a four-model comparison or deployment recommendation; Phase 3.3C is documented below.
 
 ## 4. Core experiments
 

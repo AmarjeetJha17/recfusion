@@ -1,8 +1,9 @@
 # ML-SYSTEM — Recommender and ranking design
 
 **Status:** Phase 3.2B.2 BPR and Phase 3.3B Two-Tower have local
-validation-only Electronics experiments. Phase 3.3A provides the synthetic
-implementation and regression tests. Neither model is promoted for serving.
+validation-only Electronics experiments, followed by the Phase 3.3C controlled
+four-model analysis. Phase 3.3A provides the synthetic implementation and
+regression tests. No model is promoted for serving.
 
 ## 1. ML objective
 
@@ -242,8 +243,10 @@ Two-Tower returned only 31 distinct items among 13,690 K=10 recommendations
 (candidate coverage 0.000684); at K=20 it returned 60 distinct items among
 27,380 recommendations. This severe catalog concentration is a major
 limitation. The full comparison at K=5/10/20 is recorded in
-`docs/EVALUATION.md` and the ignored aggregate report. No confidence interval
-or significance test was run.
+`docs/MODEL-COMPARISON.md` and the ignored aggregate report. Paired user
+bootstrap intervals are exploratory, unadjusted, and conditional on neural
+checkpoints selected on the same validation cohort; they do not remove
+selection optimism.
 
 The resource preflight measured one full training epoch at 8.745 seconds and
 one full-catalog pass at 29.560 seconds. The 20-epoch run recorded 813.209
