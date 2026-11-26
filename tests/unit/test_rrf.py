@@ -65,6 +65,23 @@ def test_rrf_applies_source_candidate_pool_without_rank_compression() -> None:
     assert result.eligible_counts["collaborative"] == 1
 
 
+def test_source_pool_filter_keeps_original_rank_three_contribution() -> None:
+    result = fuse_ranked_candidates(
+        {"content": ("first", "excluded", "third")},
+        candidate_items={"first", "excluded", "third"},
+        source_candidate_items={"content": {"first", "third"}},
+        k=3,
+        config=RRFConfig(
+            rank_constant=60,
+            source_weights={"content": 1.0},
+            source_depths={"content": 20},
+        ),
+    )
+
+    assert result.recommended_items == ("first", "third")
+    assert result.source_contributions["content"]["third"] == 1 / 63
+
+
 def test_rrf_source_candidate_pools_must_be_subsets_of_global_pool() -> None:
     with pytest.raises(ValueError, match="source candidate pool"):
         fuse_ranked_candidates(

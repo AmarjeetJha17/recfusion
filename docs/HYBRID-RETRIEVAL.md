@@ -166,9 +166,9 @@ optimal source weights, real user behavior, product metadata coverage,
 commercial suitability, serving latency, or production resource needs. It
 uses no metadata acquisition and makes no change to Phase 4.2C.
 
-Phase 4.4B should define and freeze a synthetic hybrid evaluation protocol
-before any tuning: user/query cohorts, relevance and denominators, source
-controls, candidate policies, metrics, multiple deterministic seeds, and
-aggregate manifests. Weight selection must remain separate from final
-evaluation. Any real metadata or Amazon interaction use remains subject to its
-separate rights and owner-review gates.
+Phase 4.4B freezes and reports the seed-43031 synthetic comparison of
+content-only, train-only popularity, and two predetermined RRF weightings
+under both candidate policies. The results and limitations are documented in
+[HYBRID-BENCHMARK.md](./HYBRID-BENCHMARK.md). The fixed comparison does not
+select production weights; any real metadata or Amazon interaction use remains
+subject to its separate rights and owner-review gates.

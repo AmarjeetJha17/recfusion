@@ -36,6 +36,14 @@ smoke counts with Phase 3 metrics or the Phase 4.3B content benchmark. The
 candidate and source contracts are in
 [HYBRID-RETRIEVAL.md](./HYBRID-RETRIEVAL.md).
 
+Phase 4.4B adds a separate fixed synthetic relevance comparison over the
+Phase 4.3B fixture. It compares content-only, train-only synthetic popularity,
+and two predeclared RRF weights under warm-only and content-eligible candidate
+policies. It keeps the macro-user and eligible-cold denominators and reports
+final catalog coverage, concentration, source contributions, and list
+shortfalls. Do not combine these synthetic metrics with temporal Electronics
+validation results. See [HYBRID-BENCHMARK.md](./HYBRID-BENCHMARK.md).
+
 ## 3. Metric definitions
 
 For eligible evaluation users/queries `U` and held-out relevant set `Rel(u)`:

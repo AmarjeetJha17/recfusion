@@ -46,6 +46,12 @@ are aggregate-safe; no collaborative model is trained or loaded by this
 interface. Its smoke-test results are contract checks only, not relevance or
 performance claims. See `docs/HYBRID-RETRIEVAL.md`.
 
+Phase 4.4B evaluates that interface using the frozen seed-43031 synthetic
+content benchmark and four fixed methods under warm-only and content-eligible
+policies. It records aggregate relevance, cold-item exposure, coverage,
+concentration, and source attribution; it trains no collaborative model and
+does not establish real-data quality. See `docs/HYBRID-BENCHMARK.md`.
+
 Phase 3.1 implements an initial deterministic B0 from positive training review
 counts (rating >=4), with stable item-key tie-breaking and train-seen exclusion.
 It is an offline baseline over the Step 2.5 train-known candidate pool; review
