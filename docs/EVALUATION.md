@@ -26,6 +26,32 @@ For eligible evaluation users/queries `U` and held-out relevant set `Rel(u)`:
 - **Intra-list diversity** = mean pairwise dissimilarity with fixed item-similarity measure.
 - **P50/P95 latency** measured with workload, hardware and traffic shape described.
 
+### Phase 3.1 initial implementation
+
+`recfusion_ml.evaluation.metrics` implements macro Recall@K, binary NDCG@K,
+HitRate@K, MRR@K, and candidate coverage. Ratings of 4 or 5 are provisional
+positive relevance labels; ratings of 1–3 are not positives, and unobserved
+items are never treated as negatives. Repeated validation observations for a
+user/item pair contribute one target pair, while repeated positive observations
+remain separately counted in the cohort audit. Users without an eligible warm,
+unseen positive target are excluded from the macro metric denominator and
+reported in the exclusion counts. Binary NDCG uses gain 1 for a relevant item,
+discount `1/log2(rank + 1)`, and an ideal denominator for
+`min(K, number of eligible targets)`.
+
+The deterministic B0 popularity baseline counts positive training review
+records per train-known item, descending by count and then ascending by stable
+item key. It excludes each user's train-seen items. This is review activity,
+not purchases, conversions, or impressions. Evaluation uses the exact train
+candidate pool with no sampled negatives. The first pilot runner validates
+Step 2.4 and trusted Step 2.5 manifests and output hashes, reads train and
+validation rows only, verifies the test artifact checksum without parsing test
+rows, and writes aggregate-only metrics to a new ignored output directory.
+Per-user recommendations and identifier-level results are not persisted.
+Metadata metrics are unavailable until product metadata is joined under a
+separately reviewed contract. Confidence intervals and statistical comparisons
+are not implemented by this initial baseline runner.
+
 Metrics must include `K`, user count, item universe, exclusions, split manifest, source and seed. Compare full-catalog ranking when feasible; explicitly label sampled candidate/negative evaluation and use the *same* candidate policy for models.
 
 ## 4. Core experiments

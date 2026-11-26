@@ -16,6 +16,12 @@ Given user/session context `u`, current stated constraints `c`, catalog snapshot
 6. **M3 ranker:** LightGBM LambdaRank **only if** we can construct valid groupwise relevance labels and unbiased-enough features; otherwise retain deterministic fusion.
 7. **Optional research:** SASRec, LightGCN or contextual bandit after v1, not preconditions.
 
+Phase 3.1 implements an initial deterministic B0 from positive training review
+counts (rating >=4), with stable item-key tie-breaking and train-seen exclusion.
+It is an offline baseline over the Step 2.5 train-known candidate pool; review
+counts are not purchase or exposure counts. No trained model is part of this
+milestone.
+
 ## 3. Two-tower details
 
 **User tower:** trainable ID embedding for seen users, aggregated historical item embeddings and explicit preference feature vector (when available). Support anonymous query/session via metadata/context encoder or fallback; no assumption that historical review users map to app users.

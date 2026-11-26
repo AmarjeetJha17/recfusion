@@ -19,6 +19,7 @@ recfusion-preprocess-interactions = "recfusion_data.interaction_cli:main"
 recfusion-temporal-split = "recfusion_data.temporal_split_cli:main"
 recfusion-generate-features = "recfusion_data.feature_cli:main"
 recfusion-synthetic-release = "recfusion_data.release:main"
+recfusion-evaluate-popularity = "recfusion_ml.evaluation.pilot:main"
 
 [dependency-groups]
 dev = [
@@ -32,7 +33,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["packages", "apps/api/src"]
-include = ["recfusion_core*", "recfusion_data*", "recfusion_api*"]
+include = ["recfusion_core*", "recfusion_data*", "recfusion_api*", "recfusion_ml*"]
 
 [tool.ruff]
 target-version = "py313"
@@ -57,7 +58,7 @@ exclude = [
 select = ["E", "F", "I", "B", "UP", "SIM", "PT", "RUF"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["recfusion_api", "recfusion_core", "recfusion_data"]
+known-first-party = ["recfusion_api", "recfusion_core", "recfusion_data", "recfusion_ml"]
 
 [tool.ruff.format]
 quote-style = "double"
