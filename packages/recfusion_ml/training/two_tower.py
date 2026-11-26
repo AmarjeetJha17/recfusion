@@ -8,7 +8,7 @@ import math
 import random
 import time
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from decimal import Decimal
 from itertools import groupby
@@ -432,10 +432,58 @@ class TwoTowerRecommender:
         users = tuple(user_ids)
         if len(set(users)) != len(users):
             raise ValueError("Requested user IDs must be unique.")
-        return {
-            user_id: self.recommend(user_id, k=k, chunk_size=chunk_size)
-            for user_id in sorted(users)
-        }
+        for name, value in (("k", k), ("chunk_size", chunk_size)):
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise ValueError(f"{name} must be a positive integer.")
+        ordered_users = sorted(users)
+        results: dict[str, tuple[str, ...]] = {user_id: () for user_id in ordered_users}
+        known_users = [user for user in ordered_users if user in self._user_indices]
+        if not known_users:
+            return results
+
+        item_vectors = torch.cat(
+            [
+                self.item_vectors(self.data.item_ids[start : start + chunk_size])
+                for start in range(0, len(self.data.item_ids), chunk_size)
+            ],
+            dim=0,
+        )
+        item_positions = {item: index for index, item in enumerate(self.data.item_ids)}
+        with torch.no_grad():
+            for user_id in known_users:
+                user_vector = self.model.encode_users(
+                    torch.tensor([self._user_indices[user_id]], dtype=torch.long),
+                    self._user_history_tensor(user_id),
+                )[0]
+                candidate_positions = [
+                    position
+                    for item, position in item_positions.items()
+                    if item not in self.data.seen_items_by_user[user_id]
+                ]
+                scored: list[tuple[str, float]] = []
+                for start in range(0, len(candidate_positions), chunk_size):
+                    positions = candidate_positions[start : start + chunk_size]
+                    position_tensor = torch.tensor(positions, dtype=torch.long)
+                    scores = item_vectors.index_select(0, position_tensor) @ user_vector
+                    if not torch.isfinite(scores).all():
+                        raise ValueError("Model produced a non-finite score.")
+                    order = torch.argsort(scores, descending=True, stable=True)[
+                        :k
+                    ].tolist()
+                    scored.extend(
+                        (
+                            self.data.item_ids[positions[index]],
+                            float(scores[index]),
+                        )
+                        for index in order
+                    )
+                results[user_id] = tuple(
+                    item
+                    for item, _ in sorted(scored, key=lambda pair: (-pair[1], pair[0]))[
+                        :k
+                    ]
+                )
+        return results
 
 
 def fit_two_tower(
@@ -443,6 +491,7 @@ def fit_two_tower(
     *,
     config: TwoTowerConfig = TwoTowerConfig(),
     source_artifact_fingerprints: Iterable[str] = (),
+    epoch_callback: Callable[[TwoTowerRecommender], None] | None = None,
 ) -> TwoTowerRecommender:
     """Train a history-aware retrieval model using train events only."""
     records = tuple(events)
@@ -479,6 +528,26 @@ def fit_two_tower(
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
     epoch_statistics: list[TwoTowerEpoch] = []
     skipped_without_negative = 0
+
+    def current_recommender() -> TwoTowerRecommender:
+        return TwoTowerRecommender(
+            model=model,
+            config=config,
+            data=data,
+            summary=TwoTowerSummary(
+                train_event_count=data.train_event_count,
+                excluded_ineligible_event_count=data.excluded_ineligible_event_count,
+                positive_observation_count=data.positive_observation_count,
+                unique_positive_pairs=data.unique_positive_pairs,
+                collapsed_positive_observations=data.collapsed_positive_observations,
+                training_examples=len(data.examples) - skipped_without_negative,
+                skipped_examples_without_negative=skipped_without_negative,
+                sampled_negative_count_per_epoch=(
+                    epoch_statistics[-1].sampled_negative_count
+                ),
+            ),
+            epoch_statistics=tuple(epoch_statistics),
+        )
 
     for epoch in range(config.epochs):
         epoch_started = time.perf_counter()
@@ -604,22 +673,9 @@ def fit_two_tower(
                 duration_seconds=time.perf_counter() - epoch_started,
             )
         )
+        model.eval()
+        if epoch_callback is not None:
+            epoch_callback(current_recommender())
 
     model.eval()
-    summary = TwoTowerSummary(
-        train_event_count=data.train_event_count,
-        excluded_ineligible_event_count=data.excluded_ineligible_event_count,
-        positive_observation_count=data.positive_observation_count,
-        unique_positive_pairs=data.unique_positive_pairs,
-        collapsed_positive_observations=data.collapsed_positive_observations,
-        training_examples=len(data.examples) - skipped_without_negative,
-        skipped_examples_without_negative=skipped_without_negative,
-        sampled_negative_count_per_epoch=epoch_statistics[-1].sampled_negative_count,
-    )
-    return TwoTowerRecommender(
-        model=model,
-        config=config,
-        data=data,
-        summary=summary,
-        epoch_statistics=tuple(epoch_statistics),
-    )
+    return current_recommender()

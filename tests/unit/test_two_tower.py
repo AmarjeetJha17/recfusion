@@ -13,6 +13,7 @@ from recfusion_ml.training.bpr import NegativeSampler, TrainingData
 from recfusion_ml.training.two_tower import (
     TwoTowerConfig,
     TwoTowerEvent,
+    TwoTowerRecommender,
     build_two_tower_data,
     fit_two_tower,
     sampled_softmax_loss,
@@ -206,6 +207,35 @@ def test_training_is_seed_deterministic_and_uses_rating_threshold() -> None:
         assert torch.equal(weights, second.model.state_dict()[name])
 
 
+def test_epoch_callback_observes_completed_epochs_and_train_only_state() -> None:
+    callbacks: list[TwoTowerRecommender] = []
+
+    def observe(recommender: TwoTowerRecommender) -> None:
+        callbacks.append(recommender)
+
+    result = fit_two_tower(
+        sample_events(),
+        config=TwoTowerConfig(
+            embedding_dim=8,
+            hidden_dims=(12,),
+            retrieval_dim=6,
+            epochs=2,
+            batch_size=2,
+            seed=5,
+            negative_count=2,
+        ),
+        epoch_callback=observe,
+    )
+
+    assert [row.epoch_statistics[-1].epoch for row in callbacks] == [1, 2]
+    assert all(row.data.train_event_count == 7 for row in callbacks)
+    assert all(
+        torch.isfinite(torch.tensor(row.epoch_statistics[-1].total_loss))
+        for row in callbacks
+    )
+    assert callbacks[-1].model is result.model
+
+
 def test_retrieval_is_bounded_seen_filtered_and_evaluator_compatible(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -270,6 +300,29 @@ def test_retrieval_is_bounded_seen_filtered_and_evaluator_compatible(
         ks=(5,),
     )
     assert evaluation.evaluated_user_count == 1
+
+
+def test_cached_multi_user_retrieval_matches_single_user_rankings() -> None:
+    recommender = fit_two_tower(
+        sample_events(),
+        config=TwoTowerConfig(
+            embedding_dim=8,
+            hidden_dims=(12,),
+            retrieval_dim=6,
+            epochs=1,
+            batch_size=2,
+            seed=11,
+            negative_count=2,
+        ),
+    )
+
+    cached = recommender.recommend_many(("u1", "u2", "unknown"), k=3, chunk_size=2)
+    uncached = {
+        user: recommender.recommend(user, k=3, chunk_size=2)
+        for user in ("u1", "u2", "unknown")
+    }
+
+    assert cached == uncached
 
 
 def test_independent_item_vectors_are_repeatable_and_checkpoint_round_trips(

@@ -1,6 +1,8 @@
 # EVALUATION — Recommender and agent assessment
 
-**Status:** Planned protocol. All example thresholds or charts are hypothetical until measured.
+**Status:** Frozen offline protocol with local validation-only BPR and
+Two-Tower Electronics experiments. Results below are single-run measurements,
+not statistical or deployment claims.
 
 ## 1. Research questions
 
@@ -110,6 +112,74 @@ Epoch validation durations total 2,552 seconds, but epoch 2 alone reported
 reliable capacity estimates. The full aggregate report contains split counts,
 UTC timestamp ranges, rating counts, provenance hashes, all metrics, and
 resource details. It contains no row-level recommendations or identifiers.
+
+### Phase 3.3B Two-Tower validation experiment
+
+The implementation trained on the 10,000-user trusted train split and selected
+an epoch using **macro NDCG@10 on validation only**, with ties resolved to the
+earliest epoch. Inputs matched the recorded train and validation artifact
+hashes. The 10,000 train users, 45,331 train-known items, and 81,688 train
+interactions yielded 65,842 distinct rating-4-or-5 targets. Every target used
+strictly earlier training observations only; equal timestamps were excluded,
+the target item was masked, and item histories were deduplicated and ordered
+deterministically. 7,806 targets had empty histories. Each epoch used 263,368
+distinct sampled negatives, and no target was skipped. The negative assumption
+does not make unobserved items confirmed dislikes.
+
+The frozen cohort contained 1,369 warm-positive users and 1,911 eligible
+targets from 6,760 validation interactions. All 45,331 train-known items were
+ranked, excluding every item observed by each user in train. 3,153 positive
+validation observations involved cold items and remained excluded; there were
+no cold users, seen-positive observations, or duplicate positive targets in
+the eligible evaluation cohort. Users and item vocabularies came from train
+only. Validation labels were used only for evaluation/epoch selection. Test
+rows were not parsed or evaluated. Metadata features were unavailable and not
+inferred.
+
+The one selected configuration was CPU PyTorch 2.15.0+cpu, seed 42 (dataset
+selection seed `recfusion-amazon-electronics-pilot-v1` recorded separately),
+32-dimensional embeddings/retrieval vectors, 64-unit hidden layer, 50-item
+history cap, batch size 256, four sampled negatives, temperature 0.1, Adam
+0.001, L2 0.0001, and 20 epochs. Macro NDCG@10 selected epoch 2 at 0.015572.
+Training loss decreased through epoch 20 (1.529707 to 0.074736), while
+validation NDCG@10 peaked at epoch 2 and then declined. This pattern is
+consistent with overfitting in this single run.
+
+| Model | K | Recall | NDCG | HitRate | MRR | Catalog coverage (unique items) |
+|---|---:|---:|---:|---:|---:|---:|
+| Two-Tower | 5 | 0.018767 | 0.013173 | 0.024836 | 0.013720 | 0.000353 (16) |
+| Popularity | 5 | 0.012284 | 0.006276 | 0.016801 | 0.005101 | 0.000199 (9) |
+| Item-CF | 5 | 0.003798 | 0.002521 | 0.005113 | 0.002520 | 0.014449 (655) |
+| BPR | 5 | 0.006574 | 0.003724 | 0.007305 | 0.002849 | 0.015773 (715) |
+| Two-Tower | 10 | 0.025889 | 0.015572 | 0.033601 | 0.014899 | 0.000684 (31) |
+| Popularity | 10 | 0.022784 | 0.009878 | 0.029949 | 0.006866 | 0.000331 (15) |
+| Item-CF | 10 | 0.005990 | 0.003259 | 0.008035 | 0.002870 | 0.016545 (750) |
+| BPR | 10 | 0.011566 | 0.005384 | 0.013148 | 0.003633 | 0.028943 (1,312) |
+| Two-Tower | 20 | 0.029585 | 0.016651 | 0.040906 | 0.015359 | 0.001324 (60) |
+| Popularity | 20 | 0.028689 | 0.011488 | 0.037253 | 0.007414 | 0.000551 (25) |
+| Item-CF | 20 | 0.009301 | 0.004181 | 0.012418 | 0.003162 | 0.018111 (821) |
+| BPR | 20 | 0.017434 | 0.007025 | 0.022644 | 0.004239 | 0.053760 (2,437) |
+
+Two-Tower's metrics were higher than the three saved baselines on this
+validation cohort, but it concentrated recommendations on only 31 unique
+items at K=10 and 60 at K=20. That low catalog coverage is a material failure
+mode and prevents interpreting ranking metrics alone as a useful retrieval
+result. Results have no confidence intervals or significance test and do not
+establish generalization. The model is ID-only and cannot retrieve cold items.
+
+The 3.3B resource preflight measured one train epoch at 8.745 s and one full
+catalog validation pass at 29.560 s. The experiment recorded 813.209 s for
+data setup, 20 epochs, and per-epoch validation; reloaded-checkpoint inference
+over the full cohort took 26.981 s. Peak working set was 780,886,016 bytes,
+and the best weights-only checkpoint was 18,212,678 bytes. These are local
+observations, not capacity guarantees. The aggregate-only report and private
+checkpoint live in ignored
+`data/processed/amazon-electronics-pilot-10000-twotower-v1/`; no per-user
+rankings or identifier mappings were published.
+
+The existing owner-scoped research-use decision remains local,
+non-commercial coursework only; legal clearance is not established. This
+experiment did not alter that decision.
 
 Metrics must include `K`, user count, item universe, exclusions, split manifest, source and seed. Compare full-catalog ranking when feasible; explicitly label sampled candidate/negative evaluation and use the *same* candidate policy for models.
 

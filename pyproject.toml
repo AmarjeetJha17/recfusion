@@ -22,6 +22,7 @@ recfusion-synthetic-release = "recfusion_data.release:main"
 recfusion-evaluate-popularity = "recfusion_ml.evaluation.pilot:main"
 recfusion-evaluate-item-cf = "recfusion_ml.evaluation.item_cf_pilot:main"
 recfusion-run-bpr-pilot = "recfusion_ml.evaluation.bpr_pilot:main"
+recfusion-run-twotower-pilot = "recfusion_ml.evaluation.two_tower_pilot:main"
 
 [dependency-groups]
 dev = [

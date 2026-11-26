@@ -1,8 +1,8 @@
 # ML-SYSTEM — Recommender and ranking design
 
-**Status:** Phase 3.2B.2 has a local validation-only BPR run. Phase 3.3A adds a
-synthetic-only Two-Tower implementation; it has not used real data or been
-promoted for serving.
+**Status:** Phase 3.2B.2 BPR and Phase 3.3B Two-Tower have local
+validation-only Electronics experiments. Phase 3.3A provides the synthetic
+implementation and regression tests. Neither model is promoted for serving.
 
 ## 1. ML objective
 
@@ -192,10 +192,11 @@ cap. Loss and gradient finiteness are checked; epoch statistics record the
 sampled-softmax, regularization, total loss, example/negative counts, and
 duration. Storage is sparse in observed interactions rather than a dense
 user/item matrix; histories are capped and negatives are bounded per example.
-The model and training tests use synthetic events only. Exact reproducibility
-is expected for the pinned CPU/PyTorch environment and fixed inputs/config;
-bitwise equality across PyTorch versions, platforms, or CPU implementations is
-not promised.
+The model and training regression tests use synthetic events only. The
+separate Step 3.3B pilot used only the verified local train and validation
+artifacts. Exact reproducibility is expected for the pinned CPU/PyTorch
+environment and fixed inputs/config; bitwise equality across PyTorch versions,
+platforms, or CPU implementations is not promised.
 
 `TwoTowerRecommender.recommend_many` returns rankings compatible with the
 existing evaluator. It scores the exact train-known candidate pool in bounded
@@ -205,8 +206,52 @@ direct score or item-vector requests for unknown IDs fail explicitly. Checkpoint
 are weights-only CPU artifacts written only under ignored `data/processed/` and
 retain private vocabularies, seen-item/history state, the training fingerprint,
 source artifact fingerprints, configuration, epoch statistics, and PyTorch
-version. No real Amazon artifacts or their validation/test splits were accessed
-during Step 3.3A; the evaluator integration test uses synthetic data.
+version. Step 3.3A tests use synthetic data. The Step 3.3B checkpoint and
+aggregate report are local-only under ignored
+`data/processed/amazon-electronics-pilot-10000-twotower-v1/`; no row-level
+predictions are persisted.
+
+#### Step 3.3B real Electronics Two-Tower experiment
+
+The run used the existing 10,000-user trusted split. Train and validation
+artifacts matched their manifest SHA-256 hashes. Training used 81,688 train
+records, 10,000 users, 45,331 train-known items, 65,842 distinct positive
+targets, and four sampled train-unobserved items per target (263,368
+negatives per epoch, with none skipped). All 65,842 target histories passed
+the strict-prior, target-masking, and stable-order audit; 7,806 targets had an
+empty history. Validation used the frozen 1,369 warm-positive users and 1,911
+targets. The 3,153 cold-item positive observations were excluded by the
+existing train-known candidate protocol. Validation/test records and ratings
+were not model inputs; the official test rows were not parsed or evaluated.
+
+The single CPU configuration was seed 42, 32-dimensional embeddings and
+retrieval vectors, a 64-unit hidden layer, 50-history-item cap, batch size 256,
+four negatives, temperature 0.1, Adam at 0.001, L2 0.0001, and 20 epochs.
+The implementation has no dropout or weight-decay option. Macro validation
+NDCG@10 with earliest-epoch tie-breaking selected epoch 2 (0.015572). Training
+loss fell from 1.529707 to 0.074736 by epoch 20 while validation NDCG@10 fell
+after epoch 2 and remained low. This is a clear overfitting/concentration
+signal for this configuration, not evidence of generalization.
+
+At K=10, Two-Tower Recall/NDCG/HitRate/MRR were
+0.025889/0.015572/0.033601/0.014899, compared with popularity
+0.022784/0.009878/0.029949/0.006866, item-CF
+0.005990/0.003259/0.008035/0.002870, and BPR
+0.011566/0.005384/0.013148/0.003633. Despite those validation metrics, the
+Two-Tower returned only 31 distinct items among 13,690 K=10 recommendations
+(candidate coverage 0.000684); at K=20 it returned 60 distinct items among
+27,380 recommendations. This severe catalog concentration is a major
+limitation. The full comparison at K=5/10/20 is recorded in
+`docs/EVALUATION.md` and the ignored aggregate report. No confidence interval
+or significance test was run.
+
+The resource preflight measured one full training epoch at 8.745 seconds and
+one full-catalog pass at 29.560 seconds. The 20-epoch run recorded 813.209
+seconds for data setup, training, and per-epoch validation; the selected
+checkpoint reload/full validation took 26.981 seconds. Peak working set was
+780,886,016 bytes; the best checkpoint is 18,212,678 bytes. These measurements
+describe this local run and are not capacity guarantees. No product metadata
+was joined, so cold-item retrieval and metadata coverage remain unsupported.
 
 The following serving and metadata directions remain planned rather than
 implemented:
