@@ -19,7 +19,7 @@ from recfusion_data.ingestion.errors import IngestionError
 def _arguments() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Stream an explicit Amazon Electronics metadata JSONL.GZ file and "
+            "Stream an explicit Amazon Electronics metadata JSONL or JSONL.GZ file and "
             "join it to a checksummed Step 2.5 train-only item vocabulary."
         )
     )
@@ -37,6 +37,19 @@ def _arguments() -> argparse.ArgumentParser:
     parser.add_argument("--source-id", required=True)
     parser.add_argument("--source-version", required=True)
     parser.add_argument(
+        "--source-url", help="Declared source URL; not independently verified."
+    )
+    parser.add_argument(
+        "--retrieved-at", help="Declared retrieval timestamp, if known."
+    )
+    parser.add_argument(
+        "--retrieval-method", help="Declared retrieval method, if known."
+    )
+    parser.add_argument(
+        "--publisher-sha256",
+        help="Publisher-listed SHA-256 for comparison with the local input checksum.",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         required=True,
@@ -51,7 +64,7 @@ def _arguments() -> argparse.ArgumentParser:
         "--max-record-bytes",
         type=int,
         default=_DEFAULT_MAX_RECORD_BYTES,
-        help="Maximum decompressed JSONL record bytes (default: 8 MiB).",
+        help="Maximum JSONL record bytes (default: 8 MiB).",
     )
     return parser
 
@@ -66,6 +79,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             output_dir=args.output_dir,
             source_id=args.source_id,
             source_version=args.source_version,
+            source_url=args.source_url,
+            retrieved_at=args.retrieved_at,
+            retrieval_method=args.retrieval_method,
+            publisher_sha256=args.publisher_sha256,
             temp_dir=args.temp_dir,
             max_record_bytes=args.max_record_bytes,
         )

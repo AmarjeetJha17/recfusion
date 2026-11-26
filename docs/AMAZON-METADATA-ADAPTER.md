@@ -1,14 +1,16 @@
 # Amazon Electronics Metadata Adapter
 
-**Status:** Synthetic-only implementation complete for Phase 4.2A. No real
-Amazon metadata was opened, scanned, joined, or profiled by this implementation
-step. Real-source use remains gated by the separate project-owner review in
+**Status:** Synthetic-only implementation complete for Phases 4.2A and 4.2B.1.
+No real Amazon metadata or interaction output was opened, scanned, joined, or
+profiled by this implementation step. Real-source use remains gated by the separate project-owner review in
 [`AMAZON-METADATA-PLAN.md`](./AMAZON-METADATA-PLAN.md).
 
 ## Source and contract
 
-The adapter targets the Amazon Reviews 2023 Electronics product metadata
-JSONL.GZ source documented by the [official dataset project](https://amazon-reviews-2023.github.io/).
+The adapter accepts UTF-8 JSON Lines as either `.jsonl` or `.jsonl.gz`, one
+object per line. Both forms use the same record validation, mapping, duplicate,
+and conflict policies. It can target the raw Amazon Reviews 2023 Electronics
+metadata representation documented by the [official dataset project](https://amazon-reviews-2023.github.io/).
 The source is a snapshot: it has no trustworthy per-field effective timestamps.
 The source metadata is not an interaction event and its aggregate ratings,
 rating counts, and prices are not review-time signals.
@@ -40,8 +42,8 @@ unmatched; no placeholder product is fabricated.
 
 ## Streaming, duplicates, and outputs
 
-`recfusion-ingest-amazon-metadata` reads one bounded decompressed JSONL record
-at a time (8 MiB default, configurable), hashes the compressed source in
+`recfusion-ingest-amazon-metadata` reads one bounded JSONL record at a time
+(8 MiB default, configurable), hashes the exact source bytes in
 bounded-memory chunks, and uses a temporary disk-backed SQLite index for the
 train-only item vocabulary, fingerprints, duplicate counts, and matched
 records. The temporary database is removed after the run. The metadata input,
@@ -61,14 +63,35 @@ records. Reconciliation requires:
   matched occurrences; and
 - train vocabulary items = matched distinct item keys + missing target items.
 
+The versioned manifest separates declared provenance (URL, retrieval time and
+method, publisher hash) from locally verified facts (file representation,
+byte size, and SHA-256). Unprovided declared facts remain null. A publisher hash
+is compared to the locally computed hash when supplied. The manifest records
+the repository commit and whether tracked/untracked Git state was dirty when
+the run began, the normalization schema, verified train vocabulary fingerprint,
+and explicit snapshot-only/effective-time status. A declared URL or retrieval
+method is not treated as independently verified provenance.
+
+The adapter also verifies and reads the three checksummed Step 2.5 split
+outputs to calculate per-split interaction join coverage. It reports all-row
+and unique-item totals, train-known versus train-cold cohorts, metadata-matched
+counts, conflict-excluded counts, and missing train-known counts. Event counts
+are row-weighted; unique-item counts are distinct keys. Metadata matches are
+restricted to the train-only vocabulary. Reading held-out item keys for
+aggregate coverage does not use held-out labels, fit vocabularies, change
+candidate pools, or recompute split membership. A matched key with conflicting
+metadata is counted as matched and separately excluded from feature-ready
+coverage, consistent with the feature generator.
+
 Outputs are `products.jsonl`, `products.normalized.jsonl`, and `manifest.json`.
 They are assembled in a temporary sibling directory and atomically published
 only to a new child of ignored `data/processed/`; existing destinations are
 never overwritten. Output rows are sorted by binary item key and source
 fingerprint. The manifest includes input and output checksums, vocabulary and
 temporal-manifest attestations, counts, rejection reasons, field issues,
-duplicate/conflict totals, and the snapshot limitations. It omits local source
-paths and row-level identifiers.
+duplicate/conflict totals, interaction join-coverage denominators, provenance
+status, and snapshot limitations. It omits local source paths and row-level
+identifiers.
 
 Example invocation syntax (use only synthetic inputs until the rights gate is
 cleared):

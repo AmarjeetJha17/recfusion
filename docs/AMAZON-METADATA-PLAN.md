@@ -1,6 +1,6 @@
 # Amazon Electronics Product Metadata Plan
 
-**Status:** Phase 4.1 feasibility findings plus Phase 4.2A synthetic-only adapter implementation and Phase 4.2B preflight assessment. No real Amazon metadata was opened, profiled, or joined. The official split CSV files and their prior pilot outputs were not read in these metadata steps. The source-specific rights decision is pending, and the official linked metadata file returned HTTP 404 to a HEAD request; see [AMAZON-METADATA-PREFLIGHT.md](./AMAZON-METADATA-PREFLIGHT.md).
+**Status:** Phase 4.1 feasibility, Phase 4.2A synthetic adapter, Phase 4.2B source/rights preflight, and Phase 4.2B.1 provenance/coverage hardening are documented. No real Amazon metadata or interaction output was opened, profiled, or joined. The source-specific rights decision remains pending. The official gzip URL returned 404 to HEAD; an alternate pinned raw JSONL URL returned HTTP 200 to metadata-only HEAD. See [AMAZON-METADATA-PREFLIGHT.md](./AMAZON-METADATA-PREFLIGHT.md).
 
 **Decision:** The synthetic adapter is implemented and tested; this plan does not authorize acquisition or processing. The Amazon Reviews 2023 metadata rights question remains unresolved for this additional source and must be reviewed by the project owner before any real metadata is read.
 
@@ -14,7 +14,7 @@ The dataset paper to cite in later academic reporting is Hou et al., “Bridging
 
 ### Primary candidate: official Amazon Reviews 2023 Electronics metadata
 
-The [McAuley Lab project page](https://amazon-reviews-2023.github.io/) documents category metadata JSONL and links the [Electronics metadata file](https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_2023/raw/meta_categories/meta_Electronics.jsonl.gz), `meta_Electronics.jsonl.gz`. The documented source record includes `parent_asin` and descriptive, rating-aggregate, price, image, video, store, category, and detail fields. The same documentation describes `parent_asin` as the parent product identifier used to find metadata; review `asin` may refer to a child/variant. Join on `parent_asin`, never substitute a review `asin`.
+The [McAuley Lab project page](https://amazon-reviews-2023.github.io/) documents category metadata JSONL and links the [Electronics gzip metadata file](https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_2023/raw/meta_categories/meta_Electronics.jsonl.gz), `meta_Electronics.jsonl.gz`. Its URL returned HTTP 404 on the latest HEAD check. The maintainer's [Hugging Face repository](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023) lists a raw uncompressed `meta_Electronics.jsonl` at pinned revision `2b6d039ed471f2ba5fd2acb718bf33b0a7e5598e`; HEAD redirected to the object and returned 200, `Content-Length: 5246144134`, and `Accept-Ranges: bytes`. The redirect's `X-Linked-ETag` matched the listed publisher SHA-256; the final CDN ETag is the separate Xet object hash. This was a metadata-only check; no body was requested and no local file checksum exists. The owner has not yet selected this alternate source/representation. The documented source record includes `parent_asin` and descriptive, rating-aggregate, price, image, video, store, category, and detail fields. The same documentation describes `parent_asin` as the parent product identifier used to find metadata; review `asin` may refer to a child/variant. Join on `parent_asin`, never substitute a review `asin`.
 
 The file is category-wide. No documented key-selective download or index was found. A later join should therefore expect to scan the compressed Electronics metadata stream once while retaining only keys in the train-derived item set. The official compressed file’s transfer size was not verified. Existing repository documentation records a Hugging Face listing size of 5,246,144,134 bytes for the uncompressed raw Electronics metadata JSONL representation; this is not a local measurement or compressed-size estimate. The current Hugging Face Parquet mirror lists about 1.96 GB across ten shards. These are different serialized representations and mutable repository listings, not verified requirements for a future run.
 
@@ -71,7 +71,7 @@ For the existing warm-item comparison, join and fit feature transforms only for 
 
 ## 7. Bounded-memory and disk design for a later pilot
 
-The likely primary path is a single-pass gzip JSONL reader using standard-library streaming (`gzip` plus line-oriented JSON parsing), after explicit owner review. Build a disk-backed SQLite index of the exact train-only item keys from the existing Step 2.5 vocabulary. For each metadata row, validate the record and perform an exact key lookup; retain only matched rows and the minimum audit/provenance needed. Do not materialize the whole metadata file or the complete source key set in Python memory. Avoid Hugging Face `trust_remote_code` until its loader has been independently audited.
+The adapter streams either `.jsonl` or `.jsonl.gz` with standard-library line-oriented parsing and a bounded maximum record size. Build a disk-backed SQLite index of the exact train-only item keys from the existing Step 2.5 vocabulary. For each metadata row, validate the record and perform an exact key lookup; retain only matched rows and the minimum audit/provenance needed. Do not materialize the whole metadata file or the complete source key set in Python memory. Avoid Hugging Face `trust_remote_code` until its loader has been independently audited.
 
 The input remains immutable and gitignored. Use separate ignored directories for temporary indexes and outputs. Hash the source file in bounded-memory chunks, record byte counts and source identity, and publish derived outputs atomically only after validation. Sort final records by canonical item key and source-record fingerprint. The manifest should be deterministic and omit wall-clock fields from its hashed canonical payload; operational timing can be recorded in the private run report.
 
@@ -79,7 +79,18 @@ This design reduces retained memory but still scans the whole compressed categor
 
 ## 8. Provenance, manifest, and quality report
 
-A future private manifest should record at minimum:
+A private v2 manifest records declared source URL/retrieval date/method/publisher
+checksum separately from locally verified representation, checksum, and bytes;
+unknown declared facts remain null. It records code commit and dirty state,
+normalization schema, train-vocabulary and temporal-manifest fingerprints,
+dataset lineage, and snapshot-only status. It also verifies and reports
+interaction-row and distinct-item join coverage by official split, including
+train-known/train-cold, metadata matched, conflict-excluded, and missing
+train-known cohorts with explicit denominators. This audit reads split item
+keys but never uses held-out labels, changes the candidate pool, or recomputes
+official split membership.
+
+The manifest should also record at minimum:
 
 - source name/category, exact source URL, source format/schema contract, retrieval date, immutable revision if using a mirror, source size and SHA-256;
 - adapter/config version, code commit, input interaction manifest/checksum, exact train-only item-key source, and canonical key policy;
@@ -106,7 +117,7 @@ Before any real metadata source is opened, Phase 4.2 should require:
 
 Reuse the `AmazonReviews2023ElectronicsAdapter` item-key namespace, `ProductMetadata` contract, product validation and normalization routines, SQLite-backed ingestion/feature-store patterns, bounded-memory hashing, ignored `data/processed/` storage, atomic publication helpers, and the Step 2.5 train-only item vocabulary. Continue using the existing warm/cold and conflict rules in `DATA-CONTRACTS.md`, `FEATURES.md`, `DATA-PROFILING-PLAN.md`, and `EVALUATION.md`.
 
-Phase 4.2A implements the bounded Amazon metadata JSONL.GZ reader, schema-specific mapping, disk-backed exact-key join, duplicate/conflict audit, checksummed manifest, normalized sidecar, and synthetic adapter/integration tests. A real-source preflight and aggregate quality report remain unimplemented and gated. Product metadata coverage, field quality, and feature readiness are unknown.
+Phase 4.2A implements bounded JSONL and JSONL.GZ streaming, schema-specific mapping, disk-backed exact-key join, duplicate/conflict audit, checksummed v2 provenance manifest, normalized sidecar, and per-split interaction join coverage. Synthetic adapter/integration tests cover both representations. Real-source processing and actual metadata quality/coverage remain unverified and gated; no feature-release readiness is claimed.
 
 ## 11. Rights and privacy gate
 

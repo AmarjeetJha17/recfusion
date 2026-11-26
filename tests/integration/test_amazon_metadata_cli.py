@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -109,6 +110,12 @@ def _write_gzip(path: Path, lines: list[bytes]) -> Path:
     return path
 
 
+def _write_jsonl(path: Path, lines: list[bytes]) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"".join(lines))
+    return path
+
+
 @pytest.fixture
 def run_root(tmp_path: Path) -> Path:
     path = _PROCESSED_ROOT / f"amazon-metadata-synthetic-{tmp_path.name}"
@@ -193,27 +200,38 @@ def _run_cli(
     output: Path,
     temp_dir: Path,
     capsys: pytest.CaptureFixture[str],
+    source_url: str | None = None,
+    retrieved_at: str | None = None,
+    retrieval_method: str | None = None,
+    publisher_sha256: str | None = None,
 ) -> dict[str, object]:
-    result = main(
-        [
-            "--adapter",
-            "amazon-reviews-2023-electronics-metadata",
-            "--metadata",
-            str(source),
-            "--train-vocabulary",
-            str(vocabulary),
-            "--temporal-manifest",
-            str(temporal_manifest),
-            "--source-id",
-            "synthetic-amazon-electronics",
-            "--source-version",
-            "fixture-v1",
-            "--output-dir",
-            str(output),
-            "--temp-dir",
-            str(temp_dir),
-        ]
-    )
+    arguments = [
+        "--adapter",
+        "amazon-reviews-2023-electronics-metadata",
+        "--metadata",
+        str(source),
+        "--train-vocabulary",
+        str(vocabulary),
+        "--temporal-manifest",
+        str(temporal_manifest),
+        "--source-id",
+        "synthetic-amazon-electronics",
+        "--source-version",
+        "fixture-v1",
+        "--output-dir",
+        str(output),
+        "--temp-dir",
+        str(temp_dir),
+    ]
+    for flag, value in (
+        ("--source-url", source_url),
+        ("--retrieved-at", retrieved_at),
+        ("--retrieval-method", retrieval_method),
+        ("--publisher-sha256", publisher_sha256),
+    ):
+        if value is not None:
+            arguments.extend((flag, value))
+    result = main(arguments)
     assert result == 0
     return cast(dict[str, object], json.loads(capsys.readouterr().out))
 
@@ -312,6 +330,104 @@ def test_synthetic_cli_join_reconciles_and_is_order_independent(
         for record in normalized
     )
     assert list(temp_dir.iterdir()) == []
+
+
+def test_plain_jsonl_matches_gzip_and_reports_split_join_coverage(
+    run_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    vocabulary, temporal_manifest, _ = _prepare_temporal_inputs(run_root)
+    temp_dir = tmp_path / "sqlite-temp-formats"
+    temp_dir.mkdir()
+    lines = _metadata_rows()
+    plain = _write_jsonl(tmp_path / "metadata.jsonl", lines)
+    compressed = _write_gzip(tmp_path / "metadata.jsonl.gz", lines)
+    publisher_hash = hashlib.sha256(plain.read_bytes()).hexdigest()
+    declared_provenance = {
+        "source_url": "https://example.invalid/synthetic-metadata.jsonl",
+        "retrieved_at": "2026-11-26T00:00:00Z",
+        "retrieval_method": "synthetic_fixture",
+        "publisher_sha256": publisher_hash,
+    }
+
+    _run_cli(
+        source=plain,
+        vocabulary=vocabulary,
+        temporal_manifest=temporal_manifest,
+        output=run_root / "plain-run",
+        temp_dir=temp_dir,
+        capsys=capsys,
+        **declared_provenance,
+    )
+    _run_cli(
+        source=compressed,
+        vocabulary=vocabulary,
+        temporal_manifest=temporal_manifest,
+        output=run_root / "gzip-run",
+        temp_dir=temp_dir,
+        capsys=capsys,
+    )
+    _run_cli(
+        source=plain,
+        vocabulary=vocabulary,
+        temporal_manifest=temporal_manifest,
+        output=run_root / "plain-repeat",
+        temp_dir=temp_dir,
+        capsys=capsys,
+        **declared_provenance,
+    )
+
+    plain_manifest = json.loads((run_root / "plain-run" / "manifest.json").read_text())
+    gzip_manifest = json.loads((run_root / "gzip-run" / "manifest.json").read_text())
+    repeated_manifest = json.loads(
+        (run_root / "plain-repeat" / "manifest.json").read_text()
+    )
+    assert plain_manifest == repeated_manifest
+    assert [output["sha256"] for output in plain_manifest["outputs"]] == [
+        output["sha256"] for output in gzip_manifest["outputs"]
+    ]
+    assert plain_manifest["source"]["representation"] == "jsonl"
+    assert gzip_manifest["source"]["representation"] == "jsonl.gz"
+    assert plain_manifest["source"]["declared_provenance"] == {
+        **declared_provenance,
+        "verification_status": "declared values are not independently verified",
+    }
+    assert (
+        plain_manifest["source"]["locally_verified"]["publisher_sha256_match"] is True
+    )
+    assert gzip_manifest["source"]["declared_provenance"]["source_url"] is None
+    assert plain_manifest["source"]["locally_verified"]["sha256"]
+    assert plain_manifest["provenance"]["snapshot_only"] is True
+    assert plain_manifest["provenance"]["normalization_schema_version"] == (
+        "recfusion.product-normalization.v1"
+    )
+
+    coverage = plain_manifest["interaction_join_coverage"]
+    assert coverage["candidate_pool_changed"] is False
+    assert coverage["heldout_labels_used"] is False
+    assert coverage["splits"]["train"] == {
+        "interaction_rows": 3,
+        "unique_items": 3,
+        "train_known_interaction_rows": 3,
+        "train_known_unique_items": 3,
+        "train_cold_interaction_rows": 0,
+        "train_cold_unique_items": 0,
+        "metadata_matched_interaction_rows": 2,
+        "metadata_matched_unique_items": 2,
+        "feature_ready_interaction_rows": 1,
+        "feature_ready_unique_items": 1,
+        "conflict_excluded_interaction_rows": 1,
+        "conflict_excluded_unique_items": 1,
+        "missing_train_known_interaction_rows": 1,
+        "missing_train_known_unique_items": 1,
+        "coverage_denominators": {
+            "all_interaction_rows": 3,
+            "all_unique_items": 3,
+            "train_known_interaction_rows": 3,
+            "train_known_unique_items": 3,
+        },
+    }
+    assert coverage["splits"]["validation"]["train_cold_interaction_rows"] == 1
+    assert coverage["splits"]["test"]["train_cold_interaction_rows"] == 1
 
 
 def test_corrupt_gzip_does_not_publish_or_leave_temp_files(

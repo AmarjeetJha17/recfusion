@@ -1,11 +1,11 @@
 # Amazon Electronics Metadata Use Assessment and Acquisition Preflight
 
-**Assessment date:** 2026-11-26
+**Assessment date:** 2026-11-26 (source HEAD and local resource recheck)
 **Status:** Source-specific assessment prepared; **PENDING OWNER REVIEW**.
 **Recommendation:** **NO-GO for Phase 4.2C acquisition at this time.** The
-synthetic adapter checks pass, but the owner has not recorded a decision for
-this separate metadata source, and the official linked file returned HTTP 404
-to a HEAD-only request. No metadata was downloaded or opened.
+synthetic adapter/provenance/coverage checks pass, but the owner has not
+recorded a decision for this separate metadata source. No metadata or
+interaction output was downloaded or opened.
 
 ## 1. Scope and decision status
 
@@ -30,8 +30,9 @@ metadata source and scope was found; status remains **PENDING OWNER REVIEW**.
 | Dataset | Amazon Reviews'23 / Amazon Reviews 2023, collected by McAuley Lab. |
 | Source publisher | McAuley Lab, University of California San Diego. |
 | Category and release | Electronics category, 2023 dataset release. The metadata stream is category-wide, not limited to the 5-core interaction items. |
-| Documented format | Gzipped JSON Lines, one metadata object per line; expected filename `meta_Electronics.jsonl.gz`. |
+| Documented format | The official project documents gzipped JSON Lines; the maintainer's Hugging Face repository also lists an uncompressed `.jsonl` representation. |
 | Official file URL | `https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_2023/raw/meta_categories/meta_Electronics.jsonl.gz` (linked from the official project page). |
+| Alternate publisher-hosted representation | [Pinned Hugging Face raw JSONL](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023/resolve/2b6d039ed471f2ba5fd2acb718bf33b0a7e5598e/raw/meta_categories/meta_Electronics.jsonl); repository revision `2b6d039ed471f2ba5fd2acb718bf33b0a7e5598e`. This is not a downloaded local file or a rights decision. |
 | Documentation | [Official project page](https://amazon-reviews-2023.github.io/), [metadata schema and loader example](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023), and [repository metadata files](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023/tree/main/raw/meta_categories). |
 | Research citation | Hou et al., [“Bridging Language and Items for Retrieval and Recommendation: Benchmarking LLMs as Semantic Encoders”](https://aclanthology.org/2026.acl-long.147/), ACL 2026; the project page also links the [2024 arXiv preprint](https://arxiv.org/abs/2403.03952). |
 | Retrieval date | 2026-11-26 for the documentation review and HEAD request in this preflight. No dataset bytes were retrieved. |
@@ -83,7 +84,7 @@ assessment is not legal advice or legal clearance.
 
 ## 3. Official host and file preflight
 
-On 2026-11-26, a HEAD-only request was sent to the exact official file URL
+On 2026-11-26, a HEAD-only request was sent to the exact official gzip URL
 above, with redirects enabled and no response body requested. It returned:
 
 ```text
@@ -100,19 +101,40 @@ authentication requirement; the 404 response does not establish whether the
 file would require authentication if restored. Range and resume support are
 unknown. No checksum published alongside the official link was found.
 
-The Hugging Face repository has a separate Parquet representation under
-`raw_meta_Electronics`; its current listing reports a 1.96 GB directory across
-ten shards. This is not the official compressed JSONL.GZ file, is not a local
-transfer measurement, and is not a substitute source for the implemented
-adapter. Its mutable `main` branch would require an immutable revision and
-separate format/loader review. Existing repository notes about the size of an
-uncompressed JSONL listing likewise do not determine the gzipped transfer
-size.
+### Raw JSONL representation metadata-only check
 
-**File-size status:** official compressed size unknown. **Published checksum:**
-not found. **Acquisition/resume:** not verified; no download, byte range, or
-sample request was made. Resolve the 404 through the official source before
-any acquisition is considered. Do not silently switch to a mirror.
+The Hugging Face file listing identifies the raw Electronics metadata as
+uncompressed JSONL with displayed size 5.25 GB and publisher-listed SHA-256
+`5eb4dabd539586c49654297319ef178b62a2fe8e43108376feda125f04455d93`. This is
+a repository listing assertion, not a local file checksum.
+
+On 2026-11-26, `curl.exe --head --location` requests to both the mutable `main`
+URL and pinned revision URL returned a redirect followed by HTTP 200. The
+final response reported `Content-Length: 5246144134`, `Accept-Ranges: bytes`,
+CDN ETag/Xet hash `b975ed977454331d0660ba9c13f5998960a89c60c9068aaf5e757bd379037815`,
+and `X-Repo-Commit: 2b6d039ed471f2ba5fd2acb718bf33b0a7e5598e`. The redirect
+response exposed `X-Linked-ETag` equal to the repository-listed SHA-256
+`5eb4dabd539586c49654297319ef178b62a2fe8e43108376feda125f04455d93`. The
+command requested no body and reported `size_download=0`. These are distinct
+publisher metadata values. This confirms current HEAD metadata and advertised
+range support; it does not verify a full GET, locally acquired bytes, or usage
+rights. No GET or range request was made.
+
+The Hugging Face repository also lists a separate Parquet representation under
+`raw_meta_Electronics`; its current listing reports a 1.96 GB directory across
+ten shards. It is not the raw JSONL or official compressed JSONL.GZ file, not
+a local transfer measurement, and not the input format supported by this
+adapter. Any Parquet consideration requires separate immutable-revision and
+format/loader review.
+
+**File-size status:** official compressed `.jsonl.gz` size unknown; raw JSONL
+has a HEAD-advertised size of 5,246,144,134 bytes. **Published checksum:** none
+found for the linked gzip; the HF raw JSONL listing/HEAD reports SHA-256
+`5eb4dabd539586c49654297319ef178b62a2fe8e43108376feda125f04455d93`.
+**Acquisition/resume:** no file was downloaded. HEAD advertises byte-range
+support for raw JSONL, but no ranged GET or full GET was tested. The owner must
+select the exact source and representation; no automatic source switch is
+approved.
 
 ## 4. Local resource preflight
 
@@ -122,13 +144,13 @@ Observed local environment on 2026-11-26:
 |---|---|
 | OS | Windows, reported version `10.0.26300.0`, x64. |
 | Python / uv | Python 3.13.11 64-bit; uv 0.13.1. |
-| Project/output volume | Repository and ignored `data/processed/` output are on D:. Free space observed: 185,890,217,984 bytes (about 173.1 GiB). `data/processed/` is Git-ignored. |
-| Temporary volume | The system temporary directory is on C:. Free space observed: 21,413,064,704 bytes (about 19.94 GiB). |
+| Project/output volume | Repository and ignored `data/processed/` output are on D:. Free space observed: 185,889,366,016 bytes (about 173.1 GiB) via `System.IO.DriveInfo`; `data/processed/` is Git-ignored. |
+| Temporary volume | The process temporary directory is on C:. Free space observed: 21,400,223,744 bytes (about 19.93 GiB) via `System.IO.DriveInfo`. |
 | Proposed raw location | `data/raw/amazon-reviews-2023/electronics/metadata/`; `data/raw/` is Git-ignored. This path does not currently exist. |
 | SQLite location | Use a distinct, run-specific temporary directory on D: under ignored `data/processed/`, passed with `--temp-dir`. The CLI requires this directory to exist. This avoids relying on C:'s smaller free-space pool. No directory was created. |
 | Memory | Physical RAM could not be queried because the local CIM request was denied. No RAM/capacity claim is made. |
 
-The adapter uses an 8 MiB maximum decompressed JSONL record by default and an
+The adapter uses an 8 MiB maximum JSONL record by default and an
 8 MiB SQLite page cache; these bound parts of process memory, not total disk
 requirements. Its SQLite state contains target keys, source fingerprints, and
 matched canonical product records. The output directory is first written as a
@@ -140,19 +162,19 @@ compressed size and matched/output cardinality are known. Use this budget
 equation after the source is accessible:
 
 ```text
-additional D: free space >= C + T + Ocanonical + Onormalized + R
+additional free space across the selected raw/temp/output volumes >=
+  C + T + Ocanonical + Onormalized + A + R
 ```
 
-Here `C` is the retained compressed input, `T` is measured/planned temporary
-SQLite state, `Ocanonical` and `Onormalized` are the two generated JSONL files,
-and `R` is an owner-approved recovery reserve. The source has no verified
-`C`, and `T`/output expansion cannot be inferred from synthetic fixtures.
-For sensitivity only (not source-size estimates), raw input alone would use
-1, 2, or 5 GiB in those respective scenarios; each full scenario must add
-`T + Ocanonical + Onormalized + R`. Current D: free space can hold those raw
-input-only scenarios, but does not establish that a full run fits. Before any
-future run, inspect the actual file, both volumes, and chosen temp/output
-directories again. Do not reserve disk space in this checkpoint.
+Here `C` is the retained input (4.89 GiB for the HEAD-advertised uncompressed
+JSONL, or unknown for gzip), `T` is temporary SQLite state, `Ocanonical` and
+`Onormalized` are the two outputs, `A` is any atomic staging copy (the current
+implementation stages one output tree and renames it, so this is not a second
+full output copy), and `R` is a separately chosen recovery reserve. `T`,
+output expansion, and `R` cannot be inferred reliably from synthetic fixtures.
+Current free space exceeds the advertised raw JSONL input size alone, but does
+not establish that a complete run fits. Recheck the actual file, both volumes,
+and selected directories before processing. Do not reserve disk space here.
 
 ## 5. Canonical join and synthetic CLI verification
 
@@ -169,7 +191,11 @@ The CLI name and flags below were checked using the installed
 `recfusion-ingest-amazon-metadata --help`. Its exact adapter selector is
 `amazon-reviews-2023-electronics-metadata`; it accepts `--metadata`,
 `--train-vocabulary`, `--temporal-manifest`, `--source-id`, `--source-version`,
-`--output-dir`, optional `--temp-dir`, and optional `--max-record-bytes`.
+`--output-dir`, optional `--temp-dir`, `--max-record-bytes`, and optional
+declared-provenance flags `--source-url`, `--retrieved-at`,
+`--retrieval-method`, and `--publisher-sha256`. Both `.jsonl` and `.jsonl.gz`
+inputs are supported; representation is inferred from the suffix and the
+exact local bytes are hashed.
 No network downloader is implemented in this CLI.
 
 The synthetic integration test ran the actual CLI `main()` with invented gzip
@@ -248,11 +274,12 @@ passed** after adding the child-ASIN and overwrite tests.
    filename. Resume only if range support was observed and the transfer client
    verifies the existing partial; otherwise restart from the beginning. No
    download/resume command is prescribed while host behavior is unknown.
-5. Before the real join, close the audit gaps below: include source URL,
-   retrieval date, and code commit in provenance; provide item- and
-   interaction-level aggregate coverage by official split without fitting on
-   held-out data; record measured runtime/RSS/temp/output sizes; and preserve
-   the rights-decision reference in a private manifest or adjacent report.
+5. Before the real join, pass any known declared source URL, retrieval date,
+   retrieval method, and publisher checksum to the CLI. The v2 manifest now
+   captures declared versus locally verified provenance, code commit/dirty
+   state, and checksummed split-level interaction coverage. Also record
+   measured runtime/RSS/temp/output sizes in the private run report and retain
+   the rights-decision reference there.
 6. Use the supported adapter invocation shape below only after separate
    Phase 4.2C authorization. The command name and option names are verified;
    angle-bracket values are placeholders, not an executable command:
@@ -294,12 +321,13 @@ Before a later controlled pilot, the owner should explicitly confirm:
 - Whether to proceed only after the official file URL is restored and a fresh
   capacity/provenance preflight passes.
 
-**Current blockers:** owner decision pending; official direct file URL returned
-404; compressed file size, checksum, authentication, range support, and resume
-behavior remain unknown; physical RAM could not be queried; current adapter
-manifest lacks source URL/retrieval date/code commit and event-level join
-coverage. These do not invalidate the synthetic join tests, but they prevent a
-fully auditable real-data pilot from starting now.
+**Current blockers:** owner decision pending; the official direct gzip URL
+returned 404; gzip file size/checksum, authentication, range support, and
+resume behavior remain unknown; physical RAM could not be queried. The
+alternate raw JSONL HEAD is reachable and advertises size/hash/range metadata,
+but its bytes have not been downloaded or locally verified, and the owner has
+not selected this alternate representation. Synthetic tests do not resolve
+rights or actual source content.
 
 **Recommendation:** **NO-GO for Phase 4.2C now.** Reconsider a conditional GO
 only after the owner reviews this record, the official source is reachable and

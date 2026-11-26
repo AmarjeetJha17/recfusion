@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 import sqlite3
+import subprocess
 import tempfile
 import zlib
 from collections import Counter
@@ -32,11 +33,13 @@ from recfusion_data.ingestion.manifest import (
 from recfusion_data.normalization import normalize_product_metadata
 from recfusion_data.splitting.temporal import (
     MANIFEST_SCHEMA,
+    TEMPORAL_RECORD_SCHEMA,
     VOCABULARY_SCHEMA,
 )
 from recfusion_data.validation import validate_product
 
-AMAZON_METADATA_MANIFEST_SCHEMA = "recfusion.amazon-electronics-metadata.v1"
+AMAZON_METADATA_MANIFEST_SCHEMA = "recfusion.amazon-electronics-metadata.v2"
+_NORMALIZATION_SCHEMA = "recfusion.product-normalization.v1"
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 _PROCESSED_ROOT = (_REPOSITORY_ROOT / "data" / "processed").resolve()
 _SOURCE_TOKEN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
@@ -230,11 +233,13 @@ def _load_vocabulary_index(path: Path, database: sqlite3.Connection) -> int:
     return count
 
 
-def _iter_gzip_lines(
+def _iter_jsonl_lines(
     path: Path, max_record_bytes: int
 ) -> Iterator[tuple[int, bytes | None, str | None, int]]:
+    representation = _metadata_representation(path)
+    opener = gzip.open if representation == "jsonl.gz" else Path.open
     try:
-        with gzip.open(path, "rb") as source:
+        with opener(path, "rb") as source:
             row_number = 0
             while True:
                 line = source.readline(max_record_bytes + 1)
@@ -254,7 +259,288 @@ def _iter_gzip_lines(
     except (gzip.BadGzipFile, EOFError, OSError, zlib.error) as error:
         raise IngestionError(
             "Metadata input is not a valid complete gzip stream."
+            if representation == "jsonl.gz"
+            else "Metadata input is not a readable JSONL stream."
         ) from error
+
+
+def _metadata_representation(path: Path) -> str:
+    if path.name.endswith(".jsonl.gz"):
+        return "jsonl.gz"
+    if path.name.endswith(".jsonl"):
+        return "jsonl"
+    raise IngestionError("Metadata input must end in .jsonl or .jsonl.gz.")
+
+
+def _code_revision() -> dict[str, object]:
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            cwd=_REPOSITORY_ROOT,
+            timeout=5,
+        ).stdout.strip()
+        dirty = bool(
+            subprocess.run(
+                ["git", "status", "--porcelain"],
+                check=True,
+                capture_output=True,
+                text=True,
+                cwd=_REPOSITORY_ROOT,
+                timeout=5,
+            ).stdout.strip()
+        )
+    except (OSError, subprocess.SubprocessError):
+        return {"commit_sha": None, "working_tree_dirty": None}
+    return {"commit_sha": commit or None, "working_tree_dirty": dirty}
+
+
+def _verified_interaction_split_paths(
+    manifest_path: Path,
+) -> dict[str, tuple[Path, str, int]]:
+    try:
+        manifest = _mapping(
+            json.loads(manifest_path.read_text(encoding="utf-8")),
+            "Temporal split manifest",
+        )
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise IngestionError("Cannot read temporal split manifest outputs.") from error
+    outputs_value = manifest.get("outputs")
+    if not isinstance(outputs_value, list):
+        raise IngestionError("Temporal split manifest does not list its outputs.")
+    expected = {
+        "train": "interactions.train.jsonl",
+        "validation": "interactions.validation.jsonl",
+        "test": "interactions.test.jsonl",
+    }
+    found: dict[str, tuple[Path, str, int]] = {}
+    for raw_output in outputs_value:
+        output = _mapping(raw_output, "Temporal split output")
+        filename = output.get("file")
+        if filename not in expected.values():
+            continue
+        if not isinstance(filename, str) or Path(filename).name != filename:
+            raise IngestionError("Temporal split output path is unsafe.")
+        split = next(key for key, value in expected.items() if value == filename)
+        if split in found:
+            raise IngestionError(
+                "Temporal manifest lists a split output more than once."
+            )
+        output_path = manifest_path.parent / filename
+        if not output_path.is_file():
+            raise IngestionError("A verified temporal split output is missing.")
+        expected_hash = output.get("sha256")
+        expected_size = output.get("size_bytes")
+        if (
+            not isinstance(expected_hash, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", expected_hash)
+            or isinstance(expected_size, bool)
+            or not isinstance(expected_size, int)
+            or expected_size < 0
+        ):
+            raise IngestionError(
+                "Temporal split output checksum metadata is malformed."
+            )
+        found[split] = (output_path, expected_hash, expected_size)
+    if set(found) != set(expected):
+        raise IngestionError("Temporal manifest does not attest all three split files.")
+    return found
+
+
+def _index_interactions(
+    *,
+    database: sqlite3.Connection,
+    temporal_manifest_path: Path,
+    max_record_bytes: int,
+) -> dict[str, dict[str, object]]:
+    paths = _verified_interaction_split_paths(temporal_manifest_path)
+    input_files: dict[str, dict[str, object]] = {}
+    for split, (path, expected_hash, expected_size) in paths.items():
+        digest = hashlib.sha256()
+        size = 0
+        try:
+            with path.open("rb") as source:
+                while line := source.readline(max_record_bytes + 1):
+                    digest.update(line)
+                    size += len(line)
+                    if len(line) > max_record_bytes:
+                        raise IngestionError(
+                            "Temporal interaction row exceeds the size limit."
+                        )
+                    try:
+                        row = _mapping(json.loads(line), "Temporal interaction row")
+                        interaction = _mapping(row.get("interaction"), "Interaction")
+                    except (json.JSONDecodeError, ValueError) as error:
+                        raise IngestionError(
+                            "Temporal interaction output is malformed."
+                        ) from error
+                    item_key = interaction.get("item_key")
+                    if (
+                        row.get("schema_version") != TEMPORAL_RECORD_SCHEMA
+                        or row.get("split") != split
+                        or row.get("source_split") != split
+                        or interaction.get("schema_version")
+                        != "recfusion.interaction-preprocessing.v1"
+                        or interaction.get("split") != split
+                    ):
+                        raise IngestionError(
+                            "Temporal interaction split membership changed."
+                        )
+                    if not isinstance(item_key, str) or not item_key.startswith(
+                        _ITEM_KEY_PREFIX
+                    ):
+                        raise IngestionError(
+                            "Temporal interaction item key is malformed."
+                        )
+                    database.execute(
+                        "INSERT INTO interaction_item_counts VALUES (?, ?, 1) "
+                        "ON CONFLICT(split, item_key) DO UPDATE SET "
+                        "occurrences = occurrences + 1",
+                        (split, item_key),
+                    )
+        except OSError as error:
+            raise IngestionError(
+                "Cannot read verified temporal interaction output."
+            ) from error
+        if digest.hexdigest() != expected_hash or size != expected_size:
+            raise IngestionError("Temporal split output changed during coverage audit.")
+        input_files[split] = {
+            "file": path.name,
+            "sha256": expected_hash,
+            "size_bytes": expected_size,
+        }
+    return input_files
+
+
+def _interaction_join_coverage(
+    database: sqlite3.Connection, split_inputs: dict[str, dict[str, object]]
+) -> dict[str, object]:
+    database.executescript(
+        """
+        CREATE TABLE matched_item_keys (item_key TEXT PRIMARY KEY) WITHOUT ROWID;
+        INSERT INTO matched_item_keys SELECT DISTINCT item_key FROM matched_products;
+        CREATE TABLE feature_ready_item_keys (item_key TEXT PRIMARY KEY) WITHOUT ROWID;
+        INSERT INTO feature_ready_item_keys
+        SELECT item_key FROM matched_products GROUP BY item_key HAVING COUNT(*) = 1;
+        CREATE TABLE conflict_item_keys (item_key TEXT PRIMARY KEY) WITHOUT ROWID;
+        INSERT INTO conflict_item_keys
+        SELECT item_key FROM matched_products GROUP BY item_key HAVING COUNT(*) > 1;
+        """
+    )
+    result: dict[str, object] = {}
+    for split in ("train", "validation", "test"):
+        split_counts: dict[str, object] = {
+            "interaction_rows": database.execute(
+                "SELECT COALESCE(SUM(occurrences), 0) "
+                "FROM interaction_item_counts WHERE split = ?",
+                (split,),
+            ).fetchone()[0],
+            "unique_items": database.execute(
+                "SELECT COUNT(*) FROM interaction_item_counts WHERE split = ?",
+                (split,),
+            ).fetchone()[0],
+            "train_known_interaction_rows": database.execute(
+                "SELECT COALESCE(SUM(events.occurrences), 0) "
+                "FROM interaction_item_counts AS events "
+                "JOIN target_items AS known USING (item_key) WHERE events.split = ?",
+                (split,),
+            ).fetchone()[0],
+            "train_known_unique_items": database.execute(
+                "SELECT COUNT(*) FROM interaction_item_counts AS events "
+                "JOIN target_items AS known USING (item_key) WHERE events.split = ?",
+                (split,),
+            ).fetchone()[0],
+            "train_cold_interaction_rows": database.execute(
+                "SELECT COALESCE(SUM(events.occurrences), 0) "
+                "FROM interaction_item_counts AS events "
+                "LEFT JOIN target_items AS known USING (item_key) "
+                "WHERE events.split = ? AND known.item_key IS NULL",
+                (split,),
+            ).fetchone()[0],
+            "train_cold_unique_items": database.execute(
+                "SELECT COUNT(*) FROM interaction_item_counts AS events "
+                "LEFT JOIN target_items AS known USING (item_key) "
+                "WHERE events.split = ? AND known.item_key IS NULL",
+                (split,),
+            ).fetchone()[0],
+            "metadata_matched_interaction_rows": database.execute(
+                "SELECT COALESCE(SUM(events.occurrences), 0) "
+                "FROM interaction_item_counts AS events "
+                "JOIN matched_item_keys USING (item_key) WHERE events.split = ?",
+                (split,),
+            ).fetchone()[0],
+            "metadata_matched_unique_items": database.execute(
+                "SELECT COUNT(*) FROM interaction_item_counts AS events "
+                "JOIN matched_item_keys USING (item_key) WHERE events.split = ?",
+                (split,),
+            ).fetchone()[0],
+            "feature_ready_interaction_rows": database.execute(
+                "SELECT COALESCE(SUM(events.occurrences), 0) "
+                "FROM interaction_item_counts AS events "
+                "JOIN feature_ready_item_keys USING (item_key) WHERE events.split = ?",
+                (split,),
+            ).fetchone()[0],
+            "feature_ready_unique_items": database.execute(
+                "SELECT COUNT(*) FROM interaction_item_counts AS events "
+                "JOIN feature_ready_item_keys USING (item_key) WHERE events.split = ?",
+                (split,),
+            ).fetchone()[0],
+            "conflict_excluded_interaction_rows": database.execute(
+                "SELECT COALESCE(SUM(events.occurrences), 0) "
+                "FROM interaction_item_counts AS events "
+                "JOIN conflict_item_keys USING (item_key) WHERE events.split = ?",
+                (split,),
+            ).fetchone()[0],
+            "conflict_excluded_unique_items": database.execute(
+                "SELECT COUNT(*) FROM interaction_item_counts AS events "
+                "JOIN conflict_item_keys USING (item_key) WHERE events.split = ?",
+                (split,),
+            ).fetchone()[0],
+            "missing_train_known_interaction_rows": database.execute(
+                "SELECT COALESCE(SUM(events.occurrences), 0) "
+                "FROM interaction_item_counts AS events "
+                "JOIN target_items AS known USING (item_key) "
+                "LEFT JOIN matched_item_keys AS matched USING (item_key) "
+                "WHERE events.split = ? AND matched.item_key IS NULL",
+                (split,),
+            ).fetchone()[0],
+            "missing_train_known_unique_items": database.execute(
+                "SELECT COUNT(*) FROM interaction_item_counts AS events "
+                "JOIN target_items AS known USING (item_key) "
+                "LEFT JOIN matched_item_keys AS matched USING (item_key) "
+                "WHERE events.split = ? AND matched.item_key IS NULL",
+                (split,),
+            ).fetchone()[0],
+        }
+        split_counts["coverage_denominators"] = {
+            "all_interaction_rows": split_counts["interaction_rows"],
+            "all_unique_items": split_counts["unique_items"],
+            "train_known_interaction_rows": split_counts[
+                "train_known_interaction_rows"
+            ],
+            "train_known_unique_items": split_counts["train_known_unique_items"],
+        }
+        result[split] = split_counts
+    return {
+        "denominators": {
+            "all_rows_and_unique_items": (
+                "all valid interactions in each official split"
+            ),
+            "train_known": "items present in the verified train-only vocabulary",
+            "train_cold": "items absent from the verified train-only vocabulary",
+            "feature_ready": (
+                "train-known items with one unique matched metadata record; "
+                "conflict keys excluded"
+            ),
+        },
+        "candidate_pool_changed": False,
+        "heldout_labels_used": False,
+        "split_membership_recomputed": False,
+        "verified_split_inputs": split_inputs,
+        "splits": result,
+    }
 
 
 def _product_record(product: ProductMetadata) -> dict[str, object]:
@@ -304,6 +590,12 @@ def _open_database(path: Path) -> sqlite3.Connection:
             fingerprint TEXT NOT NULL,
             product_json TEXT NOT NULL,
             PRIMARY KEY (item_key, fingerprint)
+        ) WITHOUT ROWID;
+        CREATE TABLE interaction_item_counts (
+            split TEXT NOT NULL,
+            item_key TEXT NOT NULL,
+            occurrences INTEGER NOT NULL,
+            PRIMARY KEY (split, item_key)
         ) WITHOUT ROWID;
         """
     )
@@ -368,6 +660,10 @@ def ingest_amazon_electronics_metadata(
     output_dir: Path,
     source_id: str,
     source_version: str,
+    source_url: str | None = None,
+    retrieved_at: str | None = None,
+    retrieval_method: str | None = None,
+    publisher_sha256: str | None = None,
     temp_dir: Path | None = None,
     max_record_bytes: int = _DEFAULT_MAX_RECORD_BYTES,
 ) -> AmazonMetadataIngestionResult:
@@ -378,6 +674,11 @@ def ingest_amazon_electronics_metadata(
         )
     if max_record_bytes < 1:
         raise IngestionError("max_record_bytes must be positive.")
+    if publisher_sha256 is not None and not re.fullmatch(
+        r"[0-9a-fA-F]{64}", publisher_sha256
+    ):
+        raise IngestionError("Publisher SHA-256 must contain exactly 64 hex digits.")
+    representation = _metadata_representation(metadata_path)
     final_output = _validate_paths(
         metadata_path=metadata_path,
         vocabulary_path=train_vocabulary_path,
@@ -416,7 +717,12 @@ def ingest_amazon_electronics_metadata(
                     raise IngestionError(
                         "Item vocabulary rows do not match the temporal manifest."
                     )
-                for row_number, line, line_error, byte_count in _iter_gzip_lines(
+                split_inputs = _index_interactions(
+                    database=database,
+                    temporal_manifest_path=temporal_manifest_path,
+                    max_record_bytes=max_record_bytes,
+                )
+                for row_number, line, line_error, byte_count in _iter_jsonl_lines(
                     metadata_path, max_record_bytes
                 ):
                     del row_number
@@ -535,6 +841,9 @@ def ingest_amazon_electronics_metadata(
                 counts["canonical_output_records"] = database.execute(
                     "SELECT COUNT(*) FROM matched_products"
                 ).fetchone()[0]
+                interaction_join_coverage = _interaction_join_coverage(
+                    database, split_inputs
+                )
                 if (
                     counts["source_records_read"]
                     != counts["valid_source_records"] + sum(rejected.values())
@@ -624,9 +933,44 @@ def ingest_amazon_electronics_metadata(
             "source": {
                 "id": source_id,
                 "version": source_version,
-                "format": "amazon-reviews-2023-electronics-metadata-jsonl-gzip",
+                "format": f"amazon-reviews-2023-electronics-metadata-{representation}",
+                "representation": representation,
                 "schema_version": "amazon-reviews-2023-metadata-v1",
                 "input": {"sha256": input_checksum, "size_bytes": input_size},
+                "declared_provenance": {
+                    "source_url": source_url,
+                    "retrieved_at": retrieved_at,
+                    "retrieval_method": retrieval_method,
+                    "publisher_sha256": publisher_sha256,
+                    "verification_status": (
+                        "declared values are not independently verified"
+                    ),
+                },
+                "locally_verified": {
+                    "representation": representation,
+                    "sha256": input_checksum,
+                    "size_bytes": input_size,
+                    "publisher_sha256_match": (
+                        input_checksum.lower() == publisher_sha256.lower()
+                        if publisher_sha256 is not None
+                        else None
+                    ),
+                },
+            },
+            "provenance": {
+                "dataset_lineage": {
+                    "dataset": "Amazon Reviews 2023",
+                    "category": "Electronics",
+                    "source_id": source_id,
+                    "source_version": source_version,
+                },
+                "code_revision": _code_revision(),
+                "normalization_schema_version": _NORMALIZATION_SCHEMA,
+                "train_vocabulary_sha256": vocabulary_checksum,
+                "train_vocabulary_item_count": target_count,
+                "temporal_manifest_sha256": temporal_manifest_checksum,
+                "snapshot_only": True,
+                "snapshot_effective_time": None,
             },
             "target_vocabulary": {
                 "schema_version": VOCABULARY_SCHEMA,
@@ -662,6 +1006,7 @@ def ingest_amazon_electronics_metadata(
                 "uncompressed_bytes_read": uncompressed_bytes,
             },
             "outputs": outputs,
+            "interaction_join_coverage": interaction_join_coverage,
         }
         write_manifest(staging_dir / "manifest.json", manifest)
         if final_output.exists() or final_output.is_symlink():
