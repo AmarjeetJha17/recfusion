@@ -1,6 +1,6 @@
 # Amazon Electronics Product Metadata Plan
 
-**Status:** Phase 4.1 feasibility findings plus Phase 4.2A synthetic-only adapter implementation. No real Amazon metadata was opened, profiled, or joined during Phase 4.2A. The official split CSV files and their prior pilot outputs were not read in this step.
+**Status:** Phase 4.1 feasibility findings plus Phase 4.2A synthetic-only adapter implementation and Phase 4.2B preflight assessment. No real Amazon metadata was opened, profiled, or joined. The official split CSV files and their prior pilot outputs were not read in these metadata steps. The source-specific rights decision is pending, and the official linked metadata file returned HTTP 404 to a HEAD request; see [AMAZON-METADATA-PREFLIGHT.md](./AMAZON-METADATA-PREFLIGHT.md).
 
 **Decision:** The synthetic adapter is implemented and tested; this plan does not authorize acquisition or processing. The Amazon Reviews 2023 metadata rights question remains unresolved for this additional source and must be reviewed by the project owner before any real metadata is read.
 

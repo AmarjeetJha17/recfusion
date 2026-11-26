@@ -143,6 +143,15 @@ def test_metadata_adapter_rejects_invalid_parent_identifier(
         )
 
 
+def test_child_asin_does_not_substitute_for_parent_asin() -> None:
+    with pytest.raises(AdapterError, match="invalid_source_identifier"):
+        adapt_amazon_metadata_record(
+            {"asin": "Synthetic-Child-Only"},
+            source_id="synthetic-amazon-electronics",
+            source_version="fixture-v1",
+        )
+
+
 def test_metadata_adapter_records_unsupported_optional_field_types() -> None:
     mapped = adapt_amazon_metadata_record(
         {

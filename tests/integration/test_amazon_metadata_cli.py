@@ -91,7 +91,7 @@ def _metadata_rows() -> list[bytes]:
             "videos": [{"title": "Synthetic video"}],
         },
         {"parent_asin": "SYNTH_A", "title": "Conflicting synthetic title"},
-        {"title": "Missing parent identifier"},
+        {"asin": "SYNTH_CHILD_ONLY", "title": "Child key cannot join"},
         b"{invalid-json\n",
         b"[]\n",
     ]
@@ -387,3 +387,42 @@ def test_vocabulary_manifest_checksum_is_required(
     assert result == 2
     assert "checksum" in capsys.readouterr().err
     assert not output.exists()
+
+
+def test_existing_output_is_never_overwritten(
+    run_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    vocabulary, temporal_manifest, _ = _prepare_temporal_inputs(run_root)
+    source = _write_gzip(tmp_path / "synthetic-metadata.jsonl.gz", _metadata_rows())
+    temp_dir = tmp_path / "sqlite-temp-overwrite"
+    temp_dir.mkdir()
+    output = run_root / "existing-run"
+    output.mkdir()
+    sentinel = output / "sentinel.txt"
+    sentinel.write_text("preserve existing output", encoding="utf-8")
+
+    result = main(
+        [
+            "--adapter",
+            "amazon-reviews-2023-electronics-metadata",
+            "--metadata",
+            str(source),
+            "--train-vocabulary",
+            str(vocabulary),
+            "--temporal-manifest",
+            str(temporal_manifest),
+            "--source-id",
+            "synthetic-amazon-electronics",
+            "--source-version",
+            "fixture-v1",
+            "--output-dir",
+            str(output),
+            "--temp-dir",
+            str(temp_dir),
+        ]
+    )
+
+    assert result == 2
+    assert "new, non-existing child directory" in capsys.readouterr().err
+    assert sentinel.read_text(encoding="utf-8") == "preserve existing output"
+    assert list(temp_dir.iterdir()) == []
