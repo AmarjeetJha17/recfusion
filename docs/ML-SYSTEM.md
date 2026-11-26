@@ -37,6 +37,33 @@ users without generated candidates receive fewer than K results, which is
 reported as candidate-generation coverage and per-K shortfall. This is a
 deterministic bounded baseline, not a trained or promoted model.
 
+### CPU-first PyTorch for offline BPR
+
+PyTorch is pinned to release `torch==2.15.0` in the existing `dev` dependency
+group. BPR training is an offline research job, so the current API runtime
+does not acquire the large ML framework dependency. The project pins this
+version and its artifact hashes in `uv.lock`; updates must use uv's resolver
+and lock workflow. uv maps only `torch` to the named, explicit official
+[PyTorch CPU wheel index](https://download.pytorch.org/whl/cpu); ordinary
+dependencies continue to use PyPI. No CUDA, `torchvision`, or `torchaudio`
+package is included.
+
+The forthcoming BPR baseline is intended to train and evaluate on CPU first.
+The lock selects the `+cpu` wheel for Windows/Linux, which provides CPU tensor
+and autograd operations and does not include CUDA support. Correct execution
+must not depend on CUDA being available. The current development target is
+CPython 3.13 on Windows x86-64 and Linux x86-64 (including the Ubuntu 24.04 CI
+runner). The official CPU index also publishes a CPython 3.13 Apple Silicon
+macOS wheel, but does not list a matching macOS Intel wheel; macOS Intel
+support is therefore not promised. Other architectures must be checked against
+the wheel index before use.
+
+Training remains an offline concern. If a future serving implementation
+requires PyTorch inference, review that dependency separately rather than
+pulling the training stack into the API runtime by default. Store model
+checkpoints only in ignored local artifact paths and load them only with
+verified provenance; a CPU-only installation provides no GPU acceleration.
+
 ## 3. Two-tower details
 
 **User tower:** trainable ID embedding for seen users, aggregated historical item embeddings and explicit preference feature vector (when available). Support anonymous query/session via metadata/context encoder or fallback; no assumption that historical review users map to app users.
