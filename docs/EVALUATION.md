@@ -52,6 +52,21 @@ Metadata metrics are unavailable until product metadata is joined under a
 separately reviewed contract. Confidence intervals and statistical comparisons
 are not implemented by this initial baseline runner.
 
+### Phase 3.2A item-CF comparison
+
+The item-CF comparison reuses the same Step 2.4/2.5 checksum-verified loader,
+validation cohort, train-known candidate pool, seen-item policy, and metric
+implementation as Phase 3.1. It fits only on train rows and compares against a
+saved popularity report only when source identity, train/validation hashes,
+temporal-manifest hash, K values, eligible-user count, and eligible-target
+count match; it also recomputes popularity metrics and requires exact
+agreement with that report. Test artifact bytes are checksum-verified but
+test rows are not parsed. The report includes candidate-generation user
+coverage, users with fewer than K returned items, fit caps/support counts, and
+explicit zero fallback use. Sparse item-CF does not fabricate recommendations
+for users with no eligible neighbors. These measurements remain validation
+results and do not permit model selection on test.
+
 Metrics must include `K`, user count, item universe, exclusions, split manifest, source and seed. Compare full-catalog ranking when feasible; explicitly label sampled candidate/negative evaluation and use the *same* candidate policy for models.
 
 ## 4. Core experiments

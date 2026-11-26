@@ -20,6 +20,7 @@ recfusion-temporal-split = "recfusion_data.temporal_split_cli:main"
 recfusion-generate-features = "recfusion_data.feature_cli:main"
 recfusion-synthetic-release = "recfusion_data.release:main"
 recfusion-evaluate-popularity = "recfusion_ml.evaluation.pilot:main"
+recfusion-evaluate-item-cf = "recfusion_ml.evaluation.item_cf_pilot:main"
 
 [dependency-groups]
 dev = [

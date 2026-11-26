@@ -10,6 +10,7 @@ import time
 import tracemalloc
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -204,33 +205,30 @@ def _repository_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def evaluate_pilot(
-    *,
-    preprocessing_dir: Path,
-    temporal_dir: Path,
-    output_dir: Path,
-    ks: Sequence[int] = (5, 10, 20),
-) -> dict[str, object]:
-    """Validate pilot artifacts and write aggregate-only validation results."""
-    started = time.perf_counter()
-    tracemalloc.start()
+@dataclass(frozen=True, slots=True)
+class TrustedPilotData:
+    preprocessing_dir: Path
+    temporal_dir: Path
+    preprocessing: dict[str, object]
+    temporal: dict[str, object]
+    temporal_outputs: dict[str, dict[str, object]]
+    train_records: list[dict[str, object]]
+    validation_records: list[dict[str, object]]
+    train_events: tuple[RatingEvent, ...]
+    validation_events: tuple[RatingEvent, ...]
+    candidate_items: frozenset[str]
+
+
+def load_trusted_pilot_data(
+    preprocessing_dir: Path, temporal_dir: Path
+) -> TrustedPilotData:
+    """Verify Step 2.4/2.5 artifacts; parse train and validation rows only."""
     preprocessing_dir = preprocessing_dir.resolve()
     temporal_dir = temporal_dir.resolve()
-    output_dir = output_dir.resolve()
-    repository_root = _repository_root()
-    processed_root = (repository_root / "data" / "processed").resolve()
     if not preprocessing_dir.is_dir() or not temporal_dir.is_dir():
         raise ValueError(
             "Both preprocessing and trusted temporal directories are required."
         )
-    for input_dir in (preprocessing_dir, temporal_dir):
-        if input_dir == output_dir or input_dir in output_dir.parents:
-            raise ValueError("Output directory cannot overwrite or contain an input.")
-    if processed_root not in output_dir.parents:
-        raise ValueError("Output directory must be under ignored data/processed.")
-    if output_dir.exists():
-        raise ValueError("Output directory already exists; refusing to overwrite it.")
-
     preprocessing = _read_manifest(
         preprocessing_dir / "manifest.json", _PREPROCESS_SCHEMA
     )
@@ -274,9 +272,57 @@ def evaluate_pilot(
         validation_records
     ):
         raise ValueError("Parsed train/validation counts disagree with their manifest.")
-    train = [_event(record, "train") for record in train_records]
-    validation = [_event(record, "validation") for record in validation_records]
-    pool = _candidate_pool(temporal_dir / "candidate-pool.items.jsonl")
+    train_events = tuple(_event(record, "train") for record in train_records)
+    validation_events = tuple(
+        _event(record, "validation") for record in validation_records
+    )
+    candidate_items = frozenset(
+        _candidate_pool(temporal_dir / "candidate-pool.items.jsonl")
+    )
+    return TrustedPilotData(
+        preprocessing_dir=preprocessing_dir,
+        temporal_dir=temporal_dir,
+        preprocessing=preprocessing,
+        temporal=temporal,
+        temporal_outputs=temporal_outputs,
+        train_records=train_records,
+        validation_records=validation_records,
+        train_events=train_events,
+        validation_events=validation_events,
+        candidate_items=candidate_items,
+    )
+
+
+def evaluate_pilot(
+    *,
+    preprocessing_dir: Path,
+    temporal_dir: Path,
+    output_dir: Path,
+    ks: Sequence[int] = (5, 10, 20),
+) -> dict[str, object]:
+    """Validate pilot artifacts and write aggregate-only validation results."""
+    started = time.perf_counter()
+    tracemalloc.start()
+    output_dir = output_dir.resolve()
+    repository_root = _repository_root()
+    processed_root = (repository_root / "data" / "processed").resolve()
+    for input_dir in (preprocessing_dir.resolve(), temporal_dir.resolve()):
+        if input_dir == output_dir or input_dir in output_dir.parents:
+            raise ValueError("Output directory cannot overwrite or contain an input.")
+    if processed_root not in output_dir.parents:
+        raise ValueError("Output directory must be under ignored data/processed.")
+    if output_dir.exists():
+        raise ValueError("Output directory already exists; refusing to overwrite it.")
+
+    data = load_trusted_pilot_data(preprocessing_dir, temporal_dir)
+    preprocessing = data.preprocessing
+    temporal = data.temporal
+    temporal_outputs = data.temporal_outputs
+    train_records = data.train_records
+    validation_records = data.validation_records
+    train = data.train_events
+    validation = data.validation_events
+    pool = data.candidate_items
     model = PopularityRecommender.fit(train, pool)
     cohort = build_validation_cohort(train, validation, pool)
     recommendations = {
@@ -344,8 +390,14 @@ def evaluate_pilot(
         if isinstance(integrity_counts_value, dict)
         else {}
     )
+    integrity_status = temporal.get("integrity_status")
+    integrity_status = (
+        cast(dict[str, object], integrity_status)
+        if isinstance(integrity_status, dict)
+        else {}
+    )
     integrity_summary = {
-        key: integrity.get(key)
+        key: integrity_status.get(key)
         for key in (
             "evaluation_eligible",
             "blocking_violations",

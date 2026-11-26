@@ -116,6 +116,15 @@
 - **Evidence:** [Official dataset page and citation](https://amazon-reviews-2023.github.io/), [5-core processing documentation](https://amazon-reviews-2023.github.io/data_processing/5core.html), [maintainer terms discussion](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023/discussions/1), and [ACL 2026 research publication](https://aclanthology.org/2026.acl-long.147/).
 - **Revisit if:** Applicable source terms or law are clarified, institutional policy requires review, project scope changes, or storage/publication/derived-data use changes.
 
+## ADR-015 — Bounded item-based collaborative filtering baseline
+
+- **Status:** Proposed
+- **Date:** 2026-11-26
+- **Choice:** Compare a deterministic sparse item-CF baseline with Phase 3.1 popularity on the same verified Step 2.5 validation cohort. Use binary positive signals for ratings >=4, collapse repeated user/item positives only in the derived signal, require two shared users per cosine pair, cap positive histories at 20 and retained neighbors per item at 100, exclude all train-seen items, and do not fall back to popularity.
+- **Why:** This provides an interpretable collaborative baseline while bounding pair expansion and keeping the validation comparison on one candidate universe and denominator.
+- **Evidence:** Synthetic unit and integration tests plus the aggregate-only 10,000-user validation report. These do not establish deployment readiness or superiority.
+- **Open:** Whether alternate support/history/neighbor caps or a graded rating signal should be evaluated; assess only through validation protocol and preserve test as untouched until model selection is complete.
+
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |

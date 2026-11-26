@@ -22,6 +22,21 @@ It is an offline baseline over the Step 2.5 train-known candidate pool; review
 counts are not purchase or exposure counts. No trained model is part of this
 milestone.
 
+Phase 3.2A adds a pure item-based collaborative filtering baseline (B2a) over
+binary train-only user-item signals: ratings >=4 are positive, and repeated
+positive observations for the same user/item are collapsed only in this
+derived representation. Cosine similarities are computed from sparse
+co-occurrence counts; pairs with fewer than two shared users are discarded.
+Each user's positive history is capped at 20 items ordered by global training
+positive-user count descending and item key ascending; at most 100 neighbors
+per item are retained, ordered by similarity descending and item key ascending.
+Recommendation scores sum similarities from the user's capped positive
+history. All train-observed items are excluded, and the candidate pool must be
+the exact train-known item set. This baseline has no popularity fallback:
+users without generated candidates receive fewer than K results, which is
+reported as candidate-generation coverage and per-K shortfall. This is a
+deterministic bounded baseline, not a trained or promoted model.
+
 ## 3. Two-tower details
 
 **User tower:** trainable ID embedding for seen users, aggregated historical item embeddings and explicit preference feature vector (when available). Support anonymous query/session via metadata/context encoder or fallback; no assumption that historical review users map to app users.
