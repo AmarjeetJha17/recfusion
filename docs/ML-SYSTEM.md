@@ -112,7 +112,36 @@ embeddings remain local and private. The current tests use only small
 synthetic events: they verify score/loss gradients, deterministic fitting,
 sampling exclusions, duplicate-pair handling, ranking behavior, leakage
 rejection, and checkpoint score equivalence. No real Amazon data or
-validation/test artifact has been used for BPR in this step.
+validation/test artifact has been used by these tests. The real-data
+validation-only experiment is documented below and in `docs/EVALUATION.md`.
+
+#### Step 3.2B.2 real Electronics BPR experiment
+
+The local 10,000-user Electronics pilot was trained on CPU with seed 42,
+32-dimensional embeddings, Adam (learning rate 0.001), L2 regularization
+0.0001, batches of 1,024, and 20 epochs. Training used the 81,688 trusted train
+records only; BPR used 65,842 distinct positive pairs, with 65,842 sampled
+triplets per epoch and no positive pairs skipped for lack of a negative
+candidate. The fixed train-known item universe was used for validation ranking,
+all train-seen items were excluded, and validation NDCG@10 selected epoch 13.
+The official test rows were not parsed or evaluated. Their source artifact
+checksum was verified from the trusted manifest.
+
+The saved local checkpoint and aggregate-only report are ignored under
+`data/processed/amazon-electronics-pilot-10000-bpr-v1/`. The checkpoint is
+private and must not be published. On this CPU run, checkpoint size was
+18,298,757 bytes (the report directory totals 18,323,345 bytes).
+Training-process peak memory and end-to-end wall time were unavailable because
+the run stopped during report assembly; a later recovery process finalized the
+report from the verified checkpoint and epoch log. That recovery process
+peaked at 661,909,504 bytes working set. Recorded epoch
+validation durations total 2,552 seconds, including an anomalous 1,410-second
+duration for epoch 2 that coincided with execution-session disruption; do not
+use these aggregate durations for capacity planning. No SQLite temporary
+database was used. Metrics and protocol details are recorded in
+`docs/EVALUATION.md` and the ignored report. This validation run has no
+confidence intervals or significance analysis and does not establish
+generalization or deployment readiness.
 
 ## 3. Two-tower details
 

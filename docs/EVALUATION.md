@@ -67,6 +67,50 @@ explicit zero fallback use. Sparse item-CF does not fabricate recommendations
 for users with no eligible neighbors. These measurements remain validation
 results and do not permit model selection on test.
 
+### Phase 3.2B.2 real Electronics BPR validation
+
+The local 10,000-user Amazon Electronics pilot was trained on the trusted train
+split only (81,688 records, 10,000 users, 45,331 train-known items). Ratings
+4–5 supplied 65,842 distinct positive user/item pairs. Each of 20 CPU epochs
+sampled one permissible train-known unobserved item per positive pair; all
+9,847 positive users had at least one permissible negative candidate. The
+configuration used seed 42, 32-dimensional embeddings, Adam at 0.001, L2
+regularization 0.0001, and batches of 1,024. Validation NDCG@10 selected epoch
+13 (earliest-epoch tie rule). Ranking used the same 45,331 train-known
+candidate items and train-seen-item exclusion as the saved popularity and
+item-CF comparisons.
+
+| K | BPR Recall | BPR NDCG | Popularity NDCG | Item-CF NDCG |
+|---:|---:|---:|---:|---:|
+| 5 | 0.006574 | 0.003724 | 0.006276 | 0.002521 |
+| 10 | 0.011566 | 0.005384 | 0.009878 | 0.003259 |
+| 20 | 0.017434 | 0.007025 | 0.011488 | 0.004181 |
+
+BPR exceeded item-CF and remained below popularity at all reported K values.
+These are one-run validation measurements, with no confidence intervals,
+significance testing, or model-selection use of test data. The validation
+cohort had 1,369 eligible warm users and 1,911 warm positive target pairs;
+3,153 positive observations involved cold items and were excluded because the
+candidate universe is train-known only. The cohort also contained 1,696
+non-positive observations. Product metadata was not joined, so metadata
+coverage and attribute-based results are unavailable.
+
+The aggregate-only report and private checkpoint are stored locally under
+ignored `data/processed/amazon-electronics-pilot-10000-bpr-v1/`. The loader
+verified Step 2.4 and Step 2.5 manifests and output hashes, parsed train and
+validation only, and checksum-verified the official test artifact without
+parsing its rows. Checkpoint reload reproduced the selected validation
+rankings exactly. The checkpoint is 18,298,757 bytes and the complete private
+report directory totals 18,323,345 bytes. Training-process peak
+memory and end-to-end wall time were unavailable because the original run
+stopped during report assembly; the report was recovered from its checkpoint
+and epoch log. The recovery process peaked at 661,909,504 bytes working set.
+Epoch validation durations total 2,552 seconds, but epoch 2 alone reported
+1,410 seconds during execution-session disruption, so these durations are not
+reliable capacity estimates. The full aggregate report contains split counts,
+UTC timestamp ranges, rating counts, provenance hashes, all metrics, and
+resource details. It contains no row-level recommendations or identifiers.
+
 Metrics must include `K`, user count, item universe, exclusions, split manifest, source and seed. Compare full-catalog ranking when feasible; explicitly label sampled candidate/negative evaluation and use the *same* candidate policy for models.
 
 ## 4. Core experiments

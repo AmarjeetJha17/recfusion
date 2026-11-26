@@ -7,7 +7,8 @@ import json
 import math
 import random
 import tempfile
-from collections.abc import Iterable
+import time
+from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass, field
 from decimal import Decimal
 from pathlib import Path
@@ -166,6 +167,16 @@ class TrainingSummary:
     sampled_triplet_count_per_epoch: int
 
 
+@dataclass(frozen=True, slots=True)
+class TrainingEpoch:
+    epoch: int
+    bpr_loss: float
+    regularization_loss: float
+    total_loss: float
+    triplet_count: int
+    duration_seconds: float
+
+
 @dataclass(slots=True)
 class BPRRecommender:
     model: ImplicitMF
@@ -173,6 +184,7 @@ class BPRRecommender:
     data: TrainingData
     epoch_losses: tuple[float, ...]
     summary: TrainingSummary
+    epoch_statistics: tuple[TrainingEpoch, ...] = ()
     _user_indices: dict[str, int] = field(init=False, repr=False)
     _item_indices: dict[str, int] = field(init=False, repr=False)
 
@@ -223,10 +235,8 @@ class BPRRecommender:
                 scores = self.model.score(user_tensor, item_tensor)
                 if not torch.isfinite(scores).all():
                     raise ValueError("Model produced a non-finite score.")
-                scored.extend(
-                    (item, float(score))
-                    for item, score in zip(items, scores, strict=True)
-                )
+                order = torch.argsort(scores, descending=True, stable=True)[:k].tolist()
+                scored.extend((items[index], float(scores[index])) for index in order)
         return tuple(
             item for item, _ in sorted(scored, key=lambda pair: (-pair[1], pair[0]))[:k]
         )
@@ -253,6 +263,7 @@ def fit_bpr(
     *,
     config: BPRConfig = BPRConfig(),
     source_artifact_fingerprints: Iterable[str] = (),
+    on_epoch_end: Callable[[BPRRecommender, TrainingEpoch], None] | None = None,
 ) -> BPRRecommender:
     """Train BPR on unique train-positive pairs and sampled unknown train items."""
     data = TrainingData.from_events(
@@ -268,8 +279,17 @@ def fit_bpr(
             item_count=len(data.item_ids),
             embedding_dim=config.embedding_dim,
         ).cpu()
+    if any(not torch.isfinite(parameter).all() for parameter in model.parameters()):
+        raise ValueError("BPR initialization produced non-finite parameters.")
+    with torch.no_grad():
+        initial_score = model.score(
+            torch.tensor([0], dtype=torch.long), torch.tensor([0], dtype=torch.long)
+        )
+    if not torch.isfinite(initial_score).all():
+        raise ValueError("BPR initialization produced a non-finite score.")
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
     epoch_losses: list[float] = []
+    epoch_statistics: list[TrainingEpoch] = []
     triplet_count = 0
     skipped_count = 0
     positive_observation_count = (
@@ -277,6 +297,7 @@ def fit_bpr(
     )
 
     for epoch in range(config.epochs):
+        epoch_started = time.perf_counter()
         rng = random.Random(config.seed + epoch)
         triplets: list[tuple[str, str, str]] = []
         for user, positive in data.positive_pairs:
@@ -294,6 +315,8 @@ def fit_bpr(
             raise RuntimeError("A later epoch unexpectedly produced no BPR triplets.")
         triplet_count = len(triplets)
         total_loss = 0.0
+        total_bpr_loss = 0.0
+        total_regularization_loss = 0.0
         model.train()
         for start in range(0, len(triplets), config.batch_size):
             batch = triplets[start : start + config.batch_size]
@@ -330,13 +353,45 @@ def fit_bpr(
             ):
                 raise ValueError("BPR training produced non-finite model parameters.")
             total_loss += float(loss.detach()) * len(batch)
-        epoch_losses.append(total_loss / len(triplets))
+            total_bpr_loss += float(pair_loss.detach()) * len(batch)
+            total_regularization_loss += float(regularization.detach()) * len(batch)
+        epoch_record = TrainingEpoch(
+            epoch=epoch + 1,
+            bpr_loss=total_bpr_loss / len(triplets),
+            regularization_loss=total_regularization_loss / len(triplets),
+            total_loss=total_loss / len(triplets),
+            triplet_count=len(triplets),
+            duration_seconds=time.perf_counter() - epoch_started,
+        )
+        epoch_losses.append(epoch_record.total_loss)
+        epoch_statistics.append(epoch_record)
+        if on_epoch_end is not None:
+            on_epoch_end(
+                BPRRecommender(
+                    model=model,
+                    config=config,
+                    data=data,
+                    epoch_losses=tuple(epoch_losses),
+                    summary=TrainingSummary(
+                        positive_observation_count=positive_observation_count,
+                        unique_positive_pairs=len(data.positive_pairs),
+                        collapsed_positive_observations=(
+                            data.collapsed_positive_observations
+                        ),
+                        skipped_pairs_without_negative=skipped_count,
+                        sampled_triplet_count_per_epoch=triplet_count,
+                    ),
+                    epoch_statistics=tuple(epoch_statistics),
+                ),
+                epoch_record,
+            )
 
     return BPRRecommender(
         model=model,
         config=config,
         data=data,
         epoch_losses=tuple(epoch_losses),
+        epoch_statistics=tuple(epoch_statistics),
         summary=TrainingSummary(
             positive_observation_count=positive_observation_count,
             unique_positive_pairs=len(data.positive_pairs),
@@ -390,6 +445,7 @@ def save_checkpoint(
         "negative_sampling_strategy": _NEGATIVE_SAMPLING_STRATEGY,
         "summary": asdict(recommender.summary),
         "epoch_losses": list(recommender.epoch_losses),
+        "epoch_statistics": [asdict(record) for record in recommender.epoch_statistics],
         "state_dict": {
             key: value.detach().cpu()
             for key, value in recommender.model.state_dict().items()
@@ -448,4 +504,7 @@ def load_checkpoint(
         data=data,
         epoch_losses=tuple(payload["epoch_losses"]),
         summary=TrainingSummary(**payload["summary"]),
+        epoch_statistics=tuple(
+            TrainingEpoch(**record) for record in payload["epoch_statistics"]
+        ),
     )

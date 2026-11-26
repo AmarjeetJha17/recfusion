@@ -102,6 +102,18 @@ def test_training_is_deterministic_and_improves_positive_pair_score() -> None:
     assert first.score("u1", "positive") > first.score("u1", "negative")
     assert first.summary.unique_positive_pairs == 2
     assert first.summary.collapsed_positive_observations == 0
+    observed_epochs = []
+    fit_bpr(
+        training,
+        config=BPRConfig(embedding_dim=4, epochs=2, seed=17),
+        on_epoch_end=lambda _model, record: observed_epochs.append(record),
+    )
+    assert [record.epoch for record in observed_epochs] == [1, 2]
+    assert all(record.triplet_count == 2 for record in observed_epochs)
+    assert all(
+        record.total_loss == pytest.approx(record.bpr_loss + record.regularization_loss)
+        for record in observed_epochs
+    )
     duplicated = fit_bpr([*training, event("u1", "positive")], config=config)
     for name, weights in first.model.state_dict().items():
         assert torch.equal(weights, duplicated.model.state_dict()[name])
@@ -160,6 +172,7 @@ def test_checkpoint_round_trip_is_safe_and_preserves_scores(tmp_path) -> None:
     assert restored.data.positive_pairs == result.data.positive_pairs
     assert restored.data.source_artifact_fingerprints == ("b" * 64,)
     assert restored.data.training_fingerprint == result.data.training_fingerprint
+    assert restored.epoch_statistics == result.epoch_statistics
     with pytest.raises(FileExistsError):
         save_checkpoint(result, target, repository_root=tmp_path)
     with pytest.raises(ValueError, match="data/processed"):
