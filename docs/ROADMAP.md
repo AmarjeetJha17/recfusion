@@ -22,6 +22,15 @@ Implement popularity, content, collaborative baselines with exact metric definit
 
 Train Two-Tower PyTorch model, export item embeddings, build index and verify train/serve parity. **Gate:** model artifact, documented tuning and baseline comparison; no assumed gains.
 
+## Phase 4.4C — Research synthesis checkpoint
+
+The aggregate evidence inventory and architecture readiness assessment are in
+[`RECOMMENDATION-RESEARCH-SYNTHESIS.md`](./RECOMMENDATION-RESEARCH-SYNTHESIS.md).
+The synthesis does not promote a model or advance the Phase 4.2C metadata-use
+gate. Its proposed next milestone is evaluation and resource-bound hardening
+on synthetic workloads without new model training (see ADR-018 in
+[`DECISIONS.md`](./DECISIONS.md)); this proposal awaits project-owner review.
+
 ## Phase 5 — Hybrid fusion + ranking
 
 Add semantic retriever, candidate dedup/provenance, hard filters and deterministic fusion. Introduce LambdaRank only with valid labels/query groups. **Gate:** full ablation, cold-start tests and constraint invariants.

@@ -145,6 +145,16 @@
 - **Limitations:** Callers must supply collaborative rankings trained from training-only representations; the interface cannot inspect their model fitting. The synthetic smoke run is not a relevance comparison or quality claim. Real metadata remains gated separately under Phase 4.2C.
 - **Revisit if:** Phase 4.4B freezes its evaluation protocol or candidate-source interfaces change. Do not tune weights against the smoke test.
 
+## ADR-018 — Evaluation-first synthetic research continuation
+
+- **Status:** Proposed; awaiting project-owner review
+- **Date:** 2026-11-27
+- **Choice:** Make evaluation and performance infrastructure hardening, using synthetic workloads and no new model training, the proposed next research milestone after the Phase 4.4C synthesis. Freeze artifact, cohort, metric, and determinism contracts before any later diagnostic experiment. Keep real metadata integration under the separate Phase 4.2C hold.
+- **Why:** Real interaction experiments are single-cohort validation results with validation-selected neural checkpoints and no independent test evaluation. Phase 4.4B documents meaningful synthetic hybrid trade-offs but its engineered fixture cannot support real-catalog claims. Strengthening repeatability and resource observability improves future evidence without expanding data use or choosing a production model.
+- **Evidence:** `docs/RECOMMENDATION-RESEARCH-SYNTHESIS.md`, `docs/EVALUATION.md`, `docs/MODEL-COMPARISON.md`, and `docs/HYBRID-BENCHMARK.md`.
+- **Limitations:** Synthetic throughput is not serving capacity; no model is promoted; the documented experiments do not establish performance in new populations. This proposal authorizes no real-data parsing, metadata acquisition, or model training.
+- **Revisit if:** Project-owner review changes the next-step priority, the evaluation contract changes, or a separate source-specific rights decision is made. Phase 4.2C remains ON HOLD unless separately reviewed.
+
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |
