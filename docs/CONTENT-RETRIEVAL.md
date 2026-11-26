@@ -81,3 +81,8 @@ artifacts, cosine ranking, candidate eligibility, bounded queries, cold-item
 retrieval, user-history cutoff and target masking, seen-item filtering, and
 resource-limit rejection. Test results do not establish dataset quality,
 rights, recommendation quality, or deployment readiness.
+
+Phase 4.3B adds an aggregate-only synthetic benchmark with separate warm-only
+and content-eligible candidate policies, cold-item metrics, fixed controls, and
+metadata-quality ablations. Its scope, results, reproducibility hashes, and
+limitations are documented in [CONTENT-BENCHMARK.md](./CONTENT-BENCHMARK.md).

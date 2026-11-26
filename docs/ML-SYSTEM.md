@@ -29,6 +29,14 @@ prior observations for seen-item filtering. No real product metadata was used
 for this implementation or its tests. The text vector space remains distinct
 from collaborative and Two-Tower embeddings.
 
+Phase 4.3B adds a deterministic synthetic benchmark for that retriever. It
+compares fixed profile and item-content controls with local popularity and
+seeded-random controls under separate warm-only and content-eligible candidate
+policies. The benchmark fits only on its synthetic warm reference catalog and
+reports cold-item eligibility, metadata diagnostics, and aggregate metrics;
+it does not alter the Phase 3 evaluator or use real Amazon data. See
+`docs/CONTENT-BENCHMARK.md` for its protocol and limitations.
+
 Phase 3.1 implements an initial deterministic B0 from positive training review
 counts (rating >=4), with stable item-key tie-breaking and train-seen exclusion.
 It is an offline baseline over the Step 2.5 train-known candidate pool; review

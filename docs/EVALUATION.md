@@ -16,6 +16,18 @@ below are validation-only, single-seed measurements, not deployment claims.
 
 Track warm users, sparse-history users, new/metadata-only products, category segments and no-matching-constraint queries. Only claim cold-start findings for cohorts actually supported by the test data. Use separate benchmark and temporal split protocols if both are implemented; never mix their numbers in one comparison.
 
+### Phase 4.3B synthetic content benchmark
+
+The Phase 4.3B benchmark is a separate, synthetic-only protocol. It evaluates
+the Phase 4.3A TF-IDF retriever on fixed warm-only and content-eligible
+candidate universes, with synthetic rating >= 4 relevance, per-user seen-item
+filtering, a frozen warm reference vocabulary, and explicit cold-positive
+eligibility denominators. It retains empty-history users and reports Recall,
+NDCG, HitRate, MRR, coverage, and short lists at K=5/10/20. These results must
+not be mixed with the Phase 3 temporal Electronics evaluations or interpreted
+as real-data evidence. See [CONTENT-BENCHMARK.md](./CONTENT-BENCHMARK.md) for
+the exact protocol and aggregate results.
+
 ## 3. Metric definitions
 
 For eligible evaluation users/queries `U` and held-out relevant set `Rel(u)`:
