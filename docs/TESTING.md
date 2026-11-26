@@ -52,6 +52,13 @@ uv build
 
 Current CI runs formatting, lint, type checks, the existing unit/contract suite, all pre-commit hooks, and a package build. It does not start PostgreSQL/Qdrant or run dataset/model jobs. Add service-backed integration, ML, agent-safety, security and end-to-end checks as those features and fixtures are implemented; keep heavy dataset jobs and training in separately approved workflows.
 
-## 7. Bug reporting
+## 7. Evaluation performance fixtures
+
+The Phase 5.1A SMALL synthetic evaluation correctness/resource-safety test is
+part of normal unit CI. MEDIUM and LARGE remain opt-in and are not CI gates.
+See [EVALUATION-PERFORMANCE.md](./EVALUATION-PERFORMANCE.md) for workload
+bounds, measurement scope, and the local aggregate-only smoke report.
+
+## 8. Bug reporting
 
 Provide reproduction inputs, environment, expected/actual output, logs with redaction, model/catalog/version IDs, affected constraints and regression test. Fixes must add a test reproducing the issue.

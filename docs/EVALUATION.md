@@ -315,6 +315,9 @@ Report both automated and sampled human-review outcomes. LLM-as-judge can assist
 
 Define test hardware, catalog/index sizes, concurrency, warm/cold cache state, number of queries, timeout and percentile method. Measure each stage separately: user context, retrieval, DB lookup, hard filtering, reranking, explanation. Do not blend LLM latency into ranking latency.
 
+The Phase 5.1A synthetic correctness, bounded-workload, and measurement
+contract is documented in [EVALUATION-PERFORMANCE.md](./EVALUATION-PERFORMANCE.md).
+
 ## 8. Required experiment report
 
 ```text
