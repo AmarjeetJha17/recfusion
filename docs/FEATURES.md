@@ -1,5 +1,10 @@
 # Feature generation
 
+The Phase 4.3A TF-IDF retriever is a separate synthetic-only implementation;
+it does not change this temporal feature-generation pipeline or its artifact
+contracts. See `docs/CONTENT-RETRIEVAL.md` for its content inputs, train-only
+fitting boundary, user-profile cutoff, and artifact format.
+
 **Status:** Implemented against synthetic canonical data only. This pipeline does
 not train or evaluate a recommendation model and does not authorize external
 dataset use.

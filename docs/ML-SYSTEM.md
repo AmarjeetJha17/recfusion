@@ -19,6 +19,16 @@ Given user/session context `u`, current stated constraints `c`, catalog snapshot
 6. **M3 ranker:** LightGBM LambdaRank **only if** we can construct valid groupwise relevance labels and unbiased-enough features; otherwise retain deterministic fusion.
 7. **Optional research:** SASRec, LightGCN or contextual bandit after v1, not preconditions.
 
+Phase 4.3A adds a synthetic-only sparse TF-IDF content retriever in
+`recfusion_ml.retrieval.content`. It uses the bounded canonical content fields
+and conservative normalized metadata documented in `docs/CONTENT-RETRIEVAL.md`.
+Vocabulary and IDF fit on an explicit reference catalog; candidates are
+transformed without affecting those statistics. User profiles use unique,
+strictly prior positive training items, exclude the target item, and retain all
+prior observations for seen-item filtering. No real product metadata was used
+for this implementation or its tests. The text vector space remains distinct
+from collaborative and Two-Tower embeddings.
+
 Phase 3.1 implements an initial deterministic B0 from positive training review
 counts (rating >=4), with stable item-key tie-breaking and train-seen exclusion.
 It is an offline baseline over the Step 2.5 train-known candidate pool; review

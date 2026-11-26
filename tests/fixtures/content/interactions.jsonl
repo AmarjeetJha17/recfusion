@@ -1,0 +1,5 @@
+{"user_key":"synthetic_user_1","item_key":"synthetic_laptop_train","event_time_ms":1000,"rating":"5","split":"train","source_event_fingerprint":"1111111111111111111111111111111111111111111111111111111111111111"}
+{"user_key":"synthetic_user_1","item_key":"synthetic_headphones_train","event_time_ms":2000,"rating":"2","split":"train","source_event_fingerprint":"2222222222222222222222222222222222222222222222222222222222222222"}
+{"user_key":"synthetic_user_1","item_key":"synthetic_laptop_train","event_time_ms":2500,"rating":"5","split":"train","source_event_fingerprint":"3333333333333333333333333333333333333333333333333333333333333333"}
+{"user_key":"synthetic_user_1","item_key":"synthetic_equal_time_item","event_time_ms":3000,"rating":"5","split":"train","source_event_fingerprint":"4444444444444444444444444444444444444444444444444444444444444444"}
+{"user_key":"synthetic_user_1","item_key":"synthetic_future_item","event_time_ms":4000,"rating":"5","split":"train","source_event_fingerprint":"5555555555555555555555555555555555555555555555555555555555555555"}
