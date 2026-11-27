@@ -48,9 +48,21 @@ uv run pre-commit run --all-files
 uv build
 ```
 
+Frontend checks run from `apps/web` with the locked Node.js and pnpm
+toolchain. The CI job uses the same scripts after a frozen installation:
+
+```powershell
+Set-Location apps/web
+pnpm install --frozen-lockfile
+pnpm run lint
+pnpm run typecheck
+pnpm run test
+pnpm run build
+```
+
 ## 6. CI gates
 
-Current CI runs formatting, lint, type checks, the existing unit/contract suite, all pre-commit hooks, and a package build. It does not start PostgreSQL/Qdrant or run dataset/model jobs. Add service-backed integration, ML, agent-safety, security and end-to-end checks as those features and fixtures are implemented; keep heavy dataset jobs and training in separately approved workflows.
+Current CI runs the Python formatting, lint, type checks, existing unit/contract suite, all pre-commit hooks, and package build. A separate frontend job runs the frozen pnpm install, Biome lint, TypeScript type check, Vitest suite, and Next.js production build. It does not start PostgreSQL/Qdrant or the local API, access external data/model services, run dataset/model jobs, or publish build artifacts. Add service-backed integration, ML, agent-safety, security and end-to-end checks as those features and fixtures are implemented; keep heavy dataset jobs and training in separately approved workflows. Frontend CI scope and limitations are recorded in [`FRONTEND-CI-READINESS.md`](./FRONTEND-CI-READINESS.md).
 
 The Phase 6.2B synthetic API suite covers opt-in/production routing, exact configured local Origin and preflight behavior, local Host and ASGI scope checks, request media/body boundaries, offline/HTTP result parity, bounded inference admission, and runtime cleanup. Phase 6.3B adds synthetic frontend provider and mode-selection tests. These are local synthetic safeguards; they do not provide authentication or production network authorization.
 

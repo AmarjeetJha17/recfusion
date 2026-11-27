@@ -106,7 +106,7 @@ uv run pre-commit run --all-files
 
 ## Continuous integration
 
-The [CI workflow](.github/workflows/ci.yml) runs on pull requests targeting `master` and pushes to `master`. It installs the locked Python dependencies, runs Ruff lint/format checks, mypy, pytest, all pre-commit hooks, and builds the Python package. It does not require Docker, PostgreSQL, Qdrant, datasets, or ML models.
+The [CI workflow](.github/workflows/ci.yml) runs on pull requests targeting `master` and pushes to `master`. Its Python job installs the locked Python dependencies, runs Ruff lint/format checks, mypy, pytest, all pre-commit hooks, and builds the Python package. Its frontend job uses the frozen pnpm lockfile and runs Biome, TypeScript, Vitest, and the Next.js production build. The frontend job uses only synthetic fixtures and does not start or call the API. Neither job requires Docker, PostgreSQL, Qdrant, datasets, ML models, deployment credentials, or uploaded build artifacts. See [`docs/FRONTEND-CI-READINESS.md`](docs/FRONTEND-CI-READINESS.md) for the workflow audit and remaining hosted-CI verification.
 
 ## Synthetic local application demo
 

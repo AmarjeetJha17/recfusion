@@ -143,6 +143,19 @@ clipping review, and a retained HAR remain unverified. The audit does not
 advance a release milestone or change ADR-018/019 or Phase 4.2C, which remains
 ON HOLD. Project-owner review is pending.
 
+### Phase 7.5 — Frontend CI and repository release readiness (hosted verification pending)
+
+The existing GitHub Actions workflow retains its Python quality job and adds
+a separate frontend job for frozen pnpm installation, Biome, TypeScript,
+Vitest, and the Next.js production build. Both jobs are read-only and run on
+pull requests to and pushes on `master`; the frontend job is synthetic-only,
+does not call the local API, and does not upload build artifacts. The local
+workflow and frontend checks are documented in
+[`FRONTEND-CI-READINESS.md`](./FRONTEND-CI-READINESS.md). Hosted GitHub Actions
+results remain unverified until this change is pushed through the normal
+review process. This checkpoint does not change ADR-018/019 Proposed status
+or the Phase 4.2C ON HOLD status.
+
 ## Phase 7 — Bounded agent workflow
 
 Intent extraction, preference state, typed tools, grounded comparisons/explanations, clarification and no-match recovery. **Gate:** golden cases and adversarial suite pass; no unverified product claims.
