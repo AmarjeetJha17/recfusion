@@ -90,6 +90,11 @@ All responses include request ID; recommendation response includes model and cat
 
 ## 8. Availability and graceful degradation
 
+These are proposed degradation options, not current behavior. A fallback may
+run only when an approved, versioned serving policy declares it, and the
+selected strategy must be returned in response provenance; otherwise fail
+closed with the relevant typed availability error.
+
 - ANN unavailable → bounded semantic/collaborative or popularity fallback; indicate strategy.
 - Ranker unavailable → deterministic fusion.
 - LLM unavailable → return factual product cards without prose explanation.
@@ -103,3 +108,19 @@ A model release pins: model version, feature schema version, training dataset/sp
 ## 10. Open concerns
 
 Hosting budget, identity provider, exact service process layout, embedding/index backfill, observed throughput, retention and automated retraining cadence remain undecided. Record resolution in `DECISIONS.md`.
+
+## 11. Recommendation-serving contract checkpoint
+
+Phase 6.1A records a proposed, local synthetic-only serving contract in
+[`RECOMMENDATION-SERVING-DESIGN.md`](./RECOMMENDATION-SERVING-DESIGN.md).
+The current API still exposes only health/readiness; it has no recommendation
+route, catalog provider, artifact registry, promotion flow, or serving-approved
+model. The future application service must resolve an allowlisted policy,
+validate immutable artifact/catalog compatibility, retrieve candidate IDs,
+resolve them through the trusted catalog, and apply deterministic seen and
+hard-constraint checks before returning products. Model unavailability fails
+closed unless a compatible fallback is explicitly declared by an approved,
+versioned policy and surfaced in response provenance. Phase 4.2C remains ON
+HOLD; the initial synthetic application must not use Amazon metadata or
+artifacts derived from the private interaction pilot. Proposed contracts and
+bounds await owner review and implementation tests.

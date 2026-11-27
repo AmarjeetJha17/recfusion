@@ -155,6 +155,17 @@
 - **Limitations:** Synthetic throughput is not serving capacity; no model is promoted; the documented experiments do not establish performance in new populations. This proposal authorizes no real-data parsing, metadata acquisition, or model training.
 - **Revisit if:** Project-owner review changes the next-step priority, the evaluation contract changes, or a separate source-specific rights decision is made. Phase 4.2C remains ON HOLD unless separately reviewed.
 
+## ADR-019 — Contract-first local synthetic recommendation serving
+
+- **Status:** Proposed; awaiting project-owner review
+- **Date:** 2026-11-27
+- **Context:** The offline retrieval and evaluation components exist, but the API currently exposes only health/readiness. No recommendation model is promoted, and no catalog provider, serving artifact registry, compatibility/promotion lifecycle, or authorization implementation exists. The research synthesis identifies serving readiness as unimplemented.
+- **Choice:** Define a versioned recommendation request/response contract with explicit product-to-product, synthetic-user, and hybrid modes. Keep policy and hybrid sources/weights server-side; resolve candidates through an authoritative catalog provider; apply deterministic seen, visibility, and hard-constraint checks before response; require immutable compatible artifact manifests; and fail closed without implicit model fallback. The first application/provider is local-only, read-only, deterministically versioned, and synthetic-only.
+- **Why:** A contract-first modular-monolith boundary lets the existing content/RRF interfaces be reused without treating research artifacts as promoted models or allowing model output to bypass catalog truth and hard constraints. A synthetic provider provides a testable application path without expanding Amazon data use or implying real metadata readiness.
+- **Evidence:** Existing API app/error contracts, `ContentIndex`, source-scoped `retrieve_hybrid`, RRF tie/filter behavior, and synthetic retrieval tests. They do not establish online serving correctness, authorization, latency, model quality, artifact promotion, or deployment readiness.
+- **Limitations:** All route shapes, response fields, resource limits, catalog/history providers, release manifests, and error-status details remain proposed until owner review and implementation tests. No model is approved for serving. Phase 4.2C and real metadata use remain ON HOLD.
+- **Revisit if:** Owner review changes the initial application scope, an artifact or identity design is approved, compatibility requirements change, measured target-resource results justify different bounds, or a non-loopback deployment is proposed. Any model promotion and deployment require separate review.
+
 ## Pre-Phase-1 blockers / questions to settle
 
 | Topic | Default proposal | Verification / approval needed |

@@ -39,6 +39,24 @@ Add semantic retriever, candidate dedup/provenance, hard filters and determinist
 
 API, catalog, sessions, user preferences, events, impressions and feedback; migrations and auth boundaries. **Gate:** API contract/integration/authorization tests.
 
+### Phase 6.1A — Recommendation serving contracts (proposed)
+
+The proposed versioned requests/responses, synthetic-only catalog boundary,
+artifact compatibility/lifecycle, deterministic eligibility rules, resource
+guardrails, and contract/security test plan are recorded in
+[`RECOMMENDATION-SERVING-DESIGN.md`](./RECOMMENDATION-SERVING-DESIGN.md).
+This is a documentation checkpoint only: no route, provider, registry,
+promotion process, or serving model exists. The design awaits project-owner
+review and does not close Phase 4.2C.
+
+### Phase 6.1B — Synthetic serving contracts and local application (proposed)
+
+After review of Phase 6.1A, implement the approved core request/response
+contracts, deterministic synthetic catalog/history provider, and local-only
+application path with unit, API contract, security, and compatibility tests.
+Keep models unpromoted until an independent release decision. Use only
+invented catalog/history data. Exact scope and limits remain Proposed.
+
 ## Phase 7 — Bounded agent workflow
 
 Intent extraction, preference state, typed tools, grounded comparisons/explanations, clarification and no-match recovery. **Gate:** golden cases and adversarial suite pass; no unverified product claims.
