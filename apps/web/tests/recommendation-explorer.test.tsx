@@ -1,6 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import ExplorePage from "@/app/explore/page";
 import {
   buildRecommendationRequest,
   RecommendationExplorer,
@@ -13,6 +14,18 @@ import {
 } from "@/lib/recommendation-provider";
 
 describe("recommendation explorer", () => {
+  it("describes synthetic discovery and the optional development API accurately", () => {
+    render(<ExplorePage />);
+
+    expect(
+      screen.getByText(/product discovery uses invented frontend fixtures/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/optional local synthetic api mode during development/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/fixture-backed until api integration/i)).not.toBeInTheDocument();
+  });
+
   it.each(["product_to_product", "synthetic_user", "hybrid"] as const)(
     "runs the %s fixture mode through the typed provider",
     async (mode) => {
@@ -82,7 +95,9 @@ describe("recommendation explorer", () => {
         }),
       ),
     );
-    expect(screen.getByRole("status")).toHaveTextContent(/no recommendations in this fixture/i);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /no recommendations for this synthetic request/i,
+    );
   });
 
   it("announces provider failures without leaking exception details", async () => {
@@ -121,5 +136,66 @@ describe("recommendation explorer", () => {
       query: { kind: "hybrid", user_id: "synthetic-electronics-v1:user:000001" },
     });
     expect("history" in request.query).toBe(false);
+  });
+
+  it("keeps fixture mode default and explicitly renders API results without a metadata join", async () => {
+    const user = userEvent.setup();
+    const apiResponse = await fixtureRecommendationProvider.recommend(
+      buildRecommendationRequest(
+        "product_to_product",
+        "synthetic-electronics-v1:item:000001",
+        "warm_hybrid",
+      ),
+    );
+    const unknownResult = apiResponse.recommendations[0];
+    if (!unknownResult) throw new Error("The fixture response had no recommendation.");
+    unknownResult.product_id = "synthetic-electronics-v1:item:999999";
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(JSON.stringify(apiResponse), { status: 200 }));
+    render(<RecommendationExplorer />);
+
+    expect(screen.getByText(/fixture mode · offline/i)).toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("radio", { name: /local api/i }));
+    await user.click(screen.getByRole("button", { name: /show recommendations/i }));
+
+    expect(await screen.findByRole("heading", { name: /local api results/i })).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/catalog fingerprint differs/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/canonical synthetic item id: synthetic-electronics-v1:item:999999/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /synthetic/i })).not.toBeInTheDocument();
+  });
+
+  it("does not let a superseded response replace newer selections", async () => {
+    const user = userEvent.setup();
+    const pending: Array<(value: RecommendationResponse) => void> = [];
+    const provider: RecommendationProvider = {
+      recommend: () =>
+        new Promise((resolve) => {
+          pending.push(resolve);
+        }),
+    };
+    render(<RecommendationExplorer provider={provider} />);
+    await user.click(screen.getByRole("button", { name: /show recommendations/i }));
+    await user.click(screen.getByRole("radio", { name: /hybrid/i }));
+    await user.click(screen.getByRole("button", { name: /show recommendations/i }));
+
+    const hybridResponse = await fixtureRecommendationProvider.recommend(
+      buildRecommendationRequest("hybrid", "synthetic-electronics-v1:user:000001", "warm_hybrid"),
+    );
+    const productResponse = await fixtureRecommendationProvider.recommend(
+      buildRecommendationRequest(
+        "product_to_product",
+        "synthetic-electronics-v1:item:000001",
+        "warm_hybrid",
+      ),
+    );
+    await act(async () => pending[1]?.(hybridResponse));
+    await act(async () => pending[0]?.(productResponse));
+
+    expect(screen.getByText(/hybrid · weighted_rrf v1/i)).toBeInTheDocument();
   });
 });

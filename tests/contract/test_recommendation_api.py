@@ -15,10 +15,17 @@ from recfusion_api.config import Environment, Settings
 from recfusion_api.dependencies.recommendation import require_loopback_scope
 
 pytestmark = pytest.mark.contract
+LOCAL_ORIGIN = "http://127.0.0.1:3000"
 
 
 def _app(*, enabled: bool = True, environment: Environment = "test") -> FastAPI:
-    return create_app(Settings(environment=environment, synthetic_demo_enabled=enabled))
+    return create_app(
+        Settings(
+            environment=environment,
+            synthetic_demo_enabled=enabled,
+            synthetic_demo_allowed_origin=(LOCAL_ORIGIN if enabled else None),
+        )
+    )
 
 
 def _request(mode: str = "product_to_product", **updates: Any) -> dict[str, Any]:
@@ -75,6 +82,7 @@ def _local_client(
         app,
         base_url=f"http://{server}",
         client=(peer, 43123),
+        headers={"origin": LOCAL_ORIGIN},
     )
 
 
@@ -213,7 +221,7 @@ def test_forwarded_headers_do_not_upgrade_non_loopback_peer() -> None:
     assert response.status_code == 403
 
 
-def test_origin_does_not_enable_cors() -> None:
+def test_unexpected_origin_is_rejected() -> None:
     with _local_client(_app()) as client:
         response = client.post(
             "/v1/recommendations",
@@ -221,8 +229,71 @@ def test_origin_does_not_enable_cors() -> None:
             headers={"origin": "https://public.example.test"},
         )
 
-    assert response.status_code == 200
+    assert response.status_code == 403
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_missing_origin_is_rejected() -> None:
+    with _local_client(_app()) as client:
+        response = client.post(
+            "/v1/recommendations", json=_request(), headers={"origin": ""}
+        )
+
+    assert response.status_code == 403
+
+
+def test_exact_local_origin_is_returned_for_browser_access() -> None:
+    with _local_client(_app()) as client:
+        response = client.post("/v1/recommendations", json=_request())
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == LOCAL_ORIGIN
+    assert "*" not in response.headers["access-control-allow-origin"]
+    assert "access-control-allow-credentials" not in response.headers
+
+
+def test_exact_origin_preflight_is_bounded_and_loopback_only() -> None:
+    with _local_client(_app()) as client:
+        allowed = client.options(
+            "/v1/recommendations",
+            headers={
+                "origin": LOCAL_ORIGIN,
+                "access-control-request-method": "POST",
+                "access-control-request-headers": "content-type",
+            },
+        )
+        rejected = client.options(
+            "/v1/recommendations",
+            headers={
+                "origin": "https://public.example.test",
+                "access-control-request-method": "POST",
+                "access-control-request-headers": "content-type",
+            },
+        )
+
+    assert allowed.status_code == 204
+    assert allowed.headers["access-control-allow-origin"] == LOCAL_ORIGIN
+    assert allowed.headers["access-control-allow-methods"] == "POST"
+    assert allowed.headers["access-control-allow-headers"].casefold() == "content-type"
+    assert rejected.status_code == 403
+    assert "access-control-allow-origin" not in rejected.headers
+
+
+def test_enabled_demo_requires_explicit_loopback_frontend_origin() -> None:
+    with pytest.raises(ValueError, match="origin"):
+        Settings(environment="test", synthetic_demo_enabled=True)
+    for origin in (
+        "*",
+        "https://example.test",
+        "http://127.0.0.1:3000/path",
+        "http://127.0.0.1:0",
+    ):
+        with pytest.raises(ValueError, match="origin"):
+            Settings(
+                environment="test",
+                synthetic_demo_enabled=True,
+                synthetic_demo_allowed_origin=origin,
+            )
 
 
 def test_ipv6_loopback_is_supported() -> None:
@@ -231,6 +302,7 @@ def test_ipv6_loopback_is_supported() -> None:
         app,
         base_url="http://[::1]",
         client=("::1", 43123),
+        headers={"origin": LOCAL_ORIGIN},
     ) as client:
         response = client.post("/v1/recommendations", json=_request())
 
@@ -635,6 +707,7 @@ def test_configured_inference_saturation_is_rejected_without_waiting(
         Settings(
             environment="test",
             synthetic_demo_enabled=True,
+            synthetic_demo_allowed_origin=LOCAL_ORIGIN,
             synthetic_demo_max_concurrency=1,
         )
     )
@@ -675,6 +748,7 @@ def test_inference_capacity_is_released_after_service_exception(
         Settings(
             environment="test",
             synthetic_demo_enabled=True,
+            synthetic_demo_allowed_origin=LOCAL_ORIGIN,
             synthetic_demo_max_concurrency=1,
         )
     )
@@ -703,13 +777,19 @@ def test_inference_capacity_is_released_after_service_exception(
 def test_concurrency_setting_has_small_default_and_rejects_out_of_range(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    settings = Settings(environment="test", synthetic_demo_enabled=True)
+    settings = Settings(
+        environment="test",
+        synthetic_demo_enabled=True,
+        synthetic_demo_allowed_origin=LOCAL_ORIGIN,
+    )
 
     assert settings.synthetic_demo_max_concurrency == 2
     monkeypatch.setenv("RECFUSION_SYNTHETIC_DEMO_MAX_CONCURRENCY", "1")
     assert (
         Settings(
-            environment="test", synthetic_demo_enabled=True
+            environment="test",
+            synthetic_demo_enabled=True,
+            synthetic_demo_allowed_origin=LOCAL_ORIGIN,
         ).synthetic_demo_max_concurrency
         == 1
     )
@@ -720,6 +800,7 @@ def test_concurrency_setting_has_small_default_and_rejects_out_of_range(
             Settings(
                 environment="test",
                 synthetic_demo_enabled=True,
+                synthetic_demo_allowed_origin=LOCAL_ORIGIN,
                 synthetic_demo_max_concurrency=value,
             )
 

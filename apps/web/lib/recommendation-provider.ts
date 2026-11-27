@@ -71,7 +71,10 @@ export type RecommendationResponse = {
 };
 
 export type RecommendationProvider = {
-  recommend(request: RecommendationRequest): Promise<RecommendationResponse>;
+  recommend(
+    request: RecommendationRequest,
+    options?: { signal?: AbortSignal },
+  ): Promise<RecommendationResponse>;
 };
 
 type FixtureCandidate = {
@@ -129,11 +132,11 @@ export const fixtureRecommendationProvider: RecommendationProvider = Object.free
       .filter((candidate) => !request.excluded_product_ids.includes(candidate.product_id))
       .filter((candidate) => {
         const product = getProduct(candidate.product_id);
-        return Boolean(
-          product &&
-            product.recommendationEligible &&
-            (request.candidate_policy !== "warm_hybrid" || product.cohort === "warm") &&
-            (!request.constraints.category || product.category === request.constraints.category),
+        if (!product) return false;
+        return (
+          product.recommendationEligible &&
+          (request.candidate_policy !== "warm_hybrid" || product.cohort === "warm") &&
+          (!request.constraints.category || product.category === request.constraints.category)
         );
       })
       .slice(0, request.k)
@@ -245,7 +248,6 @@ export function parseRecommendationResponse(value: unknown): RecommendationRespo
       !hasExactKeys(item, ["product_id", "rank", "source_names", "reason_codes"]) ||
       typeof item.product_id !== "string" ||
       !/^synthetic-electronics-v1:item:[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(item.product_id) ||
-      !getProduct(item.product_id) ||
       item.rank !== index + 1 ||
       !Array.isArray(item.source_names) ||
       !item.source_names.length ||

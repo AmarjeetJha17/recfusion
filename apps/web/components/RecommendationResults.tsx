@@ -8,6 +8,7 @@ type RecommendationResultsProps = {
   loading?: boolean;
   error?: string;
   contextLabel?: string;
+  presentationSource?: "fixture" | "local_api";
 };
 
 const sourceLabels: Record<string, string> = {
@@ -21,12 +22,15 @@ export function RecommendationResults({
   loading = false,
   error,
   contextLabel,
+  presentationSource = "fixture",
 }: RecommendationResultsProps) {
   if (loading) {
     return (
       <div aria-busy="true" className="recommendation-state" role="status">
         <span className="loading-dot" aria-hidden="true" />
-        <span>Loading fixture recommendations…</span>
+        <span>
+          Loading {presentationSource === "fixture" ? "fixture" : "local API"} recommendations…
+        </span>
       </div>
     );
   }
@@ -42,7 +46,7 @@ export function RecommendationResults({
     return (
       <div className="recommendation-placeholder" role="status">
         <span className="placeholder-number">01</span>
-        <p>Choose a synthetic context and run the fixture explorer.</p>
+        <p>Choose a synthetic context and run the selected recommendation source.</p>
       </div>
     );
   }
@@ -52,7 +56,7 @@ export function RecommendationResults({
         <span className="empty-state__mark" aria-hidden="true">
           ↗
         </span>
-        <h3>No recommendations in this fixture</h3>
+        <h3>No recommendations for this synthetic request</h3>
         <p>
           The current synthetic example has no eligible ranked items. Nothing was added as a
           fallback.
@@ -62,20 +66,45 @@ export function RecommendationResults({
   }
 
   return (
-    <section aria-labelledby="fixture-results-heading" className="recommendation-output">
+    <section aria-labelledby="recommendation-results-heading" className="recommendation-output">
       <div className="recommendation-output__heading">
         <div>
           <p className="eyebrow">{contextLabel ?? "Static fixture ordering"}</p>
-          <h3 id="fixture-results-heading">Fixture-backed results</h3>
+          <h3 id="recommendation-results-heading">
+            {presentationSource === "fixture" ? "Fixture-backed results" : "Local API results"}
+          </h3>
         </div>
         <span className="result-total">{response.result_count} items</span>
       </div>
       <p className="fixture-explanation">
-        Prewritten synthetic ordering for interface testing. It does not claim validated
-        personalization or model quality.
+        {presentationSource === "fixture"
+          ? "Prewritten synthetic ordering for interface testing. It does not claim validated personalization or model quality."
+          : "Synthetic local API output. The API catalog fingerprint differs from the display catalog, so this view shows canonical IDs and provenance without joining product details."}
       </p>
       <ol className="recommendation-list">
         {response.recommendations.map((recommendation) => {
+          const provenance = `${recommendation.source_names
+            .map((source) => sourceLabels[source])
+            .join(" + ")} · ${recommendation.reason_codes[0].replaceAll("_", " ")}`;
+          if (presentationSource === "local_api") {
+            return (
+              <li className="recommendation-item" key={recommendation.product_id}>
+                <span
+                  aria-label={`Rank ${recommendation.rank}`}
+                  className="recommendation-item__rank"
+                >
+                  {String(recommendation.rank).padStart(2, "0")}
+                </span>
+                <div className="recommendation-item__body">
+                  <p className="recommendation-item__canonical-id">
+                    Canonical synthetic item ID: {recommendation.product_id}
+                  </p>
+                  <p className="recommendation-item__source">{provenance}</p>
+                </div>
+              </li>
+            );
+          }
+
           const product = getProduct(recommendation.product_id);
           if (!product) return null;
           return (
@@ -108,8 +137,8 @@ export function RecommendationResults({
         })}
       </ol>
       <p className="response-contract-note">
-        {response.mode.replaceAll("_", " ")} · {response.candidate_policy.replaceAll("_", " ")} ·
-        contract v1
+        {response.mode.replaceAll("_", " ")} · {response.algorithm_id} v{response.algorithm_version}{" "}
+        ·{response.candidate_policy.replaceAll("_", " ")} · contract v1
       </p>
     </section>
   );

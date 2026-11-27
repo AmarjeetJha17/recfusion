@@ -42,9 +42,15 @@ in production is rejected during settings validation. With the flag disabled,
 recommendation routes are not mounted or advertised in OpenAPI; existing
 health/readiness behavior is unchanged. When enabled, routes are mounted only
 in development or test configuration. Each request requires loopback ASGI
-client and server addresses and a `Host` authority of `localhost` or a
-loopback IP. The documented local server command binds explicitly to
-`127.0.0.1`; no CORS middleware or proxy trust is added.
+client and server addresses, a `Host` authority of `localhost` or a
+loopback IP, and the exact configured frontend `Origin`. Enabling the demo
+requires `RECFUSION_SYNTHETIC_DEMO_ALLOWED_ORIGIN` to be a single explicit
+loopback HTTP origin with a port (for the documented frontend:
+`http://127.0.0.1:3000`). The recommendation route accepts preflight only for
+`POST` and the `Content-Type` request header. Successful and error responses
+for that exact origin echo that origin; wildcard and credentialed CORS are
+not used. The documented local server command binds explicitly to
+`127.0.0.1`; forwarded headers are not trusted.
 
 The local inference cap is controlled by
 `RECFUSION_SYNTHETIC_DEMO_MAX_CONCURRENCY`, default `2`, bounded from `1` to
@@ -94,6 +100,7 @@ middleware and returned in the versioned response/error body and
 | K or exclusion bound | 422 | `TOP_K_LIMIT_EXCEEDED` / `EXCLUSION_LIMIT_EXCEEDED` |
 | Unsupported or missing content type | 415 | `UNSUPPORTED_CONTENT_TYPE` |
 | URL query parameters | 422 | `INVALID_REQUEST` |
+| Missing or unexpected browser Origin | 403 | `INVALID_REQUEST` |
 | Non-loopback ASGI client/server or unsupported Host | 403 | `INVALID_REQUEST` |
 | Unknown synthetic product or user | 404 | `UNKNOWN_SYNTHETIC_PRODUCT` / `UNKNOWN_SYNTHETIC_USER` |
 | Ineligible query product | 422 | `QUERY_PRODUCT_INELIGIBLE` |
@@ -112,14 +119,17 @@ returning exception text. It does not duplicate service policy validation.
 All fixtures and artifact content are synthetic and in memory. Request fields
 cannot supply file paths, URLs, checkpoints, source rankings, or RRF weights.
 The guard rejects missing, malformed, or non-loopback ASGI client/server
-addresses and unexpected Host authorities. Forwarded-address headers and
-browser `Origin` do not grant access; no CORS allowlist is configured. Run
-Uvicorn bound to `127.0.0.1` and do not place it behind a reverse proxy,
-tunnel, or gateway. The guard cannot detect a local proxy that connects from
-loopback, so it neither authenticates the caller nor guarantees local-only
-reachability. Production configuration rejects demo activation and cannot
-mount the routes. Existing request logging records route, status, and request
-ID only; handlers do not log request bodies, IDs, histories, or
+addresses, unexpected Host authorities, and any missing or unexpected
+browser `Origin`. Origin validation and the narrow CORS response enable the
+documented browser call but do not authenticate non-browser callers; CORS is
+not authorization. Run Uvicorn bound to `127.0.0.1` and do not place it behind
+a reverse proxy, tunnel, or gateway. The guard cannot detect a local proxy
+that connects from loopback, so the demo does not protect synthetic service
+availability from other local processes. The fixed numeric API URL avoids
+frontend URL discovery and DNS rebinding of the API host; an unrelated web
+origin is rejected. Production configuration rejects demo activation and
+cannot mount the routes. Existing request logging records route, status, and
+request ID only; handlers do not log request bodies, IDs, histories, or
 recommendations.
 
 The local demo has no authentication because it contains no real users or
@@ -144,6 +154,7 @@ Local launch example (PowerShell):
 ```powershell
 $env:RECFUSION_SYNTHETIC_DEMO_ENABLED = "true"
 $env:RECFUSION_SYNTHETIC_DEMO_MAX_CONCURRENCY = "2"
+$env:RECFUSION_SYNTHETIC_DEMO_ALLOWED_ORIGIN = "http://127.0.0.1:3000"
 uv run uvicorn recfusion_api.main:app --host 127.0.0.1 --port 8000
 ```
 

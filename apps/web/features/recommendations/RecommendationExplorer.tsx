@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RecommendationResults } from "@/components/RecommendationResults";
 import { getRequestableProducts } from "@/lib/catalog";
+import { localApiRecommendationProvider } from "@/lib/local-api-provider";
 import {
   type CandidatePolicy,
   fixtureRecommendationProvider,
@@ -92,28 +93,63 @@ export function RecommendationExplorer({
   const [response, setResponse] = useState<RecommendationResponse>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
+  const [sourceMode, setSourceMode] = useState<"fixture" | "local_api">("fixture");
+  const requestSequence = useRef(0);
+  const activeRequest = useRef<AbortController | undefined>(undefined);
+  const localApiAvailable = process.env.NODE_ENV !== "production";
+
+  useEffect(() => () => activeRequest.current?.abort(), []);
+
+  function clearCurrentRequest() {
+    requestSequence.current += 1;
+    activeRequest.current?.abort();
+    activeRequest.current = undefined;
+    setLoading(false);
+    setResponse(undefined);
+    setError(undefined);
+  }
 
   async function runRecommendation() {
+    const sequence = ++requestSequence.current;
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
     setLoading(true);
     setError(undefined);
     setResponse(undefined);
     try {
       const contextId = mode === "product_to_product" ? productId : userId;
       const request = buildRecommendationRequest(mode, contextId, candidatePolicy, k);
-      setResponse(await provider.recommend(request));
-    } catch {
-      setError("The local synthetic fixture provider could not complete this example.");
+      const activeProvider =
+        provider !== fixtureRecommendationProvider
+          ? provider
+          : sourceMode === "local_api"
+            ? localApiRecommendationProvider
+            : fixtureRecommendationProvider;
+      const result = await activeProvider.recommend(request, { signal: controller.signal });
+      if (sequence === requestSequence.current) setResponse(result);
+    } catch (caught) {
+      if (!controller.signal.aborted && sequence === requestSequence.current) {
+        setError(
+          sourceMode === "local_api" && caught instanceof Error
+            ? caught.message
+            : "The local synthetic fixture provider could not complete this example.",
+        );
+      }
     } finally {
-      setLoading(false);
+      if (sequence === requestSequence.current) {
+        setLoading(false);
+        activeRequest.current = undefined;
+      }
     }
   }
 
   const contextLabel =
     mode === "product_to_product"
-      ? "Product similarity · fixture source"
+      ? `Product similarity · ${sourceMode === "fixture" ? "fixture" : "local API"} · tfidf_content v1`
       : mode === "synthetic_user"
-        ? "Synthetic profile context · history stays private"
-        : `${candidatePolicy === "warm_hybrid" ? "Warm-only" : "Content-eligible"} hybrid fixture`;
+        ? `Synthetic profile context · history stays private · ${sourceMode === "fixture" ? "fixture" : "local API"}`
+        : `${candidatePolicy === "warm_hybrid" ? "Warm-only" : "Content-eligible"} hybrid · ${sourceMode === "fixture" ? "fixture" : "local API"} · weighted_rrf v1`;
 
   return (
     <div className="explorer-layout">
@@ -124,6 +160,49 @@ export function RecommendationExplorer({
           void runRecommendation();
         }}
       >
+        <fieldset className="mode-fieldset">
+          <legend>Recommendation source</legend>
+          <div className="mode-options source-options">
+            <label className={sourceMode === "fixture" ? "mode-option is-selected" : "mode-option"}>
+              <input
+                checked={sourceMode === "fixture"}
+                name="recommendation-source"
+                onChange={() => {
+                  clearCurrentRequest();
+                  setSourceMode("fixture");
+                }}
+                type="radio"
+                value="fixture"
+              />
+              <span className="mode-option__radio" aria-hidden="true" />
+              <span className="mode-option__copy">
+                <strong>Fixture</strong>
+                <small>Offline, deterministic examples</small>
+              </span>
+            </label>
+            {localApiAvailable && (
+              <label
+                className={sourceMode === "local_api" ? "mode-option is-selected" : "mode-option"}
+              >
+                <input
+                  checked={sourceMode === "local_api"}
+                  name="recommendation-source"
+                  onChange={() => {
+                    clearCurrentRequest();
+                    setSourceMode("local_api");
+                  }}
+                  type="radio"
+                  value="local_api"
+                />
+                <span className="mode-option__radio" aria-hidden="true" />
+                <span className="mode-option__copy">
+                  <strong>Local API</strong>
+                  <small>Explicit local development opt-in</small>
+                </span>
+              </label>
+            )}
+          </div>
+        </fieldset>
         <fieldset className="mode-fieldset">
           <legend>Choose an exploration mode</legend>
           <div className="mode-options">
@@ -136,9 +215,8 @@ export function RecommendationExplorer({
                   checked={mode === item.value}
                   name="recommendation-mode"
                   onChange={() => {
+                    clearCurrentRequest();
                     setMode(item.value);
-                    setResponse(undefined);
-                    setError(undefined);
                   }}
                   type="radio"
                   value={item.value}
@@ -159,7 +237,10 @@ export function RecommendationExplorer({
             <span>Starting product</span>
             <select
               id="context-product"
-              onChange={(event) => setProductId(event.target.value)}
+              onChange={(event) => {
+                clearCurrentRequest();
+                setProductId(event.target.value);
+              }}
               value={productId}
             >
               {products.map((product) => (
@@ -174,7 +255,10 @@ export function RecommendationExplorer({
             <span>Synthetic context</span>
             <select
               id="context-user"
-              onChange={(event) => setUserId(event.target.value)}
+              onChange={(event) => {
+                clearCurrentRequest();
+                setUserId(event.target.value);
+              }}
               value={userId}
             >
               {users.map((user) => (
@@ -194,7 +278,10 @@ export function RecommendationExplorer({
               <input
                 checked={candidatePolicy === "warm_hybrid"}
                 name="candidate-policy"
-                onChange={() => setCandidatePolicy("warm_hybrid")}
+                onChange={() => {
+                  clearCurrentRequest();
+                  setCandidatePolicy("warm_hybrid");
+                }}
                 type="radio"
               />
               <span>
@@ -206,7 +293,10 @@ export function RecommendationExplorer({
               <input
                 checked={candidatePolicy === "content_eligible_hybrid"}
                 name="candidate-policy"
-                onChange={() => setCandidatePolicy("content_eligible_hybrid")}
+                onChange={() => {
+                  clearCurrentRequest();
+                  setCandidatePolicy("content_eligible_hybrid");
+                }}
                 type="radio"
               />
               <span>
@@ -221,7 +311,10 @@ export function RecommendationExplorer({
           <span>Number of results</span>
           <select
             id="result-count"
-            onChange={(event) => setK(Number(event.target.value))}
+            onChange={(event) => {
+              clearCurrentRequest();
+              setK(Number(event.target.value));
+            }}
             value={k}
           >
             <option value={5}>5 results</option>
@@ -230,17 +323,19 @@ export function RecommendationExplorer({
           </select>
         </label>
         <button className="button button--primary explorer-submit" disabled={loading} type="submit">
-          {loading ? "Preparing fixtures…" : "Show recommendations"}
+          {loading ? "Loading recommendations…" : "Show recommendations"}
           <span aria-hidden="true">↗</span>
         </button>
         <p className="explorer-private-note">
-          Local fixtures only <span aria-hidden="true">·</span> no network request
+          {sourceMode === "fixture"
+            ? "Fixture mode · offline · no network request"
+            : "Local API mode · loopback development service"}
         </p>
       </form>
 
       <div className="explorer-results">
         <div className="explorer-results__topline">
-          <span>REC · EXPLORER</span>
+          <span>REC · EXPLORER · {sourceMode === "fixture" ? "FIXTURE" : "LOCAL API"}</span>
           <span>Schema v1</span>
         </div>
         <RecommendationResults
@@ -248,6 +343,7 @@ export function RecommendationExplorer({
           error={error}
           loading={loading}
           response={response}
+          presentationSource={sourceMode}
         />
       </div>
     </div>

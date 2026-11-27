@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import RequestResponseEndpoint
 
 from recfusion_api.config import Settings
+from recfusion_api.dependencies.recommendation import require_loopback_scope
 from recfusion_api.exceptions import ApplicationError
 from recfusion_api.logging_config import configure_logging, get_api_logger
 from recfusion_api.routes.health import router as health_router
@@ -58,6 +59,60 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     if app_settings.synthetic_demo_enabled:
         app.include_router(recommendations_router)
+
+    @app.middleware("http")
+    async def local_recommendation_origin_middleware(
+        request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        if not (
+            app_settings.synthetic_demo_enabled
+            and request.url.path == "/v1/recommendations"
+        ):
+            return await call_next(request)
+
+        origin = request.headers.get("origin")
+        if (
+            origin is None
+            or not require_loopback_scope(request)
+            or origin != app_settings.synthetic_demo_allowed_origin
+        ):
+            response = JSONResponse(
+                status_code=403,
+                content={
+                    "schema_version": "recfusion.recommendation-error.v1",
+                    "request_id": getattr(request.state, "request_id", "unavailable"),
+                    "error": {
+                        "code": "INVALID_REQUEST",
+                        "message": "The request could not be completed.",
+                    },
+                },
+            )
+            return response
+
+        http_response: Response
+        if request.method == "OPTIONS":
+            requested_method = request.headers.get(
+                "access-control-request-method", ""
+            ).casefold()
+            requested_headers = {
+                header.strip().casefold()
+                for header in request.headers.get(
+                    "access-control-request-headers", ""
+                ).split(",")
+                if header.strip()
+            }
+            if requested_method != "post" or not requested_headers <= {"content-type"}:
+                return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+            http_response = Response(status_code=204)
+            http_response.headers["Access-Control-Allow-Methods"] = "POST"
+            http_response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+            http_response.headers["Access-Control-Max-Age"] = "0"
+        else:
+            http_response = await call_next(request)
+
+        http_response.headers["Access-Control-Allow-Origin"] = origin
+        http_response.headers["Vary"] = "Origin"
+        return http_response
 
     @app.exception_handler(ApplicationError)
     async def application_error_handler(

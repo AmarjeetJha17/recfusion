@@ -71,6 +71,17 @@ metadata. Scope, run instructions, contracts, fixture limits, and the Phase
 [`SYNTHETIC-FRONTEND.md`](./SYNTHETIC-FRONTEND.md). This checkpoint does not
 advance ADRs 018/019 or the Phase 4.2C hold.
 
+### Phase 6.3B — Controlled local frontend/API integration (owner review pending)
+
+The frontend keeps offline fixture mode as its default and adds an explicit
+development-only option for the loopback synthetic API. Exact-Origin checks,
+ID-only API result presentation, local run instructions, and remaining
+limitations are documented in
+[`LOCAL-FRONTEND-API-INTEGRATION.md`](./LOCAL-FRONTEND-API-INTEGRATION.md).
+This remains a local synthetic integration only; it does not authorize
+production serving, real-data access, or advancement of ADR-018/019 or
+Phase 4.2C.
+
 ## Phase 7 — Bounded agent workflow
 
 Intent extraction, preference state, typed tools, grounded comparisons/explanations, clarification and no-match recovery. **Gate:** golden cases and adversarial suite pass; no unverified product claims.
