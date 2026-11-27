@@ -1094,6 +1094,114 @@ select {
   letter-spacing: 0.05em;
 }
 
+.mode-explanation,
+.policy-explanation {
+  margin: 0.75rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+.policy-explanation code {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.recommendation-result-count {
+  margin: 0.8rem 0;
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+.recommendation-short-list-note,
+.recommendation-cohort-note,
+.recommendation-provenance-note {
+  margin: 0.75rem 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+.recommendation-provenance {
+  margin: 1rem 0;
+  padding: 0.8rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+.recommendation-provenance > div {
+  min-width: 0;
+}
+.recommendation-provenance dt,
+.recommendation-item__provenance-label {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.recommendation-provenance dd {
+  margin: 0.25rem 0 0;
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+}
+.recommendation-provenance code,
+.recommendation-item__provenance code {
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+.recommendation-provenance-note {
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid var(--primary);
+  background: var(--surface);
+}
+.recommendation-item__provenance {
+  margin-top: 0.45rem;
+  display: grid;
+  gap: 0.4rem 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+.source-attribution-list,
+.reason-code-list {
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.65rem;
+  list-style: none;
+}
+.source-attribution-list li,
+.reason-code-list li {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  color: var(--text);
+  font-size: 0.72rem;
+}
+.source-attribution-list :where(li span),
+.reason-code-list :where(li span) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.source-attribution-list :where(li code),
+.reason-code-list :where(li code) {
+  display: block;
+  max-width: 100%;
+}
+.recommendation-item__provenance :where(div > p) {
+  margin: 0.2rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+.recommendation-retry {
+  justify-self: start;
+  margin-top: 0.4rem;
+}
+
 .product-detail-page {
   padding-bottom: 5rem;
 }
@@ -1309,11 +1417,15 @@ select {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .explorer-layout {
-    grid-template-columns: minmax(16rem, 0.85fr) minmax(0, 1.15fr);
+    grid-template-columns: minmax(0, 1fr);
   }
   .explorer-controls,
   .explorer-results {
     padding: 1.1rem;
+  }
+  .explorer-controls {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
   }
   .product-detail {
     gap: 1.75rem;

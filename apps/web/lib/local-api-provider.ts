@@ -56,6 +56,16 @@ export const localApiRecommendationProvider: RecommendationProvider = Object.fre
           );
         }
         if (response.status === 404) {
+          if (code === "UNKNOWN_SYNTHETIC_PRODUCT") {
+            throw new LocalRecommendationApiError(
+              "The selected synthetic product is not present in the local API catalog. Choose another product or use fixtures.",
+            );
+          }
+          if (code === "UNKNOWN_SYNTHETIC_USER") {
+            throw new LocalRecommendationApiError(
+              "The selected synthetic profile is not present in the local API. Choose another profile or use fixtures.",
+            );
+          }
           throw new LocalRecommendationApiError(
             "The selected synthetic context is not available in the local catalog.",
           );

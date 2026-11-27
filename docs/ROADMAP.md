@@ -82,6 +82,15 @@ This remains a local synthetic integration only; it does not authorize
 production serving, real-data access, or advancement of ADR-018/019 or
 Phase 4.2C.
 
+### Phase 6.3C — Recommendation experience, provenance, and explainability UI (owner review pending)
+
+The synthetic Recommendation Lab explains each mode and candidate policy,
+shows only response-backed provenance, distinguishes fixture cohort metadata
+from API v1's missing per-item cohort, and reports short/empty/error states
+without adding fallback results. This remains presentation-only. See
+[RECOMMENDATION-EXPERIENCE.md](./RECOMMENDATION-EXPERIENCE.md). ADR-018/019
+remain Proposed and Phase 4.2C remains ON HOLD.
+
 ## Phase 7 — Bounded agent workflow
 
 Intent extraction, preference state, typed tools, grounded comparisons/explanations, clarification and no-match recovery. **Gate:** golden cases and adversarial suite pass; no unverified product claims.

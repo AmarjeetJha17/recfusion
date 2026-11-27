@@ -1,6 +1,6 @@
 # Synthetic Electronics Discovery Frontend
 
-**Status:** Phase 6.3B controlled local integration for owner review. Fixture
+**Status:** Phase 6.3C synthetic recommendation experience for owner review. Fixture
 mode remains the default and works offline; Local API mode is an explicit
 development-only choice. The UI does not connect to a real catalog.
 ADRs 018/019 remain Proposed; Phase 4.2C remains ON HOLD.
@@ -73,6 +73,11 @@ response validation. API errors never fall back to fixtures. The Local
 API option is absent in production builds; API URL selection is unavailable
 in the UI.
 
+The Recommendation Lab's mode explanations, safe provenance presentation,
+warm/cold policy labels, short-list and empty states, and retry behavior are
+documented in [RECOMMENDATION-EXPERIENCE.md](./RECOMMENDATION-EXPERIENCE.md).
+These are presentation-only changes over the existing v1 contract.
+
 ## Accessibility and responsive behavior
 
 The interface uses the repository's design tokens, semantic headings and
@@ -98,3 +103,11 @@ is part of the frontend package.
 3. Preserve the local fixture provider for deterministic offline UI tests.
 4. Keep production deployment, authentication, real metadata, and Phase 4.2C
    blocked until their independent decisions are approved.
+
+## Phase 6.3C review notes
+
+The UI keeps one active result set, identifies the selected synthetic mode and
+request context, and distinguishes trusted fixture cohorts from unavailable
+API v1 cohort metadata. It preserves canonical ID-only Local API results and
+does not compare incompatible scores. Exact 1440/900/700/375-pixel browser
+measurements for this checkpoint remain unverified.

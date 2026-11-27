@@ -54,6 +54,45 @@ describe("recommendation explorer", () => {
     },
   );
 
+  it.each([
+    ["product_to_product", /similarity over available product-content features/i],
+    ["synthetic_user", /prior synthetic training interactions and product content/i],
+    [
+      "hybrid",
+      /ranked synthetic collaborative and content lists.*weighted reciprocal rank fusion/i,
+    ],
+  ] as const)("explains the %s mode without claiming preference", async (mode, explanation) => {
+    const user = userEvent.setup();
+    render(<RecommendationExplorer />);
+    await user.click(
+      screen.getByRole("radio", { name: new RegExp(mode.replaceAll("_", " "), "i") }),
+    );
+    expect(screen.getByText(explanation)).toBeInTheDocument();
+    expect(
+      screen.getByText(/different candidate sets.*no shared score scale/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("radio", { name: /fixture.*offline, deterministic examples/i }),
+    ).toBeChecked();
+  });
+
+  it("explains hybrid candidate policies and keeps their stable IDs visible", async () => {
+    const user = userEvent.setup();
+    render(<RecommendationExplorer />);
+    await user.click(screen.getByRole("radio", { name: /hybrid/i }));
+
+    expect(screen.getByText("Warm-only", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("warm_hybrid")).toBeInTheDocument();
+    expect(screen.getByText(/train-known synthetic items/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: /content-eligible/i }));
+    expect(screen.getByText("Content-eligible", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("content_eligible_hybrid")).toBeInTheDocument();
+    expect(
+      screen.getByText(/cold means no permitted synthetic training interactions/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/not a quality or inventory label/i)).toBeInTheDocument();
+  });
+
   it("shows loading, empty, error, provenance, and warm/cold states accessibly", async () => {
     const user = userEvent.setup();
     let resolveRequest: ((response: RecommendationResponse) => void) | undefined;
@@ -95,9 +134,10 @@ describe("recommendation explorer", () => {
         }),
       ),
     );
-    expect(screen.getByRole("status")).toHaveTextContent(
-      /no recommendations for this synthetic request/i,
-    );
+    expect(
+      screen.getByRole("heading", { name: /no recommendations for this synthetic request/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/0 of 5 requested recommendations/i);
   });
 
   it("announces provider failures without leaking exception details", async () => {
@@ -114,6 +154,35 @@ describe("recommendation explorer", () => {
       /local synthetic fixture provider could not complete/i,
     );
     expect(screen.queryByText(/private file path secret/i)).not.toBeInTheDocument();
+  });
+
+  it("retries only the selected Local API request and does not switch to fixtures", async () => {
+    const user = userEvent.setup();
+    const expected = await fixtureRecommendationProvider.recommend(
+      buildRecommendationRequest(
+        "product_to_product",
+        "synthetic-electronics-v1:item:000001",
+        "warm_hybrid",
+      ),
+    );
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValueOnce(new TypeError("offline"))
+      .mockResolvedValueOnce(new Response(JSON.stringify(expected), { status: 200 }));
+    render(<RecommendationExplorer />);
+    await user.click(screen.getByRole("radio", { name: /local api/i }));
+    await user.click(screen.getByRole("button", { name: /show recommendations/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/local api is unavailable/i);
+    expect(
+      screen.queryByRole("heading", { name: /fixture-backed results/i }),
+    ).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: /retry request/i }));
+
+    expect(await screen.findByRole("heading", { name: /local api results/i })).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("radio", { name: /local api/i })).toBeChecked();
   });
 
   it("selects the fixed hybrid candidate policy and shows warm or cold labels", async () => {
@@ -196,6 +265,6 @@ describe("recommendation explorer", () => {
     await act(async () => pending[1]?.(hybridResponse));
     await act(async () => pending[0]?.(productResponse));
 
-    expect(screen.getByText(/hybrid · weighted_rrf v1/i)).toBeInTheDocument();
+    expect(screen.getByText(/warm-only hybrid · synthetic profile 01/i)).toBeInTheDocument();
   });
 });

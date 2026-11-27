@@ -58,6 +58,27 @@ describe("local synthetic API provider", () => {
     );
   });
 
+  it.each([
+    ["UNKNOWN_SYNTHETIC_PRODUCT", /selected synthetic product is not present/i],
+    ["UNKNOWN_SYNTHETIC_USER", /selected synthetic profile is not present/i],
+  ])("maps the typed %s error without exposing server text", async (code, message) => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          schema_version: "recfusion.recommendation-error.v1",
+          request_id: "request-1",
+          error: { code, message: "private server detail" },
+        }),
+        { status: 404 },
+      ),
+    );
+
+    await expect(localApiRecommendationProvider.recommend(request)).rejects.toThrow(message);
+    await expect(localApiRecommendationProvider.recommend(request)).rejects.not.toThrow(
+      "private server detail",
+    );
+  });
+
   it("preserves unknown canonical IDs for safe ID-only rendering", async () => {
     const response = await fixtureRecommendationProvider.recommend(request);
     const firstRecommendation = response.recommendations[0];

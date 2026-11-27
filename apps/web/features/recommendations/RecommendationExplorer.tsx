@@ -14,6 +14,15 @@ import {
   type RecommendationResponse,
 } from "@/lib/recommendation-provider";
 
+const modeExplanations: Record<RecommendationMode, string> = {
+  product_to_product:
+    "Ranks eligible products by similarity over available product-content features using TF-IDF. Similarity is not proof of preference.",
+  synthetic_user:
+    "Uses prior synthetic training interactions and product content to form a temporary retrieval context. No history is displayed; this is not proof of preference.",
+  hybrid:
+    "Combines separately ranked synthetic collaborative and content lists using weighted Reciprocal Rank Fusion. Source membership is not causal.",
+};
+
 const users = [
   { id: "synthetic-electronics-v1:user:000001", label: "Synthetic profile 01" },
   { id: "synthetic-electronics-v1:user:000002", label: "Synthetic profile 02" },
@@ -146,10 +155,10 @@ export function RecommendationExplorer({
 
   const contextLabel =
     mode === "product_to_product"
-      ? `Product similarity · ${sourceMode === "fixture" ? "fixture" : "local API"} · tfidf_content v1`
+      ? `Product similarity · ${sourceMode === "fixture" ? (products.find((product) => product.id === productId)?.name ?? productId) : productId}`
       : mode === "synthetic_user"
-        ? `Synthetic profile context · history stays private · ${sourceMode === "fixture" ? "fixture" : "local API"}`
-        : `${candidatePolicy === "warm_hybrid" ? "Warm-only" : "Content-eligible"} hybrid · ${sourceMode === "fixture" ? "fixture" : "local API"} · weighted_rrf v1`;
+        ? `Synthetic profile context · history stays private · ${users.find((user) => user.id === userId)?.label ?? "Synthetic profile"}`
+        : `${candidatePolicy === "warm_hybrid" ? "Warm-only" : "Content-eligible"} hybrid · ${users.find((user) => user.id === userId)?.label ?? "Synthetic profile"}`;
 
   return (
     <div className="explorer-layout">
@@ -203,7 +212,7 @@ export function RecommendationExplorer({
             )}
           </div>
         </fieldset>
-        <fieldset className="mode-fieldset">
+        <fieldset aria-describedby="mode-explanation" className="mode-fieldset">
           <legend>Choose an exploration mode</legend>
           <div className="mode-options">
             {modes.map((item) => (
@@ -229,6 +238,10 @@ export function RecommendationExplorer({
               </label>
             ))}
           </div>
+          <p aria-live="polite" className="mode-explanation" id="mode-explanation">
+            {modeExplanations[mode]} Different candidate sets can produce different list lengths;
+            there is no shared score scale.
+          </p>
         </fieldset>
 
         <div className="form-divider" />
@@ -272,7 +285,10 @@ export function RecommendationExplorer({
         )}
 
         {mode === "hybrid" && (
-          <fieldset className="field-label policy-fieldset">
+          <fieldset
+            aria-describedby="candidate-policy-explanation"
+            className="field-label policy-fieldset"
+          >
             <legend>Candidate policy</legend>
             <label className="policy-option">
               <input
@@ -286,7 +302,7 @@ export function RecommendationExplorer({
               />
               <span>
                 <strong>Warm-only</strong>
-                <small>Training-known catalog items</small>
+                <small>Only train-known synthetic items.</small>
               </span>
             </label>
             <label className="policy-option">
@@ -301,9 +317,27 @@ export function RecommendationExplorer({
               />
               <span>
                 <strong>Content-eligible</strong>
-                <small>May include synthetic cold-item fixtures</small>
+                <small>
+                  Eligible cold products may enter through content retrieval; collaborative
+                  candidates stay train-known.
+                </small>
               </span>
             </label>
+            <p className="policy-explanation" id="candidate-policy-explanation">
+              {candidatePolicy === "warm_hybrid" ? (
+                <>
+                  Warm-only <code>warm_hybrid</code> includes items known in synthetic training
+                  interactions.
+                </>
+              ) : (
+                <>
+                  Content-eligible <code>content_eligible_hybrid</code> may include cold products
+                  with content; collaborative candidates remain train-known.
+                </>
+              )}{" "}
+              Cold means no permitted synthetic training interactions. It is not a quality or
+              inventory label.
+            </p>
           </fieldset>
         )}
 
@@ -342,6 +376,8 @@ export function RecommendationExplorer({
           contextLabel={contextLabel}
           error={error}
           loading={loading}
+          onRetry={sourceMode === "local_api" ? () => void runRecommendation() : undefined}
+          requestedK={k}
           response={response}
           presentationSource={sourceMode}
         />
