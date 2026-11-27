@@ -49,13 +49,16 @@ This is a documentation checkpoint only: no route, provider, registry,
 promotion process, or serving model exists. The design awaits project-owner
 review and does not close Phase 4.2C.
 
-### Phase 6.1B — Synthetic serving contracts and local application (proposed)
+### Phase 6.1B — Synthetic serving contracts and local application (owner review pending)
 
-After review of Phase 6.1A, implement the approved core request/response
-contracts, deterministic synthetic catalog/history provider, and local-only
-application path with unit, API contract, security, and compatibility tests.
-Keep models unpromoted until an independent release decision. Use only
-invented catalog/history data. Exact scope and limits remain Proposed.
+A local synthetic application-service checkpoint is implemented and described
+in [`OFFLINE-RECOMMENDATION-INFERENCE.md`](./OFFLINE-RECOMMENDATION-INFERENCE.md).
+It includes versioned contracts, a deterministic invented catalog/history
+provider, safe synthetic content-artifact validation, and adapters for the
+existing content and weighted-RRF retrieval. It has no recommendation HTTP
+route, release promotion, production model, or real-data input. The checkpoint
+awaits project-owner review; ADRs 018/019 remain Proposed and Phase 4.2C remains
+ON HOLD. No later Phase 6 implementation is authorized by this checkpoint.
 
 ## Phase 7 — Bounded agent workflow
 

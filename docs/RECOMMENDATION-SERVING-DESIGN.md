@@ -1,9 +1,11 @@
 # Recommendation serving design
 
-**Status:** Proposed contract and architecture for Phase 6.1A. No recommendation
-endpoint, online model registry, catalog provider, artifact promotion process,
-or production serving path is implemented. This design authorizes none of those
-changes. The synthetic application described here must use invented data only.
+**Status:** Proposed serving contract and architecture. Phase 6.1A is documented;
+Phase 6.1B now has a local synthetic application-service checkpoint prepared
+for owner review. No recommendation endpoint, online model registry, artifact
+promotion process, or production serving path is implemented. This design
+authorizes none of those changes. The synthetic application uses invented data
+only.
 
 ## Purpose and scope
 
@@ -24,11 +26,11 @@ and IDs must be generated or authored specifically as synthetic fixtures.
 | Area | Reusable implementation | Serving gap |
 |---|---|---|
 | HTTP | FastAPI app factory, lifespan, request IDs, safe error envelope, health/readiness routes | No recommendation route, request/response schemas, identity/auth provider, or catalog/model dependencies |
-| Content | `ContentIndex` fits bounded TF-IDF from explicit reference items, transforms candidates, supports product similarity and train-history profiles, and reads validated JSON artifacts | No synthetic catalog provider, serving artifact loader/registry, runtime catalog authority, or approved deployed index |
+| Content | `ContentIndex` fits bounded TF-IDF from explicit reference items, transforms candidates, supports product similarity and train-history profiles, and reads validated JSON artifacts | Phase 6.1B adds a synthetic catalog, synthetic artifact validation, and in-memory runtime source; there is no production registry or approved deployed index |
 | Hybrid | `retrieve_hybrid` uses explicit source lists and candidate pools; collaborative sources stay train-known and content can supply eligible cold items | The caller must provide collaborative rankings, train context, exact item pool, and config; provenance does not prove model training scope |
 | Fusion | Weighted RRF uses one-based original ranks, stable item-key tie breaks, explicit weights/depths, catalog/seen filters, and no implicit fallback | No active serving policy or per-model release provenance |
 | Collaborative models | Popularity, item-CF, BPR, and Two-Tower rankers support offline use; Two-Tower checkpoint loading is CPU/weights-only | These are offline research artifacts, not promoted serving artifacts. BPR/Two-Tower checkpoints contain private identifier mappings and are not general public artifacts |
-| Catalog/domain | `ProductMetadata` is a core data contract; canonical product IDs are source scoped | No catalog repository, public product visibility contract, hard-constraint service, or synthetic app-catalog schema |
+| Catalog/domain | `ProductMetadata` is a core data contract; canonical product IDs are source scoped | Phase 6.1B adds an in-memory synthetic app-catalog schema and deterministic eligibility checks; there is no production catalog repository |
 | Release lifecycle | Offline reports/manifests capture hashes and configurations | No immutable serving release manifest, compatibility gate, promotion authorization, rollback, or hot-swap lifecycle |
 
 The application boundary should be a domain-level `RecommendationService` in
@@ -53,6 +55,9 @@ rankings, raw score values, source user IDs, or model checkpoint contents.
   "schema_version": "recfusion.recommendation-request.v1",
   "mode": "product_to_product",
   "catalog_id": "synthetic-electronics-v1",
+  "algorithm_id": "tfidf_content",
+  "algorithm_version": "1",
+  "candidate_policy": "content_catalog",
   "query": {"product_id": "synthetic-electronics-v1:item:000042"},
   "policy_id": "content-similarity-v1",
   "k": 10,
@@ -112,7 +117,15 @@ recommendation lists beyond the requested result.
   "schema_version": "recfusion.recommendation-response.v1",
   "request_id": "server-generated-correlation-id",
   "mode": "product_to_product",
+  "algorithm_id": "tfidf_content",
+  "algorithm_version": "1",
+  "candidate_policy": "content_catalog",
+  "policy_id": "content-similarity-v1",
+  "catalog_id": "synthetic-electronics-v1",
+  "catalog_fingerprint": "...",
+  "artifact_fingerprint": "...",
   "status": "ok",
+  "result_count": 1,
   "recommendations": [
     {"product_id": "synthetic-electronics-v1:item:000107", "rank": 1,
      "source_names": ["tfidf_content"], "evidence_fields": ["category", "title"]}
@@ -127,7 +140,9 @@ recommendation lists beyond the requested result.
     "synthetic_data": true
   },
   "diagnostics": {"candidate_count": 18, "eligible_count": 12,
-                   "returned_count": 10, "exclusion_counts": {"seen": 6}}
+                   "returned_count": 1, "history_event_count": 0,
+                   "seen_exclusion_count": 0},
+  "warnings": []
 }
 ```
 
@@ -317,9 +332,12 @@ or external service. Required tests before implementation approval:
 11. API contract tests cover 200 `ok`, 200 `no_results`, 422, 401/403, 404,
     429, 503, readiness, and production docs/network configuration.
 
-These are proposed gates; none is claimed as passing for recommendation
-serving today. The current health/API contract tests cover only the existing
-health, readiness, error, and OpenAPI behavior.
+These remain proposed gates for a future HTTP API. The Phase 6.1B local
+application checkpoint covers the synthetic request/response contracts and
+service behavior listed in
+[`OFFLINE-RECOMMENDATION-INFERENCE.md`](./OFFLINE-RECOMMENDATION-INFERENCE.md).
+It adds no endpoint; the API health, readiness, error, and OpenAPI tests still
+cover only the existing HTTP surface.
 
 An error retains the current envelope shape, for example:
 

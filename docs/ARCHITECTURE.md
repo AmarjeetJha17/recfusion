@@ -111,16 +111,18 @@ Hosting budget, identity provider, exact service process layout, embedding/index
 
 ## 11. Recommendation-serving contract checkpoint
 
-Phase 6.1A records a proposed, local synthetic-only serving contract in
+Phase 6.1A records a proposed serving contract in
 [`RECOMMENDATION-SERVING-DESIGN.md`](./RECOMMENDATION-SERVING-DESIGN.md).
-The current API still exposes only health/readiness; it has no recommendation
-route, catalog provider, artifact registry, promotion flow, or serving-approved
-model. The future application service must resolve an allowlisted policy,
-validate immutable artifact/catalog compatibility, retrieve candidate IDs,
-resolve them through the trusted catalog, and apply deterministic seen and
-hard-constraint checks before returning products. Model unavailability fails
-closed unless a compatible fallback is explicitly declared by an approved,
-versioned policy and surfaced in response provenance. Phase 4.2C remains ON
-HOLD; the initial synthetic application must not use Amazon metadata or
-artifacts derived from the private interaction pilot. Proposed contracts and
-bounds await owner review and implementation tests.
+Phase 6.1B adds a local synthetic-only application service, versioned contracts,
+an in-memory synthetic catalog and a validated in-memory content artifact;
+details are in [`OFFLINE-RECOMMENDATION-INFERENCE.md`](./OFFLINE-RECOMMENDATION-INFERENCE.md).
+The current API still exposes only health/readiness and has no recommendation
+route, production artifact registry, promotion flow, or serving-approved
+model. The local service resolves an allowlisted policy, checks artifact and
+catalog compatibility, retrieves candidate IDs, resolves them through the
+synthetic catalog, and applies deterministic seen-item and hard-constraint
+checks. Missing sources fail closed without fallback. This implementation
+does not establish production readiness or release approval. Phase 4.2C
+remains ON HOLD; the synthetic application uses no Amazon metadata or
+artifacts derived from the private interaction pilot. Phase 6.1B is prepared
+for project-owner review; proposed serving decisions remain unaccepted.

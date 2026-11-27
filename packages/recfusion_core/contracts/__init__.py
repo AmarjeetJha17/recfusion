@@ -7,5 +7,27 @@ from recfusion_core.contracts.data import (
     Money,
     ProductMetadata,
 )
+from recfusion_core.contracts.recommendation import (
+    HybridInferenceConfig,
+    RankedCandidate,
+    RecommendationArtifactRegistry,
+    RecommendationInferenceSource,
+    SyntheticCatalog,
+    SyntheticProduct,
+    SyntheticUserContext,
+)
 
-__all__ = ["DataSplit", "Interaction", "JSONValue", "Money", "ProductMetadata"]
+__all__ = [
+    "DataSplit",
+    "HybridInferenceConfig",
+    "Interaction",
+    "JSONValue",
+    "Money",
+    "ProductMetadata",
+    "RankedCandidate",
+    "RecommendationArtifactRegistry",
+    "RecommendationInferenceSource",
+    "SyntheticCatalog",
+    "SyntheticProduct",
+    "SyntheticUserContext",
+]
