@@ -4,9 +4,10 @@ import {
   RecommendationItemProvenance,
   RecommendationProvenance,
 } from "@/components/RecommendationProvenance";
-import { CATALOG_ID, getProduct, getProductRouteId } from "@/lib/catalog";
+import { allCatalogProducts, CATALOG_ID } from "@/lib/catalog";
 import { FIXTURE_CATALOG_FINGERPRINT } from "@/lib/fixture-manifest";
 import type { RecommendationResponse } from "@/lib/recommendation-provider";
+import { resolveRecommendationProduct } from "@/lib/recommendation-resolver";
 
 type RecommendationResultsProps = {
   response?: RecommendationResponse;
@@ -78,9 +79,16 @@ export function RecommendationResults({
           The request completed successfully, but the active policy and available eligible
           candidates produced no ranked items. Nothing was added as a fallback.
         </p>
+        <RecommendationProvenance response={response} />
       </div>
     );
   }
+
+  const trustedCatalog = {
+    catalogId: CATALOG_ID,
+    assetFingerprint: FIXTURE_CATALOG_FINGERPRINT,
+    products: allCatalogProducts,
+  } as const;
 
   return (
     <section aria-labelledby="recommendation-results-heading" className="recommendation-output">
@@ -112,12 +120,11 @@ export function RecommendationResults({
       <RecommendationProvenance response={response} />
       <ol aria-label="Recommendations" className="recommendation-list">
         {response.recommendations.map((recommendation) => {
-          const catalogMatches =
-            response.catalog_id === CATALOG_ID &&
-            response.catalog_fingerprint === FIXTURE_CATALOG_FINGERPRINT;
-          if (presentationSource === "local_api" && !catalogMatches) {
+          const resolution = resolveRecommendationProduct(recommendation, response, trustedCatalog);
+          const itemKey = `${recommendation.rank}:${recommendation.product_id}`;
+          if (resolution.state === "unresolved") {
             return (
-              <li className="recommendation-item" key={recommendation.product_id}>
+              <li className="recommendation-item recommendation-item--unresolved" key={itemKey}>
                 <span
                   aria-label={`Rank ${recommendation.rank}`}
                   className="recommendation-item__rank"
@@ -125,8 +132,16 @@ export function RecommendationResults({
                   {String(recommendation.rank).padStart(2, "0")}
                 </span>
                 <div className="recommendation-item__body">
-                  <p className="recommendation-item__canonical-id">
-                    Canonical synthetic item ID: {recommendation.product_id}
+                  {resolution.canonicalId && (
+                    <p className="recommendation-item__canonical-id">
+                      Canonical synthetic item ID: <code>{resolution.canonicalId}</code>
+                    </p>
+                  )}
+                  <p
+                    className="recommendation-item__resolution-note"
+                    role={resolution.reason === "policy_integrity_issue" ? "alert" : "status"}
+                  >
+                    {resolution.diagnostic}
                   </p>
                   <RecommendationItemProvenance recommendation={recommendation} />
                 </div>
@@ -134,28 +149,9 @@ export function RecommendationResults({
             );
           }
 
-          const product = getProduct(recommendation.product_id);
-          if (!product && presentationSource === "local_api") {
-            return (
-              <li className="recommendation-item" key={recommendation.product_id}>
-                <span
-                  aria-label={`Rank ${recommendation.rank}`}
-                  className="recommendation-item__rank"
-                >
-                  {String(recommendation.rank).padStart(2, "0")}
-                </span>
-                <div className="recommendation-item__body">
-                  <p className="recommendation-item__canonical-id">
-                    Canonical synthetic item ID: {recommendation.product_id}
-                  </p>
-                  <RecommendationItemProvenance recommendation={recommendation} />
-                </div>
-              </li>
-            );
-          }
-          if (!product) return null;
+          const { product } = resolution;
           return (
-            <li className="recommendation-item" key={recommendation.product_id}>
+            <li className="recommendation-item recommendation-item--card" key={itemKey}>
               <span
                 aria-label={`Rank ${recommendation.rank}`}
                 className="recommendation-item__rank"
@@ -167,9 +163,32 @@ export function RecommendationResults({
                 <p className="recommendation-item__category">
                   {product.category ?? "Category unavailable"}
                 </p>
-                <Link href={`/products/${getProductRouteId(product)}`}>
-                  {product.name ?? "Title unavailable"}
-                </Link>
+                <h4>
+                  {resolution.href ? (
+                    <Link href={resolution.href}>{product.name ?? "Title unavailable"}</Link>
+                  ) : (
+                    <span>{product.name ?? "Title unavailable"}</span>
+                  )}
+                </h4>
+                <p className="recommendation-item__description">
+                  {product.description ?? "Description unavailable"}
+                </p>
+                {product.features.length ? (
+                  <ul
+                    aria-label="Recorded synthetic features"
+                    className="recommendation-feature-list"
+                  >
+                    {product.features.map((feature) => (
+                      <li key={feature}>{feature}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="recommendation-item__missing">Features unavailable</p>
+                )}
+                <p className="recommendation-item__canonical-id">
+                  Canonical product ID: <code>{product.id}</code>
+                </p>
+                <p className="recommendation-item__synthetic-label">Synthetic demo catalog</p>
                 <RecommendationItemProvenance recommendation={recommendation} />
               </div>
             </li>

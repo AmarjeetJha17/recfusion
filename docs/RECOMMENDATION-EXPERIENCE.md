@@ -151,3 +151,30 @@ fixed loopback transport, exact-Origin checks, fixture default, synthetic-only
 data, and current review gates. This proposal does not authorize deployment,
 real-data use, production serving, or acceptance of ADR-018/019. Phase 4.2C
 remains ON HOLD.
+
+## Phase 7.2 verified card implementation (2026-11-27)
+
+The Recommendation Lab now resolves product metadata only against the trusted
+shared synthetic catalog and exact response catalog ID/fingerprint. The
+resolver preserves response ranks and original items, refuses ambiguous,
+unknown, hidden, or ineligible identities, and produces routes only for an
+exact slug round-trip. Cards display catalog-authored descriptions and recorded
+features, with synthetic labeling and the existing algorithm/source/policy
+provenance. They do not add prices, reviews, availability, or per-item
+warm/cold claims.
+
+Local browser smoke showed product-to-product, synthetic-user, warm hybrid,
+and content-eligible hybrid API results with the shared catalog identity.
+Fixture mode also returned results after the API was stopped. Unknown product
+and user contexts returned their existing 404 errors in direct loopback HTTP
+checks. Frontend tests cover the safe mismatch and unresolved-ID states.
+
+The frontend typecheck, 56 tests, lint, and production build passed. Lint
+reported 21 CSS warnings (17 specificity and 4 intentional reduced-motion
+overrides). Keyboard focus and accessible names were spot-checked in the local
+browser. Exact 1440/900/700/375 viewport checks, reduced-motion emulation, and
+full keyboard traversal remain unverified because the local browser did not
+provide a calibrated viewport override. See
+[`VERIFIED-RECOMMENDATION-CARDS.md`](./VERIFIED-RECOMMENDATION-CARDS.md) for
+the complete evidence and limitations. Phase 7.2 remains pending owner review;
+ADR-018/019 remain Proposed and Phase 4.2C remains ON HOLD.

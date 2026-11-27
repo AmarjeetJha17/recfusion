@@ -130,3 +130,22 @@ inference artifact separately pins the compatibility projection and bundle
 fingerprints. Static Next.js compilation and package inclusion are required
 checks before closing this checkpoint. ADR-018/019 remain Proposed and Phase
 4.2C remains ON HOLD.
+
+## Phase 7.2 verified recommendation cards
+
+Recommendation results use the existing TypeScript shared-catalog adapter and
+an exact-ID resolver. A product card requires the response catalog ID and
+asset-byte fingerprint to match the trusted shared asset, one exact canonical
+record, and visible, synthetic, catalog-eligible, content-eligible flags. A
+product route is linked only after the existing slug map round-trips to that
+same product. No API fields or recommendation behavior changed.
+
+Verified cards display catalog-authored names, category, description, recorded
+synthetic features, canonical ID, rank, and existing provenance. Unknown or
+mismatched records remain ID-only; hidden details are withheld; unexpected
+ineligible results raise a policy-integrity diagnostic while retaining their
+original rank and response count. Phase 7.2 implementation, tests, local smoke,
+and remaining responsive limitations are recorded in
+[`VERIFIED-RECOMMENDATION-CARDS.md`](./VERIFIED-RECOMMENDATION-CARDS.md).
+Exact viewport measurements and full accessibility acceptance remain open for
+owner review. ADR-018/019 remain Proposed; Phase 4.2C remains ON HOLD.

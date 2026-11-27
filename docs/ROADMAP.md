@@ -113,6 +113,19 @@ separate and checked. See
 evidence and limitations. This milestone does not start Phase 7.2, alter ADR
 status, or release Phase 4.2C from ON HOLD.
 
+### Phase 7.2 — Verified synthetic recommendation product cards (owner review pending)
+
+The Recommendation Lab uses an exact shared-catalog ID and asset-fingerprint
+resolver before showing synthetic product metadata or detail routes. Original
+ranks, counts, source attribution, policy context, and API v1 remain unchanged.
+Automated frontend checks and local loopback mode smoke passed. Unknown,
+mismatched, hidden, duplicate, incomplete, and ineligible identity behavior is
+covered by resolver/component tests. See
+[`VERIFIED-RECOMMENDATION-CARDS.md`](./VERIFIED-RECOMMENDATION-CARDS.md).
+Exact 1440/900/700/375 browser measurements and complete responsive/accessibility
+acceptance remain open. This implementation is awaiting project-owner review;
+it does not change ADR-018/019 status or Phase 4.2C ON HOLD.
+
 ## Phase 7 — Bounded agent workflow
 
 Intent extraction, preference state, typed tools, grounded comparisons/explanations, clarification and no-match recovery. **Gate:** golden cases and adversarial suite pass; no unverified product claims.

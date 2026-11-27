@@ -232,9 +232,7 @@ describe("recommendation explorer", () => {
     expect(await screen.findByRole("heading", { name: /local api results/i })).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/exact asset fingerprint match/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/canonical synthetic item id: synthetic-electronics-v1:item:999999/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText("synthetic-electronics-v1:item:999999")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /synthetic laptop 8gb ram 256gb ssd/i }),
     ).toBeInTheDocument();
