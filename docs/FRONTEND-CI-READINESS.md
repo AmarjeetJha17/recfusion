@@ -1,11 +1,13 @@
 # Phase 7.5 — Frontend CI and repository release readiness
 
 **Review date:** 2026-11-27
-**Status:** Workflow and local validation recorded; hosted GitHub Actions run pending.
+**Status:** Hosted GitHub Actions verification passed on published commit
+`f695bc3a8761b5930d9f91e1fa6c7f804444773b`; project-owner review remains
+pending.
 
 This checkpoint adds frontend quality gates to the existing GitHub Actions CI
-workflow. It does not claim a hosted run has passed and does not authorize a
-commit, push, deployment, or later phase. ADR-018 and ADR-019 remain
+workflow and records hosted verification for the published commit below. It
+does not authorize deployment or a later phase. ADR-018 and ADR-019 remain
 **Proposed**; Phase 4.2C remains **ON HOLD**.
 
 ## Workflow coverage
@@ -43,6 +45,62 @@ sync, Ruff lint and format checks, mypy, pytest, pre-commit, and Python package
 build. Its uv cache remains keyed from Python project and lock files. CI does
 not provision Postgres or Qdrant.
 
+## Hosted GitHub Actions verification
+
+| Field | Verified value |
+|---|---|
+| Published commit | [`f695bc3a8761b5930d9f91e1fa6c7f804444773b`](https://github.com/AmarjeetJha17/recfusion/commit/f695bc3a8761b5930d9f91e1fa6c7f804444773b) |
+| Trigger | Push to `master` |
+| Workflow run | [Run #10 — success](https://github.com/AmarjeetJha17/recfusion/actions/runs/46021624320) |
+| Python quality job | [Success](https://github.com/AmarjeetJha17/recfusion/actions/runs/46021624320/job/140582435985) |
+| Frontend quality job | [Success](https://github.com/AmarjeetJha17/recfusion/actions/runs/46021624320/job/140582436317) |
+
+The run was for the exact published commit above. GitHub reported every step
+in both jobs as successful:
+
+- Python: checkout, Python and uv setup, frozen dependency install, Ruff,
+  formatting, mypy, pytest, pre-commit, and `uv build`.
+- Frontend: checkout, pnpm and Node setup, frozen install, Biome, TypeScript,
+  Vitest, and Next.js production build.
+
+The Python job built `recfusion-0.1.0.tar.gz` and
+`recfusion-0.1.0-py3-none-any.whl` in its ephemeral runner. GitHub reported
+zero workflow artifacts, so neither package was published as a workflow
+artifact.
+
+### Hosted warnings and the earlier failed attempt
+
+The Python test step passed **369 tests** with one PyTorch warning because
+NumPy is absent in the CI environment. The frontend job passed with 21 Biome
+CSS warnings (17 specificity warnings and four reduced-motion `!important`
+warnings), plus Node deprecation warnings for `punycode` and `url.parse()`.
+These warnings did not fail their steps. GitHub reported no failed, skipped,
+cancelled, or warning-conclusion steps and no annotations.
+
+The preceding run for `3b7acff` failed in pre-commit because this report had
+trailing whitespace. That whitespace was removed in the published commit
+above; pre-commit passed in run #10. The actual run and job summaries are
+linked above.
+
+### Hosted security and data audit
+
+The workflow file fetched from the exact published commit has workflow-level
+`contents: read` permissions. Checkout uses `persist-credentials: false` in
+both jobs. Checkout, setup-python, setup-uv, pnpm/action-setup, and
+actions/setup-node are pinned to full commit SHAs. The jobs contain no deploy,
+release, or production API activation. No user-defined repository secret is
+referenced; checkout uses GitHub's standard read-only job token and disables
+credential persistence. The commands install lockfile-pinned software
+dependencies and run quality checks; no Amazon dataset download or serialized
+model/checkpoint acquisition occurred. The Python build packaged a source
+module named `two_tower_checkpoint.py`, not a model checkpoint or weights. No
+workflow artifacts were uploaded.
+
+Both job logs were retrievable through GitHub's workflow-job API and reviewed.
+A targeted scan found no common GitHub, AWS, or OpenAI secret-token patterns;
+the temporary checkout Authorization value was masked as `***`. This is a
+log inspection for this run, not a guarantee about later workflow changes.
+
 ## Synthetic-only and service boundaries
 
 Frontend lint, typecheck, tests, and production build operate on checked-in
@@ -74,7 +132,7 @@ they do not substitute for a hosted Actions run.
 | Next.js production build | Passed | `pnpm run build` exited 0; prerendered `/`, `/explore`, not-found, and 9 synthetic product routes |
 | Workflow YAML and pre-commit checks | Passed on retry | `uv run --frozen --offline pre-commit run --all-files`: all hooks passed, including `check-yaml`; first attempt failed because inherited malformed `GIT_CONFIG_*` environment entries made Git commands fail |
 | Tracked `next-env.d.ts` after build | Verified and restored | Build rewrote two generated route imports; Biome excludes this file. Restored those generated-only lines, so it is not part of the Phase 7.5 change set |
-| Hosted GitHub Actions | Unverified | No commit or push was made, so GitHub did not execute this change |
+| Hosted GitHub Actions | Passed | Run #10 on the published commit above; both jobs and every listed step succeeded |
 
 ## Scope and remaining release checks
 
@@ -83,9 +141,8 @@ screen-reader flows, network requests, runtime API modes, real-data model
 performance, authentication, hosting, or deployment. The manual accessibility
 and portfolio limitations remain in
 [`ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md`](./ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md).
-Hosted CI remains unverified until GitHub executes the workflow after a
-reviewed push or pull request. Do not describe this local validation as
-hosted CI acceptance.
+This hosted result covers one push run and does not replace browser acceptance,
+manual accessibility review, production security review, or future CI runs.
 
 No recommendation algorithm, API contract, security policy, catalog identity,
 or model/data status is changed by this CI addition. Phase 7.5 is not a public
