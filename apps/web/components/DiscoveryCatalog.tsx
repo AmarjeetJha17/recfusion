@@ -13,10 +13,9 @@ import {
 const categories: { id: CategoryFilter; label: string }[] = [
   { id: "all", label: "All devices" },
   { id: "laptop", label: "Laptops" },
-  { id: "headphones", label: "Audio" },
+  { id: "audio", label: "Headphones" },
   { id: "smartphone", label: "Phones" },
   { id: "monitor", label: "Displays" },
-  { id: "accessory", label: "Accessories" },
 ];
 
 export function DiscoveryCatalog() {

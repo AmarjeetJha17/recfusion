@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  allCatalogProducts,
   catalog,
   getProduct,
   getProductByRouteId,
   getProductRouteId,
+  getRequestableProducts,
   getSimilarProducts,
   searchCatalog,
   sortProducts,
@@ -18,15 +20,33 @@ describe("synthetic catalog", () => {
     expect(ids.every((id) => /^synthetic-electronics-v1:item:\d{6}$/.test(id))).toBe(true);
     expect(catalog.every((product) => product.synthetic === true)).toBe(true);
     expect(new Set(catalog.map((product) => product.category))).toEqual(
-      new Set(["laptop", "headphones", "smartphone", "monitor", "accessory"]),
+      new Set(["laptop", "audio", "smartphone", "monitor", null]),
     );
+    expect(catalog.map((product) => product.id)).toHaveLength(9);
+    expect(allCatalogProducts).toHaveLength(10);
+    expect(getProduct("synthetic-electronics-v1:item:000010")).toBeUndefined();
+    expect(allCatalogProducts.find((product) => product.id.endsWith(":000010"))?.visible).toBe(
+      false,
+    );
+    expect(getProduct("synthetic-electronics-v1:item:000009")?.catalogEligible).toBe(false);
+    expect(getProduct("synthetic-electronics-v1:item:000008")?.contentEligible).toBe(false);
+    expect(catalog.some((product) => product.id.endsWith(":000011"))).toBe(false);
+    expect(getRequestableProducts().map((product) => product.id.slice(-6))).toEqual([
+      "000001",
+      "000002",
+      "000003",
+      "000004",
+      "000005",
+      "000006",
+      "000007",
+    ]);
   });
 
   it("searches approved display attributes and filters by category", () => {
-    expect(searchCatalog("usb-c", "accessory").length).toBeGreaterThan(0);
-    expect(
-      searchCatalog("usb-c", "accessory").every((product) => product.category === "accessory"),
-    ).toBe(true);
+    expect(searchCatalog("usb-c", "audio").length).toBeGreaterThan(0);
+    expect(searchCatalog("usb-c", "audio").every((product) => product.category === "audio")).toBe(
+      true,
+    );
     expect(searchCatalog("no such device")).toEqual([]);
   });
 
@@ -48,9 +68,7 @@ describe("synthetic catalog", () => {
     );
   });
 
-  it("represents unavailable specifications as missing values", () => {
-    expect(catalog.some((product) => Object.values(product.specifications).includes(null))).toBe(
-      true,
-    );
+  it("preserves incomplete records without fabricating feature values", () => {
+    expect(getProduct("synthetic-electronics-v1:item:000008")?.features).toEqual([]);
   });
 });

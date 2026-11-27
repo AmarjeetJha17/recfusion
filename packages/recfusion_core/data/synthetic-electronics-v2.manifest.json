@@ -1,0 +1,7 @@
+{
+  "schema_version": "recfusion.synthetic-catalog-manifest.v1",
+  "catalog_id": "synthetic-electronics-v1",
+  "catalog_version": "2",
+  "asset_fingerprint": "b7d29b34eb6eaf5c1d9a935a3c94769023cae6dd8401b0aca1daf4d47fb97c78",
+  "compatibility_fingerprint": "6cfcdb984ee561b3d4a8f82ed7514f0433e888e3110a6c4c316c5d13fe42ab5f"
+}

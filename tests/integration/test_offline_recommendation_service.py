@@ -32,6 +32,8 @@ def _runtime() -> tuple[RecommendationService, object]:
         expected_sha256=prepared.sha256,
         expected_catalog_id=catalog.catalog_id,
         expected_catalog_fingerprint=catalog.catalog_fingerprint,
+        expected_compatibility_fingerprint=catalog.compatibility_fingerprint,
+        expected_bundle_fingerprint=catalog.bundle_fingerprint,
     )
     source = SyntheticRecommendationSource(loaded)
     return RecommendationService(

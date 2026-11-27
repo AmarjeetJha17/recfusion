@@ -93,7 +93,7 @@ describe("recommendation explorer", () => {
     expect(screen.getByText(/not a quality or inventory label/i)).toBeInTheDocument();
   });
 
-  it("shows loading, empty, error, provenance, and warm/cold states accessibly", async () => {
+  it("shows loading, empty, error, and provenance states accessibly", async () => {
     const user = userEvent.setup();
     let resolveRequest: ((response: RecommendationResponse) => void) | undefined;
     const provider: RecommendationProvider = {
@@ -185,14 +185,14 @@ describe("recommendation explorer", () => {
     expect(screen.getByRole("radio", { name: /local api/i })).toBeChecked();
   });
 
-  it("selects the fixed hybrid candidate policy and shows warm or cold labels", async () => {
+  it("selects the fixed hybrid candidate policy without per-item cohort labels", async () => {
     const user = userEvent.setup();
     render(<RecommendationExplorer />);
     await user.click(screen.getByRole("radio", { name: /hybrid/i }));
     await user.click(screen.getByRole("radio", { name: /content-eligible/i }));
     await user.click(screen.getByRole("button", { name: /show recommendations/i }));
 
-    expect(await screen.findAllByText(/cold item/i)).not.toHaveLength(0);
+    expect(await screen.findByRole("list", { name: /recommendations/i })).toBeInTheDocument();
     const request = buildRecommendationRequest(
       "hybrid",
       "synthetic-electronics-v1:user:000001",
@@ -207,7 +207,7 @@ describe("recommendation explorer", () => {
     expect("history" in request.query).toBe(false);
   });
 
-  it("keeps fixture mode default and explicitly renders API results without a metadata join", async () => {
+  it("keeps fixture mode default and leaves unknown API IDs as IDs", async () => {
     const user = userEvent.setup();
     const apiResponse = await fixtureRecommendationProvider.recommend(
       buildRecommendationRequest(
@@ -231,11 +231,13 @@ describe("recommendation explorer", () => {
 
     expect(await screen.findByRole("heading", { name: /local api results/i })).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(screen.getByText(/catalog fingerprint differs/i)).toBeInTheDocument();
+    expect(screen.getByText(/exact asset fingerprint match/i)).toBeInTheDocument();
     expect(
       screen.getByText(/canonical synthetic item id: synthetic-electronics-v1:item:999999/i),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /synthetic/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /synthetic laptop 8gb ram 256gb ssd/i }),
+    ).toBeInTheDocument();
   });
 
   it("does not let a superseded response replace newer selections", async () => {

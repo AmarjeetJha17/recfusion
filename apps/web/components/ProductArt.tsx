@@ -2,16 +2,17 @@ import type { ProductCategory } from "@/lib/catalog";
 
 const artLabels: Record<ProductCategory, string> = {
   laptop: "Laptop illustration",
-  headphones: "Headphones illustration",
+  audio: "Audio device illustration",
   smartphone: "Smartphone illustration",
   monitor: "Monitor illustration",
   accessory: "Accessory illustration",
 };
 
-export function ProductArt({ category }: { category: ProductCategory }) {
+export function ProductArt({ category }: { category: ProductCategory | null }) {
+  const label = category ? artLabels[category] : "Uncategorized electronics illustration";
   return (
-    <div className={`product-art product-art--${category}`} aria-hidden="true">
-      <svg viewBox="0 0 240 160" fill="none" role="img" aria-label={artLabels[category]}>
+    <div className={`product-art product-art--${category ?? "unknown"}`} aria-hidden="true">
+      <svg viewBox="0 0 240 160" fill="none" role="img" aria-label={label}>
         {category === "laptop" && (
           <>
             <rect x="62" y="24" width="116" height="82" rx="5" className="art-device" />
@@ -27,7 +28,7 @@ export function ProductArt({ category }: { category: ProductCategory }) {
             <circle cx="120" cy="140" r="2" className="art-detail-fill" />
           </>
         )}
-        {category === "headphones" && (
+        {category === "audio" && (
           <>
             <path d="M61 91V75a59 59 0 0 1 118 0v16" className="art-outline" />
             <rect x="49" y="78" width="32" height="55" rx="14" className="art-device" />
@@ -50,7 +51,7 @@ export function ProductArt({ category }: { category: ProductCategory }) {
           </>
         )}
       </svg>
-      <span className="sr-only">{artLabels[category]}</span>
+      <span className="sr-only">{label}</span>
     </div>
   );
 }

@@ -1,5 +1,9 @@
 # Phase 6.4 — Synthetic Application Demonstration Acceptance
 
+> The tables and browser evidence in this file describe the earlier Phase 6.4
+> catalog generation. Phase 7.1B current identity and validation are recorded
+> at the end of this document.
+
 **Status:** Conditional acceptance for project-owner review. Local synthetic
 application behavior was demonstrated; exact-width responsive browser checks
 remain unverified. No production, real-data, or rights-gate status changes are
@@ -207,3 +211,31 @@ actual CSS viewport sizes 1440, 900, 700, and 375 px and checks the specified
 content and overflow conditions. This checkpoint does not authorize a public
 demo, production serving, real-data access, Phase 4.2C work, or ADR status
 changes.
+
+## Phase 7.1B shared catalog closure
+
+The current shared asset is `recfusion.synthetic-catalog.v2`, catalog
+`synthetic-electronics-v1`, version `2`. Fingerprints are:
+
+| Fingerprint | Value |
+|---|---|
+| Exact shared asset bytes | `b7d29b34eb6eaf5c1d9a935a3c94769023cae6dd8401b0aca1daf4d47fb97c78` |
+| Inference compatibility projection | `6cfcdb984ee561b3d4a8f82ed7514f0433e888e3110a6c4c316c5d13fe42ab5f` |
+| Recommendation bundle | `0244b50e0cff15ffba48c7144101ec5c19d0155d9c558f11683cc8b72d4c85eb` |
+| Prepared inference artifact | `7f50c2dea0b9374e40433a2519b0bcc863d1f5a097d7755596c6db79a696f3fd` |
+
+Frozen recommendation-order parity passed for product-to-product, synthetic
+user, warm hybrid, content-eligible hybrid, and the empty synthetic-user
+profile. A local loopback HTTP smoke passed all four non-empty policies and
+returned 404 for an unknown synthetic user; the product mode retained ordered
+IDs `000006, 000002, 000007, 000004, 000003`. The v1 API schema, algorithm
+versions, candidate policies, and ranking weights are unchanged. Next.js
+compiled the shared sibling package JSON after the Turbopack root was set to
+the repository root; nine visible product routes were prerendered. The Python
+wheel includes both the shared asset and manifest. Automated checks exercise
+exact-fingerprint joins and retain unknown IDs as ID-only.
+
+This task did not run browser automation or capture browser/network evidence.
+The prior 1440/900/700/375-pixel responsive measurements remain unverified.
+ADR-018/019 remain Proposed and Phase 4.2C remains ON HOLD. No commit, push,
+deployment, or Phase 7.2 work is part of this closure.

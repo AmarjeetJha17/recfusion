@@ -48,6 +48,9 @@ explicit = true
 where = ["packages", "apps/api/src"]
 include = ["recfusion_core*", "recfusion_data*", "recfusion_api*", "recfusion_ml*"]
 
+[tool.setuptools.package-data]
+recfusion_core = ["data/*.json"]
+
 [tool.ruff]
 target-version = "py313"
 line-length = 88

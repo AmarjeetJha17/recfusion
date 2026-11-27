@@ -1,9 +1,9 @@
-# Phase 7.1A — Unified Synthetic Catalog Design
+# Phase 7.1A/7.1B — Unified Synthetic Catalog Design and Closure
 
-**Status:** Proposed design for project-owner review. This document does not
-authorize a catalog migration, API change, ranking change, model training, or
-real-data access. ADR-018 and ADR-019 remain Proposed. Phase 4.2C remains ON
-HOLD.
+**Status:** Phase 7.1A design baseline; Phase 7.1B owner-directed
+implementation is recorded in the closure section below. The implementation
+does not authorize model training, real-data access, or production serving.
+ADR-018 and ADR-019 remain Proposed. Phase 4.2C remains ON HOLD.
 
 **Baseline reviewed:** `794e6b1dbf5ab2e9a6c3f1b023cd4dfaa8550daa`
 (`docs(demo): document end-to-end synthetic application acceptance`), dated
@@ -18,11 +18,11 @@ Related contracts: [synthetic frontend](./SYNTHETIC-FRONTEND.md),
 [content retrieval](./CONTENT-RETRIEVAL.md), and
 [hybrid retrieval](./HYBRID-RETRIEVAL.md).
 
-## 1. Existing catalog inventory
+## 1. Existing catalog inventory (Phase 7.1A baseline)
 
 ### Frontend fixture
 
-Source: [`apps/web/features/catalog/catalog-data.json`](../apps/web/features/catalog/catalog-data.json),
+Source: retired [`catalog-data-v1.json`](../apps/web/features/catalog/archive/catalog-data-v1.json),
 consumed by [`apps/web/lib/catalog.ts`](../apps/web/lib/catalog.ts).
 
 | Property | Current value |
@@ -108,11 +108,10 @@ backend uses `audio` where the frontend uses `headphones`, backend content is
 an ordered text list, and frontend specifications are a key/value map.
 Backend ID 8 has no category while frontend ID 8 says `accessory`.
 
-The current frontend therefore correctly renders API recommendations as
-canonical-ID-only results when the API fingerprint differs. Do not join
-records by title, category similarity, or matching numeric suffix. Any
-presentation enrichment requires one authoritative record and exact
-catalog-fingerprint compatibility.
+At this Phase 7.1A baseline the frontend rendered API recommendations as
+canonical-ID-only results because fingerprints differed. Do not join records
+by title, category similarity, or matching numeric suffix. Phase 7.1B below
+records the shared-asset migration and exact-fingerprint join rule.
 
 ## 2. Authoritative catalog options
 
@@ -128,7 +127,7 @@ catalog-fingerprint compatibility.
 | Testing effort | Medium | Medium to high initially; lower steady-state drift risk | High over time: mapping completeness, stale versions, collisions, and unknowns |
 | Maintenance cost | Medium; frontend depends on backend export process | Low to medium; one product source with separate consumer adapters | High; two evolving catalogs plus crosswalk |
 
-### Recommendation — Option B (Proposed)
+### Recommendation — Option B (approved by owner for implementation)
 
 Use one versioned, synthetic-only JSON product catalog as the authority. It
 fits the current offline/static frontend, avoids a browser-time API dependency,
@@ -296,11 +295,10 @@ pair:
 5. Candidate and train-known IDs belong to the catalog, and visible,
    eligibility, and conflict policies are applied deterministically.
 
-The current loader validates the catalog fingerprint and artifact checksums;
-it records the bundle fingerprint but does not compare it with an expected
-active-bundle fingerprint. Phase 7.1B must add that internal compatibility
-check before a changed bundle is accepted. This can remain an internal check
-and does not require an API v1 schema change.
+At the Phase 7.1A baseline, the loader validated the catalog fingerprint and
+artifact checksums but did not compare the bundle fingerprint to an expected
+active bundle. The Phase 7.1B implementation below adds that internal check
+and a separate inference compatibility check without an API v1 schema change.
 
 ## 6. Artifact and ranking implications
 
@@ -391,28 +389,22 @@ These are proposed Phase 7.1B tests, not tests run in this design phase.
   design does not authorize production serving, deployment, or model
   promotion.
 
-Open decisions for owner review:
+The Phase 7.1B owner instruction resolves the design choices above: Option B
+is approved; the shared asset is authoritative; backend IDs 1–10 remain
+unchanged; no title/suffix join or frontend-only ID promotion is allowed;
+IDs 11–15 and prior frontend recommendations are archived; ID 8 remains
+incomplete, ID 9 remains visible but ineligible, and ID 10 remains hidden;
+catalog ID stays `synthetic-electronics-v1` with version `2`; synthetic USD
+constraints remain backend-only. No open identity choice remains for this
+implementation.
 
-1. Approve Option B and the proposed package-data location, subject to the
-   static-build/package inclusion spike.
-2. Decide which display fields to author for the existing backend IDs and
-   whether frontend-only IDs 11–15 should become canonical shared records.
-3. Confirm conflict visibility policy for backend item 9 and the display
-   treatment of incomplete item 8.
-4. Approve catalog version `2` while preserving the current `catalog_id`, or
-   require a new identity namespace.
-5. Confirm that the existing synthetic USD values remain backend-only
-   constraint fixtures during and after migration.
+## 10. Phase 7.1B implementation direction
 
-## 10. Phase 7.1B proposal
-
-After owner approval, Phase 7.1B may implement the shared JSON, strict
-cross-language validation, backend/frontend adapters, fingerprint checks,
-and regression tests described above. It must preserve the current v1 API
-contract and retrieval behavior, rebuild no artifacts until an approved
-catalog exists, and stop if baseline recommendation IDs change unexpectedly.
-The implementation must not start until the identity disposition and the
-open decisions above are resolved. No Phase 7.1B work is performed here.
+Implementation uses shared package-data JSON, strict Python and TypeScript
+validators, separate asset-byte/compatibility/bundle fingerprints, matching
+backend and frontend adapters, and regression tests. It preserves API v1,
+existing ranking policies and weights, and the captured output order. It does
+not start Phase 7.2 or change ADR status.
 
 ## 11. Validation performed for Phase 7.1A
 
@@ -432,3 +424,39 @@ open decisions above are resolved. No Phase 7.1B work is performed here.
   design document.
 - Markdown links point to checked-in files. The final staged diff check and
   Git status are recorded in the task report. No commit or push is authorized.
+
+## 12. Phase 7.1B implementation closure
+
+The active asset is
+[`packages/recfusion_core/data/synthetic-electronics-v2.json`](../packages/recfusion_core/data/synthetic-electronics-v2.json),
+with its exact-byte and inference-compatibility hashes pinned in the adjacent
+manifest. Python and TypeScript consume the same bytes. The backend keeps
+synthetic price constraints outside that frontend-shipped asset. The active
+frontend catalog exposes visible IDs 1–9, while ID 10 remains in the shared
+source but has no UI route; content requestability is derived from backend
+eligibility and recorded content.
+
+The API v1 `catalog_fingerprint` now carries the exact shared asset SHA-256.
+The inference artifact separately pins asset, compatibility, and bundle
+fingerprints; stale expected values fail closed. Frozen IDs/provenance are
+compared against
+[`tests/fixtures/phase_7_1b_v1_baseline.json`](../tests/fixtures/phase_7_1b_v1_baseline.json).
+Previous frontend-only records and recommendation outputs remain archived.
+
+Validation performed for Phase 7.1B:
+
+- Frontend frozen install, typecheck, all 42 tests, and production build passed.
+  Biome lint completed with 22 warnings (18 CSS specificity and 4 intentional
+  reduced-motion `!important` warnings).
+- Backend frozen offline sync and lock check, Ruff check/format, mypy (81
+  source files), and all 369 pytest tests passed.
+- The built Python wheel includes both the shared catalog and manifest.
+- Direct loopback smoke passed all four non-empty API policies and returned
+  404 for an unknown synthetic user. The ordered product-query IDs matched
+  the frozen baseline.
+- The browser was not opened for this phase; no browser/network evidence or
+  new viewport measurements were captured. Phase 6.4 responsive widths stay
+  unverified.
+
+ADR-018/019 stay Proposed; Phase 4.2C stays ON HOLD. No commit, push,
+deployment, or Phase 7.2 work is part of this closure.

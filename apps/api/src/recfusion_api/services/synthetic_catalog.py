@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import random
 from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
@@ -17,13 +16,26 @@ from recfusion_core.contracts import (
     SyntheticProduct,
     SyntheticUserContext,
 )
+from recfusion_core.synthetic_catalog import load_shared_synthetic_catalog
 
 SYNTHETIC_CATALOG_ID = "synthetic-electronics-v1"
-SYNTHETIC_CATALOG_SCHEMA = "recfusion.synthetic-catalog.v1"
-SYNTHETIC_GENERATOR_SCHEMA = "recfusion.synthetic-electronics-generator.v1"
+SYNTHETIC_CATALOG_SCHEMA = "recfusion.synthetic-catalog.v2"
+SYNTHETIC_GENERATOR_SCHEMA = "recfusion.synthetic-electronics-generator.v2"
 SYNTHETIC_GENERATOR_SEED = 44_041
 MAX_SYNTHETIC_CATALOG_SIZE = 50_000
 MAX_SYNTHETIC_HISTORY_EVENTS = 1_000
+_SYNTHETIC_CONSTRAINT_USD = {
+    1: "999.99",
+    2: "699.99",
+    3: "499.99",
+    4: "149.99",
+    5: "349.99",
+    6: "1299.99",
+    7: "89.99",
+    8: None,
+    9: "100.00",
+    10: "25.00",
+}
 
 
 def _canonical_bytes(value: object) -> bytes:
@@ -46,48 +58,6 @@ def _item_id(number: int) -> str:
 
 def _user_id(number: int) -> str:
     return f"{SYNTHETIC_CATALOG_ID}:user:{number:06d}"
-
-
-def _product(
-    number: int,
-    *,
-    title: str | None,
-    category: str | None,
-    description: tuple[str, ...] = (),
-    features: tuple[str, ...] = (),
-    price_usd: str | None = None,
-    catalog_eligible: bool = True,
-    visible: bool = True,
-    seed: int,
-) -> SyntheticProduct:
-    identity = _item_id(number)
-    fingerprint = _sha256(
-        _canonical_bytes(
-            {
-                "catalog_id": SYNTHETIC_CATALOG_ID,
-                "seed": seed,
-                "item_key": identity,
-                "title": title,
-                "category": category,
-                "description": description,
-                "features": features,
-                "price_usd": price_usd,
-                "catalog_eligible": catalog_eligible,
-                "visible": visible,
-            }
-        )
-    )
-    return SyntheticProduct(
-        item_key=identity,
-        title=title,
-        category=category,
-        description=description,
-        features=features,
-        price=Money(Decimal(price_usd), "USD") if price_usd else None,
-        source_record_fingerprint=fingerprint,
-        catalog_eligible=catalog_eligible,
-        visible=visible,
-    )
 
 
 def _interaction(
@@ -123,6 +93,7 @@ class SyntheticCatalogProvider:
     seed: int
     generator_schema: str
     catalog_fingerprint: str
+    compatibility_fingerprint: str
     bundle_fingerprint: str
     max_catalog_size: int
     max_history_events: int
@@ -183,100 +154,28 @@ def build_synthetic_catalog(
     """Prepare a small invented catalog; this never reads external files."""
     if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
         raise ValueError("Synthetic generator seed must be a non-negative integer.")
-    rng = random.Random(seed)
-    product_rows = [
-        _product(
-            1,
-            title="Synthetic laptop 16GB RAM 512GB SSD",
-            category="laptop",
-            description=("invented electronics catalog example",),
-            features=("16GB memory", "512GB SSD", "USB-C"),
-            price_usd="999.99",
-            seed=seed,
-        ),
-        _product(
-            2,
-            title="Synthetic laptop 8GB RAM 256GB SSD",
-            category="laptop",
-            description=("invented portable computer example",),
-            features=("8GB memory", "256GB SSD", "USB-C"),
-            price_usd="699.99",
-            seed=seed,
-        ),
-        _product(
-            3,
-            title="Synthetic smartphone OLED 128GB",
-            category="smartphone",
-            description=("invented mobile device example",),
-            features=("OLED display", "128GB storage", "USB-C"),
-            price_usd="499.99",
-            seed=seed,
-        ),
-        _product(
-            4,
-            title="Synthetic wireless headphones",
-            category="audio",
-            description=("invented listening device example",),
-            features=("wireless audio", "over-ear", "USB-C"),
-            price_usd="149.99",
-            seed=seed,
-        ),
-        _product(
-            5,
-            title="Synthetic desktop monitor 27 inch",
-            category="monitor",
-            description=("invented display example",),
-            features=("27 inch display", "USB-C", "high refresh"),
-            price_usd="349.99",
-            seed=seed,
-        ),
-        _product(
-            6,
-            title="Synthetic laptop 16GB RAM 1TB SSD",
-            category="laptop",
-            description=("invented portable computer example",),
-            features=("16GB memory", "1TB SSD", "USB-C"),
-            price_usd="1299.99",
-            seed=seed,
-        ),
-        _product(
-            7,
-            title="Synthetic wireless earbuds USB-C",
-            category="audio",
-            description=("invented listening device example",),
-            features=("wireless audio", "in-ear", "USB-C"),
-            price_usd="89.99",
-            seed=seed,
-        ),
-        _product(
-            8,
-            title=None,
-            category=None,
-            price_usd=None,
-            seed=seed,
-        ),
-        _product(
-            9,
-            title="Synthetic conflicted product",
-            category="laptop",
-            description=("invented conflict fixture",),
-            features=("conflicting metadata fixture",),
-            price_usd="100.00",
-            catalog_eligible=False,
-            seed=seed,
-        ),
-        _product(
-            10,
-            title="Synthetic hidden product",
-            category="accessory",
-            description=("invented visibility fixture",),
-            features=("hidden catalog fixture",),
-            price_usd="25.00",
-            visible=False,
-            seed=seed,
-        ),
-    ]
-    rng.shuffle(product_rows)
+    shared = load_shared_synthetic_catalog()
+    product_rows = []
+    for record in shared.products:
+        number = int(record.item_key[-6:])
+        price_amount = _SYNTHETIC_CONSTRAINT_USD[number]
+        product_rows.append(
+            SyntheticProduct(
+                item_key=record.item_key,
+                title=record.title,
+                category=record.category,
+                description=record.description,
+                features=record.features,
+                price=(
+                    Money(Decimal(price_amount), "USD")
+                    if price_amount is not None
+                    else None
+                ),
+                source_record_fingerprint=record.source_record_fingerprint,
+                catalog_eligible=record.catalog_eligible,
+                visible=record.visible,
+            )
+        )
     products = tuple(sorted(product_rows, key=lambda product: product.item_key))
     products_by_id = MappingProxyType(
         {product.item_key: product for product in products}
@@ -340,32 +239,25 @@ def build_synthetic_catalog(
         }
     )
 
-    product_records = [
-        {
-            "item_key": product.item_key,
-            "title": product.title,
-            "category": product.category,
-            "description": product.description,
-            "features": product.features,
-            "price": (
-                [str(product.price.amount), product.price.currency]
-                if product.price is not None
-                else None
-            ),
-            "catalog_eligible": product.catalog_eligible,
-            "visible": product.visible,
-            "fingerprint": product.source_record_fingerprint,
-        }
-        for product in products
-    ]
-    catalog_fingerprint = _sha256(_canonical_bytes(product_records))
+    catalog_fingerprint = shared.asset_fingerprint
+    compatibility_fingerprint = shared.compatibility_fingerprint
+    constraint_fingerprint = _sha256(
+        _canonical_bytes(
+            {
+                _item_id(number): amount
+                for number, amount in _SYNTHETIC_CONSTRAINT_USD.items()
+            }
+        )
+    )
     bundle_records = {
         "schema_version": SYNTHETIC_CATALOG_SCHEMA,
         "generator_schema": SYNTHETIC_GENERATOR_SCHEMA,
         "catalog_id": SYNTHETIC_CATALOG_ID,
-        "version": "1",
+        "version": shared.version,
         "seed": seed,
         "catalog_fingerprint": catalog_fingerprint,
+        "compatibility_fingerprint": compatibility_fingerprint,
+        "constraint_fingerprint": constraint_fingerprint,
         "training_interactions": [
             {
                 "user_key": event.user_key,
@@ -384,10 +276,11 @@ def build_synthetic_catalog(
     bundle_fingerprint = _sha256(_canonical_bytes(bundle_records))
     return SyntheticCatalogProvider(
         catalog_id=SYNTHETIC_CATALOG_ID,
-        version="1",
+        version=shared.version,
         seed=seed,
         generator_schema=SYNTHETIC_GENERATOR_SCHEMA,
         catalog_fingerprint=catalog_fingerprint,
+        compatibility_fingerprint=compatibility_fingerprint,
         bundle_fingerprint=bundle_fingerprint,
         max_catalog_size=MAX_SYNTHETIC_CATALOG_SIZE,
         max_history_events=MAX_SYNTHETIC_HISTORY_EVENTS,

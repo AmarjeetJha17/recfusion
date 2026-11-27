@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { RecommendationResults } from "@/components/RecommendationResults";
+import { FIXTURE_CATALOG_FINGERPRINT } from "@/lib/fixture-manifest";
 import type { RecommendationResponse } from "@/lib/recommendation-provider";
 
 const hybridResponse: RecommendationResponse = {
@@ -25,7 +26,7 @@ const hybridResponse: RecommendationResponse = {
   },
   recommendations: [
     {
-      product_id: "synthetic-electronics-v1:item:000099",
+      product_id: "synthetic-electronics-v1:item:000001",
       rank: 1,
       source_names: ["synthetic_item_cf", "tfidf_content"],
       reason_codes: ["hybrid_rrf"],
@@ -35,7 +36,7 @@ const hybridResponse: RecommendationResponse = {
 };
 
 describe("recommendation results presentation", () => {
-  it("shows v1 provenance without treating it as a causal explanation or item cohort", () => {
+  it("keeps fingerprint-mismatched items ID-only without per-item cohort labels", () => {
     render(
       <RecommendationResults
         presentationSource="local_api"
@@ -53,13 +54,28 @@ describe("recommendation results presentation", () => {
     expect(screen.getByText(/weighted rrf over source-list positions/i)).toBeInTheDocument();
     expect(screen.getByText(/source membership does not explain preference/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/per-item warm\/cold status: not provided by api v1/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/canonical synthetic item id: synthetic-electronics-v1:item:000099/i),
+      screen.getByText(/canonical synthetic item id: synthetic-electronics-v1:item:000001/i),
     ).toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.queryByText(/ZenBook|wireless headphones/i)).not.toBeInTheDocument();
+  });
+
+  it("joins a known API item only when catalog ID and exact asset fingerprint match", () => {
+    const response: RecommendationResponse = {
+      ...hybridResponse,
+      catalog_fingerprint: FIXTURE_CATALOG_FINGERPRINT,
+      recommendations: [
+        {
+          ...hybridResponse.recommendations[0],
+          product_id: "synthetic-electronics-v1:item:000001",
+        },
+      ],
+    };
+    render(<RecommendationResults presentationSource="local_api" response={response} />);
+
+    expect(
+      screen.getByRole("link", { name: /synthetic laptop 16gb ram 512gb ssd/i }),
+    ).toHaveAttribute("href", "/products/synthetic-electronics-v1-item-000001");
   });
 
   it("states the actual returned count and explains a short list without adding items", () => {

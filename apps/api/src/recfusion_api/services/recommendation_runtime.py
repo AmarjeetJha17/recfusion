@@ -25,6 +25,8 @@ def build_synthetic_recommendation_service() -> RecommendationService:
         expected_sha256=prepared.sha256,
         expected_catalog_id=catalog.catalog_id,
         expected_catalog_fingerprint=catalog.catalog_fingerprint,
+        expected_compatibility_fingerprint=catalog.compatibility_fingerprint,
+        expected_bundle_fingerprint=catalog.bundle_fingerprint,
     )
     source = cast(RecommendationInferenceSource, SyntheticRecommendationSource(loaded))
     return RecommendationService(

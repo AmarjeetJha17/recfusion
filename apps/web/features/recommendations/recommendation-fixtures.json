@@ -1,174 +1,552 @@
 {
-  "schema_version": "recfusion.synthetic-recommendation-fixtures.v1",
+  "schema_version": "recfusion.synthetic-recommendation-fixtures.v2",
+  "catalog_id": "synthetic-electronics-v1",
+  "catalog_fingerprint": "b7d29b34eb6eaf5c1d9a935a3c94769023cae6dd8401b0aca1daf4d47fb97c78",
+  "compatibility_fingerprint": "6cfcdb984ee561b3d4a8f82ed7514f0433e888e3110a6c4c316c5d13fe42ab5f",
+  "bundle_fingerprint": "0244b50e0cff15ffba48c7144101ec5c19d0155d9c558f11683cc8b72d4c85eb",
+  "artifact_fingerprint": "7f50c2dea0b9374e40433a2519b0bcc863d1f5a097d7755596c6db79a696f3fd",
+  "train_known_item_ids": [
+    "synthetic-electronics-v1:item:000001",
+    "synthetic-electronics-v1:item:000002",
+    "synthetic-electronics-v1:item:000003",
+    "synthetic-electronics-v1:item:000004",
+    "synthetic-electronics-v1:item:000005"
+  ],
+  "content_index_candidate_ids": [
+    "synthetic-electronics-v1:item:000001",
+    "synthetic-electronics-v1:item:000002",
+    "synthetic-electronics-v1:item:000003",
+    "synthetic-electronics-v1:item:000004",
+    "synthetic-electronics-v1:item:000005",
+    "synthetic-electronics-v1:item:000006",
+    "synthetic-electronics-v1:item:000007"
+  ],
   "product_results": {
     "000001": {
-      "candidate_count": 7,
+      "candidate_count": 6,
       "history_count": 0,
       "seen_count": 0,
       "candidates": [
-        { "id": "000006", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000002", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000003", "sources": ["tfidf_content"], "reason": "content_similarity" }
+        {
+          "id": "000006",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000002",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000007",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000004",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000003",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000005",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        }
       ]
     },
     "000002": {
-      "candidate_count": 7,
+      "candidate_count": 6,
       "history_count": 0,
       "seen_count": 0,
       "candidates": [
-        { "id": "000001", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000006", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000004", "sources": ["tfidf_content"], "reason": "content_similarity" }
+        {
+          "id": "000006",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000001",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000007",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000004",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000003",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000005",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        }
       ]
     },
     "000003": {
-      "candidate_count": 7,
+      "candidate_count": 6,
       "history_count": 0,
       "seen_count": 0,
       "candidates": [
-        { "id": "000001", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000005", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000004", "sources": ["tfidf_content"], "reason": "content_similarity" }
+        {
+          "id": "000007",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000005",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000004",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000006",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000001",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000002",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        }
       ]
     },
     "000004": {
-      "candidate_count": 7,
+      "candidate_count": 6,
       "history_count": 0,
       "seen_count": 0,
       "candidates": [
-        { "id": "000007", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000005", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000002", "sources": ["tfidf_content"], "reason": "content_similarity" }
+        {
+          "id": "000007",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000003",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000006",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000001",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000002",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000005",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        }
       ]
     },
     "000005": {
-      "candidate_count": 7,
+      "candidate_count": 6,
       "history_count": 0,
       "seen_count": 0,
       "candidates": [
-        { "id": "000004", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000003", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000001", "sources": ["tfidf_content"], "reason": "content_similarity" }
+        {
+          "id": "000003",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000007",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000004",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000006",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000001",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000002",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        }
       ]
     },
     "000006": {
-      "candidate_count": 7,
+      "candidate_count": 6,
       "history_count": 0,
       "seen_count": 0,
       "candidates": [
-        { "id": "000001", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000002", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000005", "sources": ["tfidf_content"], "reason": "content_similarity" }
+        {
+          "id": "000001",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000002",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000007",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000004",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000003",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000005",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        }
       ]
     },
     "000007": {
-      "candidate_count": 7,
+      "candidate_count": 6,
       "history_count": 0,
       "seen_count": 0,
       "candidates": [
-        { "id": "000004", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000005", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000003", "sources": ["tfidf_content"], "reason": "content_similarity" }
+        {
+          "id": "000004",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000003",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000006",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000001",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000002",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000005",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        }
       ]
     }
   },
   "user_results": {
     "000001": {
       "candidate_count": 6,
-      "history_count": 3,
-      "seen_count": 2,
+      "history_count": 1,
+      "seen_count": 1,
       "candidates": [
-        { "id": "000005", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000006", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000007", "sources": ["tfidf_content"], "reason": "content_similarity" }
+        {
+          "id": "000006",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000002",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000007",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000004",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000003",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000005",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        }
       ]
     },
     "000002": {
       "candidate_count": 5,
       "history_count": 2,
-      "seen_count": 1,
+      "seen_count": 2,
       "candidates": [
-        { "id": "000001", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000002", "sources": ["tfidf_content"], "reason": "content_similarity" },
-        { "id": "000004", "sources": ["tfidf_content"], "reason": "content_similarity" }
+        {
+          "id": "000007",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000003",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000006",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000001",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        },
+        {
+          "id": "000002",
+          "sources": ["tfidf_content"],
+          "reason": "content_similarity"
+        }
       ]
     },
-    "000003": { "candidate_count": 0, "history_count": 0, "seen_count": 0, "candidates": [] }
+    "000003": {
+      "candidate_count": 0,
+      "history_count": 0,
+      "seen_count": 0,
+      "candidates": []
+    }
   },
   "hybrid_results": {
     "000001": {
       "warm": {
-        "candidate_count": 6,
-        "history_count": 3,
-        "seen_count": 2,
+        "candidate_count": 4,
+        "history_count": 1,
+        "seen_count": 1,
         "candidates": [
           {
             "id": "000005",
+            "sources": ["synthetic_bpr_control", "synthetic_item_cf", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000002",
             "sources": ["synthetic_item_cf", "tfidf_content"],
             "reason": "hybrid_rrf"
           },
-          { "id": "000002", "sources": ["synthetic_bpr_control"], "reason": "hybrid_rrf" },
-          { "id": "000004", "sources": ["synthetic_item_cf"], "reason": "hybrid_rrf" }
+          {
+            "id": "000004",
+            "sources": ["synthetic_item_cf", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000003",
+            "sources": ["synthetic_bpr_control", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          }
         ]
       },
       "content": {
-        "candidate_count": 7,
-        "history_count": 3,
-        "seen_count": 2,
+        "candidate_count": 6,
+        "history_count": 1,
+        "seen_count": 1,
         "candidates": [
           {
-            "id": "000006",
-            "sources": ["tfidf_content", "synthetic_bpr_control"],
+            "id": "000005",
+            "sources": ["synthetic_bpr_control", "synthetic_item_cf", "tfidf_content"],
             "reason": "hybrid_rrf"
           },
-          { "id": "000007", "sources": ["tfidf_content"], "reason": "hybrid_rrf" },
           {
-            "id": "000005",
+            "id": "000002",
             "sources": ["synthetic_item_cf", "tfidf_content"],
             "reason": "hybrid_rrf"
           },
-          { "id": "000004", "sources": ["synthetic_item_cf"], "reason": "hybrid_rrf" }
+          {
+            "id": "000004",
+            "sources": ["synthetic_item_cf", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000003",
+            "sources": ["synthetic_bpr_control", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000006",
+            "sources": ["tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000007",
+            "sources": ["tfidf_content"],
+            "reason": "hybrid_rrf"
+          }
         ]
       }
     },
     "000002": {
       "warm": {
-        "candidate_count": 5,
+        "candidate_count": 3,
         "history_count": 2,
-        "seen_count": 1,
+        "seen_count": 2,
         "candidates": [
-          { "id": "000001", "sources": ["synthetic_item_cf"], "reason": "hybrid_rrf" },
           {
-            "id": "000004",
-            "sources": ["synthetic_bpr_control", "tfidf_content"],
+            "id": "000001",
+            "sources": ["synthetic_bpr_control", "synthetic_item_cf", "tfidf_content"],
             "reason": "hybrid_rrf"
           },
-          { "id": "000005", "sources": ["synthetic_item_cf"], "reason": "hybrid_rrf" }
+          {
+            "id": "000003",
+            "sources": ["synthetic_item_cf", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000002",
+            "sources": ["synthetic_bpr_control", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          }
         ]
       },
       "content": {
-        "candidate_count": 7,
+        "candidate_count": 5,
         "history_count": 2,
-        "seen_count": 1,
+        "seen_count": 2,
         "candidates": [
-          { "id": "000007", "sources": ["tfidf_content"], "reason": "hybrid_rrf" },
           {
-            "id": "000006",
-            "sources": ["tfidf_content", "synthetic_bpr_control"],
+            "id": "000001",
+            "sources": ["synthetic_bpr_control", "synthetic_item_cf", "tfidf_content"],
             "reason": "hybrid_rrf"
           },
-          { "id": "000001", "sources": ["synthetic_item_cf"], "reason": "hybrid_rrf" },
           {
-            "id": "000004",
+            "id": "000003",
             "sources": ["synthetic_item_cf", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000002",
+            "sources": ["synthetic_bpr_control", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000007",
+            "sources": ["tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000006",
+            "sources": ["tfidf_content"],
             "reason": "hybrid_rrf"
           }
         ]
       }
     },
     "000003": {
-      "warm": { "candidate_count": 0, "history_count": 0, "seen_count": 0, "candidates": [] },
-      "content": { "candidate_count": 0, "history_count": 0, "seen_count": 0, "candidates": [] }
+      "warm": {
+        "candidate_count": 5,
+        "history_count": 0,
+        "seen_count": 0,
+        "candidates": [
+          {
+            "id": "000002",
+            "sources": ["synthetic_bpr_control", "synthetic_item_cf"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000004",
+            "sources": ["synthetic_item_cf"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000005",
+            "sources": ["synthetic_bpr_control"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000001",
+            "sources": ["synthetic_item_cf"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000003",
+            "sources": ["synthetic_bpr_control"],
+            "reason": "hybrid_rrf"
+          }
+        ]
+      },
+      "content": {
+        "candidate_count": 5,
+        "history_count": 0,
+        "seen_count": 0,
+        "candidates": [
+          {
+            "id": "000002",
+            "sources": ["synthetic_bpr_control", "synthetic_item_cf"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000004",
+            "sources": ["synthetic_item_cf"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000005",
+            "sources": ["synthetic_bpr_control"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000001",
+            "sources": ["synthetic_item_cf"],
+            "reason": "hybrid_rrf"
+          },
+          {
+            "id": "000003",
+            "sources": ["synthetic_bpr_control"],
+            "reason": "hybrid_rrf"
+          }
+        ]
+      }
     }
   }
 }

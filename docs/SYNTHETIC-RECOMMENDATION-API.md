@@ -80,6 +80,26 @@ cache, or worker process is introduced.
 
 ## Contract and error behavior
 
+### Phase 7.1B shared catalog identity
+
+The API v1 request and response schemas and recommendation policies are
+unchanged. The service now reads the ten backend-authoritative synthetic
+product records from
+[`packages/recfusion_core/data/synthetic-electronics-v2.json`](../packages/recfusion_core/data/synthetic-electronics-v2.json).
+The existing `catalog_id` remains `synthetic-electronics-v1`; catalog version
+is `2`. The response `catalog_fingerprint` is the SHA-256 of the exact shared
+asset bytes, allowing the frontend to join product metadata only when both
+catalog ID and fingerprint match.
+
+The serving artifact records three separate values: asset fingerprint,
+inference compatibility fingerprint, and recommendation bundle fingerprint.
+Startup fails closed if any expected value differs. The compatibility
+projection covers retrieval fields and eligibility/visibility flags; the
+bundle also covers versioned synthetic interactions and collaborative source
+rankings. Synthetic USD constraint values remain backend-only and do not
+enter the frontend asset. This change does not alter ranking algorithms,
+weights, API fields, or eligibility policies.
+
 The single request body uses
 `recfusion.recommendation-request.v1`. It preserves the existing `mode`,
 `algorithm_id`, `algorithm_version`, `policy_id`, `candidate_policy`, `k`,

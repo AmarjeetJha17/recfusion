@@ -1,0 +1,4 @@
+# These assets are fingerprinted from exact bytes; do not normalize line endings.
+packages/recfusion_core/data/synthetic-electronics-v2.json -text
+packages/recfusion_core/data/synthetic-electronics-v2.manifest.json -text
+apps/web/features/recommendations/recommendation-fixtures.json -text

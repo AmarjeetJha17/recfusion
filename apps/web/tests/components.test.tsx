@@ -12,7 +12,7 @@ describe("catalog and product presentation", () => {
     expect(
       screen.getByRole("searchbox", { name: /search synthetic electronics/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /accessories/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /headphones/i })).toBeInTheDocument();
     expect(screen.getByText(/invented examples · no live listings/i)).toBeInTheDocument();
     expect(screen.getAllByRole("article").length).toBeGreaterThan(5);
   });
@@ -23,13 +23,13 @@ describe("catalog and product presentation", () => {
 
     const search = screen.getByRole("searchbox", { name: /search synthetic electronics/i });
     await user.type(search, "usb-c");
-    await user.click(screen.getByRole("button", { name: /accessories/i }));
+    await user.click(screen.getByRole("button", { name: /headphones/i }));
 
     expect(screen.getByText(/results/i)).toBeInTheDocument();
     expect(
       screen
         .getAllByRole("article")
-        .every((article) => within(article).getByText("Accessory", { exact: true })),
+        .every((article) => within(article).getByText("Headphones", { exact: true })),
     ).toBe(true);
   });
 
@@ -44,16 +44,16 @@ describe("catalog and product presentation", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/no products match/i);
   });
 
-  it("links cards to product details and displays unavailable values honestly", () => {
-    const product = catalog.find((item) => Object.values(item.specifications).includes(null));
-    if (!product) throw new Error("The synthetic fixture must include missing specifications.");
+  it("links cards to product details and preserves missing values honestly", () => {
+    const product = catalog.find((item) => item.id.endsWith(":000008"));
+    if (!product) throw new Error("The shared catalog must include its incomplete record.");
 
     render(<ProductDetail product={product} similarProducts={getSimilarProducts(product.id)} />);
 
     expect(
       screen.getByRole("heading", { level: 1, name: product.name ?? /title unavailable/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/not available in this synthetic fixture/i)).toBeInTheDocument();
+    expect(screen.getByText(/no feature details are recorded/i)).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: /similar synthetic products/i }),
     ).toBeInTheDocument();

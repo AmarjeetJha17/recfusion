@@ -1,5 +1,8 @@
 # Local Frontend–API Integration
 
+> The Phase 6.3B identity and validation notes below are historical. Current
+> shared catalog behavior is recorded in “Phase 7.1B shared catalog closure.”
+
 **Status:** Phase 6.3B implementation for project-owner review. Synthetic
 development use only. ADR-018 and ADR-019 remain Proposed; Phase 4.2C remains
 ON HOLD.
@@ -29,18 +32,12 @@ retries.
 
 ## Catalog identity and display mapping
 
-The frontend fixture and serving API currently share the catalog ID
-`synthetic-electronics-v1`, but they have distinct fingerprints and product
-sets. Namespaced IDs overlap; that is not enough evidence to assert that
-attributes or route details are the same product. The API result view
-therefore shows the API's canonical item ID, rank, source, reason code,
-algorithm, and candidate policy. It does not join IDs to frontend titles,
-specifications, cohort labels, artwork, or product routes. The response
-parser validates the canonical synthetic ID namespace and response shape. A
-valid but unknown ID is shown as an ID only; malformed IDs are rejected. The
-view never represents frontend fixture metadata as API metadata. An
-authoritative catalog/metadata join is deferred to a separately reviewed
-checkpoint.
+At the Phase 6.3B baseline, the frontend fixture and serving API shared the
+`synthetic-electronics-v1` catalog ID but had distinct fingerprints and
+product sets. Namespaced IDs alone were not enough evidence to join metadata.
+Phase 7.1B replaces that baseline with one versioned asset and an exact
+catalog-ID plus fingerprint join rule. Unknown valid IDs remain ID-only;
+malformed IDs are rejected.
 
 ## Local launch
 
@@ -196,11 +193,24 @@ optional-chain warning in the fixture provider was removed
 using an explicit missing-product guard. The exact remaining lint count is
 recorded by the validation run.
 
-## Proposed next checkpoint
+## Proposed next checkpoint (historical)
 
-Phase 6.3C may define and review a single authoritative synthetic catalog
-projection and stable route mapping, then add browser-level coverage for the
-API interaction, failures, responsive behavior, and keyboard navigation.
-It must not infer product identity from title or reuse a fingerprint across
-the two current catalogs. This checkpoint does not authorize real metadata,
-real-data serving, production deployment, or changes to ADR-018/019.
+Phase 7.1B defines the authoritative synthetic catalog projection and stable
+route mapping. Browser-level coverage for API interaction, failures,
+responsive behavior, and keyboard navigation remains separate verification.
+Product identity comes from the shared asset and exact fingerprint, never
+title or suffix. This checkpoint does not authorize real metadata, real-data
+serving, production deployment, or changes to ADR-018/019.
+
+## Phase 7.1B shared catalog closure
+
+Both consumers read
+[`packages/recfusion_core/data/synthetic-electronics-v2.json`](../packages/recfusion_core/data/synthetic-electronics-v2.json).
+The catalog ID remains `synthetic-electronics-v1`; schema/version are
+`recfusion.synthetic-catalog.v2` / `2`. The API v1 response carries the
+asset-byte SHA-256 in its existing `catalog_fingerprint` field. The inference
+artifact separately pins the compatibility projection and bundle fingerprints.
+The frontend joins product detail only after exact catalog ID and asset hash
+match; otherwise it keeps API IDs and provenance without metadata. No browser
+automation was run for this closure. ADR-018/019 remain Proposed and Phase
+4.2C remains ON HOLD.

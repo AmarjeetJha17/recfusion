@@ -1,6 +1,5 @@
 import fixtures from "@/features/recommendations/recommendation-fixtures.json";
 import { CATALOG_ID, getProduct, type ProductCategory } from "@/lib/catalog";
-import { FIXTURE_ARTIFACT_FINGERPRINT, FIXTURE_CATALOG_FINGERPRINT } from "@/lib/fixture-manifest";
 
 export const REQUEST_SCHEMA = "recfusion.recommendation-request.v1" as const;
 export const RESPONSE_SCHEMA = "recfusion.recommendation-response.v1" as const;
@@ -94,7 +93,12 @@ const productResults = fixtures.product_results as Record<string, FixtureList>;
 const userResults = fixtures.user_results as Record<string, FixtureList>;
 const hybridResults = fixtures.hybrid_results as Record<string, HybridFixtureList>;
 
-if (fixtures.schema_version !== "recfusion.synthetic-recommendation-fixtures.v1") {
+if (
+  fixtures.schema_version !== "recfusion.synthetic-recommendation-fixtures.v2" ||
+  fixtures.catalog_id !== CATALOG_ID ||
+  !Array.isArray(fixtures.train_known_item_ids) ||
+  !Array.isArray(fixtures.content_index_candidate_ids)
+) {
   throw new Error("The synthetic recommendation fixture version is unsupported.");
 }
 
@@ -134,8 +138,12 @@ export const fixtureRecommendationProvider: RecommendationProvider = Object.free
         const product = getProduct(candidate.product_id);
         if (!product) return false;
         return (
-          product.recommendationEligible &&
-          (request.candidate_policy !== "warm_hybrid" || product.cohort === "warm") &&
+          product.catalogEligible &&
+          product.contentEligible &&
+          product.visible &&
+          fixtures.content_index_candidate_ids.includes(candidate.product_id) &&
+          (request.candidate_policy !== "warm_hybrid" ||
+            fixtures.train_known_item_ids.includes(candidate.product_id)) &&
           (!request.constraints.category || product.category === request.constraints.category)
         );
       })
@@ -155,8 +163,8 @@ export const fixtureRecommendationProvider: RecommendationProvider = Object.free
       candidate_policy: request.candidate_policy,
       policy_id: request.policy_id,
       catalog_id: CATALOG_ID,
-      catalog_fingerprint: FIXTURE_CATALOG_FINGERPRINT,
-      artifact_fingerprint: FIXTURE_ARTIFACT_FINGERPRINT,
+      catalog_fingerprint: fixtures.catalog_fingerprint,
+      artifact_fingerprint: fixtures.artifact_fingerprint,
       status: recommendations.length ? "ok" : "no_results",
       result_count: recommendations.length,
       diagnostics: {

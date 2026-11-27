@@ -17,10 +17,10 @@ rankings and explanations are not computed in the browser.
 
 This checkpoint does not read Amazon Reviews files or metadata, load model
 artifacts, train or rank in the browser, or make external image requests.
-Product artwork is authored local SVG. The displayed
-catalog is a UI fixture and is not claimed to match the serving catalog,
-metadata coverage, or any real product facts. Prices, review content, and
-unverified attributes are absent. Unavailable attributes stay unavailable.
+Product artwork is authored local SVG. The displayed catalog is the same
+synthetic catalog asset used by the local API; it does not represent real
+products. Prices, review content, and unverified attributes are absent.
+Unavailable attributes stay unavailable.
 
 ## Local development
 
@@ -49,7 +49,10 @@ Testing Library cover domain, provider, component, and interaction behavior.
 - `app/` — App Router pages, shared layout, and responsive CSS.
 - `components/` — site navigation, product cards/art/detail, catalog, and
   recommendation result presentation.
-- `features/catalog/` — invented display fixture.
+- `packages/recfusion_core/data/synthetic-electronics-v2.json` — shared
+  versioned synthetic catalog, consumed by Python and Next.js.
+- `features/catalog/archive/` — retired frontend-only v1 catalog fixture;
+  it is not imported by the application.
 - `features/recommendations/` — explicit user controls for mode, context,
   exclusions, result count, and hybrid policy.
 - `lib/catalog.ts` — search, category filter, stable sorting, and similar-item
@@ -61,15 +64,23 @@ Testing Library cover domain, provider, component, and interaction behavior.
   bounded payload and timeout handling, and sanitized API errors.
 - `tests/` — synthetic-only unit and component tests.
 
-The recommendation request model follows the API's
-`recfusion.recommendation-request.v1` fields, and the response parser enforces
-`recfusion.recommendation-response.v1` shape. The provider returns static
-fixture outputs and validated product IDs. The frontend and backend use the
-same catalog ID but have different catalog fingerprints and product sets.
-Local API results therefore show canonical IDs and source provenance only;
-they do not join to frontend display metadata or product routes. Unknown IDs
-with a valid API namespace render as IDs only; malformed identifiers fail
-response validation. API errors never fall back to fixtures. The Local
+The shared catalog keeps the existing `synthetic-electronics-v1` ID namespace
+and uses `recfusion.synthetic-catalog.v2` with catalog version `2`. The exact
+asset byte fingerprint and a separate inference compatibility fingerprint
+are checked against `synthetic-electronics-v2.manifest.json`. Python and
+TypeScript enforce the same ten IDs and strict product shape. The backend
+keeps synthetic USD constraint values outside the frontend-shipped asset.
+The frontend displays canonical `audio` as “Headphones”; API requests retain
+`audio`.
+
+The recommendation request and response remain v1. Frontend/API product
+joins require both the catalog ID and exact asset fingerprint. Unknown IDs
+remain ID-only. The requestable content set is derived from authoritative
+eligibility, visibility, and recorded content; no per-item warm/cold labels
+are inferred or displayed. The retired frontend-only IDs 11–15 and previous
+recommendation outputs are preserved under `features/*/archive/` and are not
+active. Fixture recommendation outputs were regenerated from the frozen
+backend synthetic service. API errors never fall back to fixtures. The Local
 API option is absent in production builds; API URL selection is unavailable
 in the UI.
 
@@ -89,17 +100,16 @@ tablet, and desktop widths before any public demo.
 ## Privacy and safety
 
 No real users, Amazon records, raw identifiers, user histories, images, or
-derived dataset rows are present. Fixture recommendation modes label their
+derived real-data rows are present. Fixture recommendation modes label their
 contexts as synthetic. Fixture results use requestable frontend fixture IDs;
-Local API mode displays canonical synthetic IDs only and never invents
-product metadata for them. No generated dataset artifact or model checkpoint
-is part of the frontend package.
+Local API results join to product metadata only when catalog ID and the exact
+asset fingerprint match; unknown IDs remain canonical IDs only. The frontend
+package contains no generated real-data artifact or model checkpoint.
 
-## Phase 6.3B entry criteria
+## Phase 6.3B entry criteria (historical)
 
 1. Review the controlled local API integration and its exact-Origin boundary.
-2. Preserve the distinct frontend and backend synthetic catalog fingerprints;
-   do not join by title or namespace alone.
+2. Preserve strict catalog identity; do not join by title or namespace alone.
 3. Preserve the local fixture provider for deterministic offline UI tests.
 4. Keep production deployment, authentication, real metadata, and Phase 4.2C
    blocked until their independent decisions are approved.
@@ -107,7 +117,16 @@ is part of the frontend package.
 ## Phase 6.3C review notes
 
 The UI keeps one active result set, identifies the selected synthetic mode and
-request context, and distinguishes trusted fixture cohorts from unavailable
-API v1 cohort metadata. It preserves canonical ID-only Local API results and
-does not compare incompatible scores. Exact 1440/900/700/375-pixel browser
-measurements for this checkpoint remain unverified.
+request context, and shows only response-backed provenance. It does not
+display per-item warm/cold labels or compare incompatible scores. Exact
+1440/900/700/375-pixel browser measurements for this checkpoint remain
+unverified.
+
+## Phase 7.1B catalog integration
+
+The backend and frontend consume the same package-data JSON. The API response
+continues to use `catalog_fingerprint` as the exact asset-byte SHA-256; the
+inference artifact separately pins the compatibility projection and bundle
+fingerprints. Static Next.js compilation and package inclusion are required
+checks before closing this checkpoint. ADR-018/019 remain Proposed and Phase
+4.2C remains ON HOLD.

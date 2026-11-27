@@ -135,6 +135,7 @@ class SyntheticCatalog(Protocol):
     catalog_id: str
     version: str
     catalog_fingerprint: str
+    compatibility_fingerprint: str
     bundle_fingerprint: str
     generator_schema: str
     seed: int

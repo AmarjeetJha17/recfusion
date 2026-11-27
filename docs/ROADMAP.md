@@ -85,9 +85,9 @@ Phase 4.2C.
 ### Phase 6.3C — Recommendation experience, provenance, and explainability UI (owner review pending)
 
 The synthetic Recommendation Lab explains each mode and candidate policy,
-shows only response-backed provenance, distinguishes fixture cohort metadata
-from API v1's missing per-item cohort, and reports short/empty/error states
-without adding fallback results. This remains presentation-only. See
+shows only response-backed provenance, and reports short/empty/error states
+without adding fallback results. Its original cohort-label behavior was
+removed during Phase 7.1B. This remains presentation-only. See
 [RECOMMENDATION-EXPERIENCE.md](./RECOMMENDATION-EXPERIENCE.md). ADR-018/019
 remain Proposed and Phase 4.2C remains ON HOLD.
 
@@ -100,6 +100,18 @@ and backend quality checks passed. Exact CSS viewport checks at 1440, 900,
 [`SYNTHETIC-DEMO-ACCEPTANCE.md`](./SYNTHETIC-DEMO-ACCEPTANCE.md). The
 checkpoint remains conditional pending owner review of those responsive
 checks. ADR-018/019 remain Proposed, and Phase 4.2C remains ON HOLD.
+
+### Phase 7.1B — Unified synthetic catalog implementation
+
+The shared `recfusion.synthetic-catalog.v2` package-data JSON is consumed by
+the backend and frontend. Backend IDs 1–10 remain authoritative; the retired
+frontend-only records and old recommendation fixtures are archived. API v1,
+candidate policies, ranking weights, and frozen ordered recommendations are
+preserved. Asset-byte, inference-compatibility, and bundle fingerprints are
+separate and checked. See
+[`SYNTHETIC-CATALOG-ALIGNMENT.md`](./SYNTHETIC-CATALOG-ALIGNMENT.md) for
+evidence and limitations. This milestone does not start Phase 7.2, alter ADR
+status, or release Phase 4.2C from ON HOLD.
 
 ## Phase 7 — Bounded agent workflow
 

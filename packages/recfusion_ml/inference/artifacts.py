@@ -58,6 +58,7 @@ class PreparedRecommendationArtifact:
     sha256: str
     catalog_id: str
     catalog_fingerprint: str
+    compatibility_fingerprint: str
     bundle_fingerprint: str
 
 
@@ -66,6 +67,7 @@ class LoadedRecommendationArtifact:
     artifact_id: str
     catalog_id: str
     catalog_fingerprint: str
+    compatibility_fingerprint: str
     bundle_fingerprint: str
     artifact_fingerprint: str
     supported_algorithms: Mapping[str, str]
@@ -133,6 +135,7 @@ def prepare_synthetic_recommendation_artifact(
         "catalog_id": catalog.catalog_id,
         "catalog_version": catalog.version,
         "catalog_fingerprint": catalog.catalog_fingerprint,
+        "compatibility_fingerprint": catalog.compatibility_fingerprint,
         "bundle_fingerprint": catalog.bundle_fingerprint,
         "generator_schema": catalog.generator_schema,
         "generator_seed": catalog.seed,
@@ -162,6 +165,7 @@ def prepare_synthetic_recommendation_artifact(
         sha256=_sha256(payload),
         catalog_id=catalog.catalog_id,
         catalog_fingerprint=catalog.catalog_fingerprint,
+        compatibility_fingerprint=catalog.compatibility_fingerprint,
         bundle_fingerprint=catalog.bundle_fingerprint,
     )
 
@@ -172,6 +176,8 @@ def load_recommendation_artifact(
     expected_sha256: str,
     expected_catalog_id: str,
     expected_catalog_fingerprint: str,
+    expected_compatibility_fingerprint: str | None = None,
+    expected_bundle_fingerprint: str | None = None,
 ) -> LoadedRecommendationArtifact:
     """Load only the declared JSON/TF-IDF artifact; never load Python objects."""
     if payload is None:
@@ -222,6 +228,15 @@ def load_recommendation_artifact(
     if (
         record.get("catalog_id") != expected_catalog_id
         or record.get("catalog_fingerprint") != expected_catalog_fingerprint
+        or (
+            expected_compatibility_fingerprint is not None
+            and record.get("compatibility_fingerprint")
+            != expected_compatibility_fingerprint
+        )
+        or (
+            expected_bundle_fingerprint is not None
+            and record.get("bundle_fingerprint") != expected_bundle_fingerprint
+        )
     ):
         raise ArtifactLoadError(
             ArtifactValidationCode.CATALOG_MISMATCH,
@@ -266,10 +281,16 @@ def load_recommendation_artifact(
         )
     catalog_id = record.get("catalog_id")
     catalog_fingerprint = record.get("catalog_fingerprint")
+    compatibility_fingerprint = record.get("compatibility_fingerprint")
     bundle_fingerprint = record.get("bundle_fingerprint")
     if not all(
         isinstance(value, str) and value
-        for value in (catalog_id, catalog_fingerprint, bundle_fingerprint)
+        for value in (
+            catalog_id,
+            catalog_fingerprint,
+            compatibility_fingerprint,
+            bundle_fingerprint,
+        )
     ):
         raise ArtifactLoadError(
             ArtifactValidationCode.SCHEMA_INCOMPATIBLE,
@@ -277,11 +298,13 @@ def load_recommendation_artifact(
         )
     catalog_id = cast(str, catalog_id)
     catalog_fingerprint = cast(str, catalog_fingerprint)
+    compatibility_fingerprint = cast(str, compatibility_fingerprint)
     bundle_fingerprint = cast(str, bundle_fingerprint)
     return LoadedRecommendationArtifact(
         artifact_id=SERVING_ARTIFACT_ID,
         catalog_id=catalog_id,
         catalog_fingerprint=catalog_fingerprint,
+        compatibility_fingerprint=compatibility_fingerprint,
         bundle_fingerprint=bundle_fingerprint,
         artifact_fingerprint=expected_sha256,
         supported_algorithms=MappingProxyType(dict(ALGORITHM_VERSIONS)),

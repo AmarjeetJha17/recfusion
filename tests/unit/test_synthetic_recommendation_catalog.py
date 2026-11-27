@@ -5,6 +5,7 @@ from recfusion_api.services.synthetic_catalog import (
     build_synthetic_catalog,
 )
 from recfusion_core.contracts import DataSplit
+from recfusion_core.synthetic_catalog import load_shared_synthetic_catalog
 
 
 def test_synthetic_catalog_is_bounded_versioned_and_deterministic() -> None:
@@ -12,8 +13,12 @@ def test_synthetic_catalog_is_bounded_versioned_and_deterministic() -> None:
     second = build_synthetic_catalog()
 
     assert first.catalog_id == SYNTHETIC_CATALOG_ID
-    assert first.version == "1"
+    assert first.version == "2"
+    shared = load_shared_synthetic_catalog()
+    assert first.catalog_fingerprint == shared.asset_fingerprint
+    assert first.compatibility_fingerprint == shared.compatibility_fingerprint
     assert first.catalog_fingerprint == second.catalog_fingerprint
+    assert first.compatibility_fingerprint == second.compatibility_fingerprint
     assert first.bundle_fingerprint == second.bundle_fingerprint
     assert len(first.list_products()) == 10
     assert len(first.list_products()) <= first.max_catalog_size

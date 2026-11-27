@@ -1,0 +1,167 @@
+{
+  "schema_version": "recfusion.synthetic-catalog.v2",
+  "catalog_id": "synthetic-electronics-v1",
+  "catalog_version": "2",
+  "products": [
+    {
+      "id": "synthetic-electronics-v1:item:000001",
+      "title": "Synthetic laptop 16GB RAM 512GB SSD",
+      "category": "laptop",
+      "description": [
+        "invented electronics catalog example"
+      ],
+      "features": [
+        "16GB memory",
+        "512GB SSD",
+        "USB-C"
+      ],
+      "source_record_fingerprint": "a824bcfeab941a3b552f753b4c14bfea6c4abe0d9714266f0562b5b506d8bb6f",
+      "catalog_eligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000002",
+      "title": "Synthetic laptop 8GB RAM 256GB SSD",
+      "category": "laptop",
+      "description": [
+        "invented portable computer example"
+      ],
+      "features": [
+        "8GB memory",
+        "256GB SSD",
+        "USB-C"
+      ],
+      "source_record_fingerprint": "24db32f29fdba632f7722bacefefc80c0fc5e2ecdbd2bf358944382c1982f045",
+      "catalog_eligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000003",
+      "title": "Synthetic smartphone OLED 128GB",
+      "category": "smartphone",
+      "description": [
+        "invented mobile device example"
+      ],
+      "features": [
+        "OLED display",
+        "128GB storage",
+        "USB-C"
+      ],
+      "source_record_fingerprint": "af220a6490733faff8dd5b80b9ed8035a8917b3b846158949728f982ad915d5b",
+      "catalog_eligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000004",
+      "title": "Synthetic wireless headphones",
+      "category": "audio",
+      "description": [
+        "invented listening device example"
+      ],
+      "features": [
+        "wireless audio",
+        "over-ear",
+        "USB-C"
+      ],
+      "source_record_fingerprint": "47dcf51efd8872502a8a548e1940ed3c1b865b63bc4f16cd857dc6ae37252cc8",
+      "catalog_eligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000005",
+      "title": "Synthetic desktop monitor 27 inch",
+      "category": "monitor",
+      "description": [
+        "invented display example"
+      ],
+      "features": [
+        "27 inch display",
+        "USB-C",
+        "high refresh"
+      ],
+      "source_record_fingerprint": "1ed88bcc76b92bcfadf4219d95ceb27396368acbbe12893b21960ed7e28bddb2",
+      "catalog_eligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000006",
+      "title": "Synthetic laptop 16GB RAM 1TB SSD",
+      "category": "laptop",
+      "description": [
+        "invented portable computer example"
+      ],
+      "features": [
+        "16GB memory",
+        "1TB SSD",
+        "USB-C"
+      ],
+      "source_record_fingerprint": "09a773f85016c843cb41e9a4dd03071ebad1505f78b94ac9ab832967832151e0",
+      "catalog_eligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000007",
+      "title": "Synthetic wireless earbuds USB-C",
+      "category": "audio",
+      "description": [
+        "invented listening device example"
+      ],
+      "features": [
+        "wireless audio",
+        "in-ear",
+        "USB-C"
+      ],
+      "source_record_fingerprint": "e5186053a36ac3329954226fd075d9339c79b8062b4f348e28f0399c9ab36fdf",
+      "catalog_eligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000008",
+      "title": null,
+      "category": null,
+      "description": [],
+      "features": [],
+      "source_record_fingerprint": "8fc133a460fdf80e713c30b9ccb01b71dd88a17de91ee53cb6c560be588cd675",
+      "catalog_eligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000009",
+      "title": "Synthetic conflicted product",
+      "category": "laptop",
+      "description": [
+        "invented conflict fixture"
+      ],
+      "features": [
+        "conflicting metadata fixture"
+      ],
+      "source_record_fingerprint": "4131223252e46e209bb5a2283c41ffed05a083f24029f2fef9a6e8283389689c",
+      "catalog_eligible": false,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000010",
+      "title": "Synthetic hidden product",
+      "category": "accessory",
+      "description": [
+        "invented visibility fixture"
+      ],
+      "features": [
+        "hidden catalog fixture"
+      ],
+      "source_record_fingerprint": "fbcbf27d154b3d7a1044e18a82f0a2de482cedca36ac62b6ecc7cb78fb168f0a",
+      "catalog_eligible": true,
+      "visible": false,
+      "synthetic": true
+    }
+  ]
+}

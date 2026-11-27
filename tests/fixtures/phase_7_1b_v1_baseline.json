@@ -1,0 +1,14 @@
+{
+  "catalog_id": "synthetic-electronics-v1",
+  "catalog_version": "1",
+  "catalog_fingerprint": "d8f61df61a5595611faf2f6d4d75e44299e221778ac98e87d566e6bd3805b46d",
+  "bundle_fingerprint": "afe98b2328f40cb8fee63bba22586edf77b68caeb141df3383eb2285216776e1",
+  "artifact_fingerprint": "aa09a00b6d3a62f0d5c37f735da2f840311ec08bcc9c80e311412c439116b434",
+  "recommendation_ids": {
+    "product_to_product:000001": ["000006", "000002", "000007", "000004", "000003"],
+    "synthetic_user:000001": ["000006", "000002", "000007", "000004", "000003"],
+    "hybrid_warm:000001": ["000005", "000002", "000004", "000003"],
+    "hybrid_content:000001": ["000005", "000002", "000004", "000003", "000006"],
+    "synthetic_user:000003": []
+  }
+}

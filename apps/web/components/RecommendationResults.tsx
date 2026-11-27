@@ -4,7 +4,8 @@ import {
   RecommendationItemProvenance,
   RecommendationProvenance,
 } from "@/components/RecommendationProvenance";
-import { getProduct, getProductRouteId } from "@/lib/catalog";
+import { CATALOG_ID, getProduct, getProductRouteId } from "@/lib/catalog";
+import { FIXTURE_CATALOG_FINGERPRINT } from "@/lib/fixture-manifest";
 import type { RecommendationResponse } from "@/lib/recommendation-provider";
 
 type RecommendationResultsProps = {
@@ -100,7 +101,7 @@ export function RecommendationResults({
       <p className="fixture-explanation">
         {presentationSource === "fixture"
           ? "Prewritten synthetic ordering for interface testing. It does not claim validated personalization or model quality."
-          : "Synthetic local API output. The API catalog fingerprint differs from the display catalog, so this view shows canonical IDs and provenance without joining product details."}
+          : "Synthetic local API output. Product details appear only when the API catalog identity and exact asset fingerprint match this display catalog."}
       </p>
       {requestedK !== undefined && response.result_count < requestedK && (
         <p className="recommendation-short-list-note">
@@ -109,14 +110,12 @@ export function RecommendationResults({
         </p>
       )}
       <RecommendationProvenance response={response} />
-      {presentationSource === "local_api" && (
-        <p className="recommendation-cohort-note">
-          Per-item warm/cold status: not provided by API v1.
-        </p>
-      )}
       <ol aria-label="Recommendations" className="recommendation-list">
         {response.recommendations.map((recommendation) => {
-          if (presentationSource === "local_api") {
+          const catalogMatches =
+            response.catalog_id === CATALOG_ID &&
+            response.catalog_fingerprint === FIXTURE_CATALOG_FINGERPRINT;
+          if (presentationSource === "local_api" && !catalogMatches) {
             return (
               <li className="recommendation-item" key={recommendation.product_id}>
                 <span
@@ -136,6 +135,24 @@ export function RecommendationResults({
           }
 
           const product = getProduct(recommendation.product_id);
+          if (!product && presentationSource === "local_api") {
+            return (
+              <li className="recommendation-item" key={recommendation.product_id}>
+                <span
+                  aria-label={`Rank ${recommendation.rank}`}
+                  className="recommendation-item__rank"
+                >
+                  {String(recommendation.rank).padStart(2, "0")}
+                </span>
+                <div className="recommendation-item__body">
+                  <p className="recommendation-item__canonical-id">
+                    Canonical synthetic item ID: {recommendation.product_id}
+                  </p>
+                  <RecommendationItemProvenance recommendation={recommendation} />
+                </div>
+              </li>
+            );
+          }
           if (!product) return null;
           return (
             <li className="recommendation-item" key={recommendation.product_id}>
@@ -147,19 +164,14 @@ export function RecommendationResults({
               </span>
               <ProductArt category={product.category} />
               <div className="recommendation-item__body">
-                <p className="recommendation-item__category">{product.category}</p>
+                <p className="recommendation-item__category">
+                  {product.category ?? "Category unavailable"}
+                </p>
                 <Link href={`/products/${getProductRouteId(product)}`}>
                   {product.name ?? "Title unavailable"}
                 </Link>
                 <RecommendationItemProvenance recommendation={recommendation} />
               </div>
-              <span className={`cohort cohort--${product.cohort}`}>
-                {product.cohort === "unknown"
-                  ? "Eligibility not provided"
-                  : product.cohort === "warm"
-                    ? "Warm fixture item: known to synthetic training interactions"
-                    : "Cold item (fixture): no synthetic training interactions"}
-              </span>
             </li>
           );
         })}

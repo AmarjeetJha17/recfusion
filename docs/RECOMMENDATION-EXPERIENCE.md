@@ -49,13 +49,11 @@ mechanism without claiming a personal preference or causal explanation.
 
 ## 5. Warm/cold terminology
 
-Fixture labels are shown only from the trusted local fixture's `cohort` value.
-Warm means known to permitted synthetic training interactions. Cold means no
-permitted synthetic training interactions, while eligible content may still
-make an item retrievable. Cold does not describe quality, stock, or commercial
-availability. Unknown fixture status is labeled “Eligibility not provided.”
-The Local API v1 response has no reliable per-item cohort field, so the UI says
-“Per-item warm/cold status: not provided by API v1.”
+The UI does not show per-item warm/cold labels. The policy explanations retain
+their existing meanings: `warm_hybrid` uses the backend's train-known set;
+`content_eligible_hybrid` can include visible, catalog-eligible items in the
+content index. These are candidate rules, not quality, stock, or commercial
+availability labels. API v1 does not expose per-item cohort metadata.
 
 Hybrid policy explanations preserve source rules: `warm_hybrid` limits eligible
 items to train-known synthetic items. `content_eligible_hybrid` can admit eligible
@@ -81,12 +79,12 @@ in place. There is no automatic retry or implicit fixture fallback.
 
 ## 8. Fixture versus Local API
 
-Fixture mode remains the default and makes no request. It may display frontend
-fixture product titles, details, and trusted fixture cohorts. Local API mode is
-an explicit development-only opt-in to fixed loopback transport. Since its
-catalog fingerprint differs from the display catalog, API results remain
-canonical IDs with API-provided provenance; they are not joined to frontend
-product metadata or routes.
+Fixture mode remains the default and makes no request. It displays shared
+synthetic catalog product details and frozen backend-generated recommendation
+fixtures. Local API mode is an explicit development-only opt-in to fixed
+loopback transport. API results join to product routes only when both catalog
+ID and the exact shared asset fingerprint match. Unknown IDs and mismatched
+fingerprints remain canonical IDs with response-backed provenance only.
 
 ## 9. Accessibility
 
@@ -109,7 +107,8 @@ for this checkpoint.
 All UI and tests use invented synthetic records or mocked v1 responses. The
 interface does not access Amazon data, load real checkpoints, claim model
 quality, show real metadata, or make production recommendations. The API v1
-contract has no per-item cohort or display metadata.
+contract has no per-item cohort metadata. Product display joins are permitted
+only after exact shared asset fingerprint validation.
 
 ## 12. UI testing results
 

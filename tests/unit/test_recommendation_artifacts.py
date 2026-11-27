@@ -80,6 +80,25 @@ def test_schema_catalog_and_algorithm_compatibility_are_checked() -> None:
         )
     assert catalog_error.value.code is ArtifactValidationCode.CATALOG_MISMATCH
 
+    for mismatch in (
+        {"expected_compatibility_fingerprint": "0" * 64},
+        {"expected_bundle_fingerprint": "0" * 64},
+    ):
+        expected = {
+            "expected_sha256": prepared.sha256,
+            "expected_catalog_id": catalog.catalog_id,
+            "expected_catalog_fingerprint": catalog.catalog_fingerprint,
+            "expected_compatibility_fingerprint": catalog.compatibility_fingerprint,
+            "expected_bundle_fingerprint": catalog.bundle_fingerprint,
+        }
+        expected.update(mismatch)
+        with pytest.raises(ArtifactLoadError) as fingerprint_error:
+            load_recommendation_artifact(
+                prepared.payload,
+                **expected,
+            )
+        assert fingerprint_error.value.code is ArtifactValidationCode.CATALOG_MISMATCH
+
     envelope = json.loads(prepared.payload)
     envelope["supported_algorithms"]["tfidf_content"] = "99"
     payload = json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode()
