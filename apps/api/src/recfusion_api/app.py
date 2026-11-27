@@ -11,7 +11,11 @@ from recfusion_api.config import Settings
 from recfusion_api.exceptions import ApplicationError
 from recfusion_api.logging_config import configure_logging, get_api_logger
 from recfusion_api.routes.health import router as health_router
+from recfusion_api.routes.recommendations import router as recommendations_router
 from recfusion_api.schemas.errors import ErrorCode, ErrorDetail, ErrorResponse
+from recfusion_api.services.recommendation_runtime import (
+    build_synthetic_recommendation_service,
+)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -21,11 +25,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        if app_settings.synthetic_demo_enabled:
+            app.state.recommendation_service = build_synthetic_recommendation_service()
         app.state.initialized = True
         try:
             yield
         finally:
             app.state.initialized = False
+            app.state.recommendation_service = None
 
     app = FastAPI(
         title=app_settings.app_name,
@@ -39,7 +46,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = app_settings
     app.state.initialized = False
+    app.state.recommendation_service = None
     app.include_router(health_router)
+    if app_settings.synthetic_demo_enabled:
+        app.include_router(recommendations_router)
 
     @app.exception_handler(ApplicationError)
     async def application_error_handler(

@@ -116,13 +116,14 @@ Phase 6.1A records a proposed serving contract in
 Phase 6.1B adds a local synthetic-only application service, versioned contracts,
 an in-memory synthetic catalog and a validated in-memory content artifact;
 details are in [`OFFLINE-RECOMMENDATION-INFERENCE.md`](./OFFLINE-RECOMMENDATION-INFERENCE.md).
-The current API still exposes only health/readiness and has no recommendation
-route, production artifact registry, promotion flow, or serving-approved
-model. The local service resolves an allowlisted policy, checks artifact and
-catalog compatibility, retrieves candidate IDs, resolves them through the
+Phase 6.2A adds an explicitly enabled, development-only synthetic
+`POST /v1/recommendations` route; it does not add a production route, artifact
+registry, promotion flow, or serving-approved model. The local service resolves
+an allowlisted policy, checks artifact and catalog compatibility, retrieves
+candidate IDs, resolves them through the
 synthetic catalog, and applies deterministic seen-item and hard-constraint
 checks. Missing sources fail closed without fallback. This implementation
 does not establish production readiness or release approval. Phase 4.2C
 remains ON HOLD; the synthetic application uses no Amazon metadata or
-artifacts derived from the private interaction pilot. Phase 6.1B is prepared
-for project-owner review; proposed serving decisions remain unaccepted.
+artifacts derived from the private interaction pilot. ADRs 018/019 remain
+Proposed.

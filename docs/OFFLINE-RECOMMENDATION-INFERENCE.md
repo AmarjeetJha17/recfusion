@@ -2,8 +2,11 @@
 
 **Status:** Phase 6.1B implementation checkpoint prepared for project-owner
 review. This is a local application-service demonstration over invented
-records. It is not an HTTP recommendation API, promoted model release, or
-production serving path. The proposed contracts in
+records. This Phase 6.1B service itself is not an HTTP recommendation API,
+promoted model release, or production serving path. Phase 6.2A adds a separate
+development-only HTTP wrapper described in
+[`SYNTHETIC-RECOMMENDATION-API.md`](./SYNTHETIC-RECOMMENDATION-API.md). The
+proposed contracts in
 [`RECOMMENDATION-SERVING-DESIGN.md`](./RECOMMENDATION-SERVING-DESIGN.md) and
 ADRs 018/019 remain Proposed. Phase 4.2C remains ON HOLD.
 
@@ -11,10 +14,10 @@ ADRs 018/019 remain Proposed. Phase 4.2C remains ON HOLD.
 
 The implementation adds versioned request, response, and error contracts in
 `recfusion_api.schemas.recommendation`, a read-only seeded synthetic catalog,
-and `RecommendationService` in the API application package. It has no route,
-network listener, database, filesystem artifact lookup, training job, or
-request-time content fitting. Core inference ports live in
-`recfusion_core.contracts`; `recfusion_ml.inference` adapts the existing
+and `RecommendationService` in the API application package. The Phase 6.1B
+application-service layer has no route, network listener, database, filesystem
+artifact lookup, training job, or request-time content fitting. Core inference
+ports live in `recfusion_core.contracts`; `recfusion_ml.inference` adapts the existing
 `ContentIndex` and weighted RRF implementation to those ports.
 
 The provider is generated in memory with seed `44041`, schema

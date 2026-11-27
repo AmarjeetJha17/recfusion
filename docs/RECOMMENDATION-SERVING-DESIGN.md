@@ -1,11 +1,11 @@
 # Recommendation serving design
 
 **Status:** Proposed serving contract and architecture. Phase 6.1A is documented;
-Phase 6.1B now has a local synthetic application-service checkpoint prepared
-for owner review. No recommendation endpoint, online model registry, artifact
-promotion process, or production serving path is implemented. This design
-authorizes none of those changes. The synthetic application uses invented data
-only.
+Phase 6.1B provides the local synthetic application service and Phase 6.2A adds
+an explicitly enabled, development-only HTTP route. No online model registry,
+artifact promotion process, or production serving path is implemented. This
+design authorizes none of those changes. The synthetic application uses
+invented data only.
 
 ## Purpose and scope
 
@@ -25,7 +25,7 @@ and IDs must be generated or authored specifically as synthetic fixtures.
 
 | Area | Reusable implementation | Serving gap |
 |---|---|---|
-| HTTP | FastAPI app factory, lifespan, request IDs, safe error envelope, health/readiness routes | No recommendation route, request/response schemas, identity/auth provider, or catalog/model dependencies |
+| HTTP | FastAPI app factory, lifespan, request IDs, safe error envelope, health/readiness routes, opt-in synthetic-only `POST /v1/recommendations` | No production recommendation route, identity/auth provider, or production catalog/model dependencies |
 | Content | `ContentIndex` fits bounded TF-IDF from explicit reference items, transforms candidates, supports product similarity and train-history profiles, and reads validated JSON artifacts | Phase 6.1B adds a synthetic catalog, synthetic artifact validation, and in-memory runtime source; there is no production registry or approved deployed index |
 | Hybrid | `retrieve_hybrid` uses explicit source lists and candidate pools; collaborative sources stay train-known and content can supply eligible cold items | The caller must provide collaborative rankings, train context, exact item pool, and config; provenance does not prove model training scope |
 | Fusion | Weighted RRF uses one-based original ranks, stable item-key tie breaks, explicit weights/depths, catalog/seen filters, and no implicit fallback | No active serving policy or per-model release provenance |
@@ -332,12 +332,14 @@ or external service. Required tests before implementation approval:
 11. API contract tests cover 200 `ok`, 200 `no_results`, 422, 401/403, 404,
     429, 503, readiness, and production docs/network configuration.
 
-These remain proposed gates for a future HTTP API. The Phase 6.1B local
-application checkpoint covers the synthetic request/response contracts and
-service behavior listed in
+These remain proposed gates for production serving. The Phase 6.1B local
+application checkpoint covers synthetic request/response contracts and service
+behavior listed in
 [`OFFLINE-RECOMMENDATION-INFERENCE.md`](./OFFLINE-RECOMMENDATION-INFERENCE.md).
-It adds no endpoint; the API health, readiness, error, and OpenAPI tests still
-cover only the existing HTTP surface.
+Phase 6.2A adds the guarded local API described in
+[`SYNTHETIC-RECOMMENDATION-API.md`](./SYNTHETIC-RECOMMENDATION-API.md). The
+route does not satisfy production identity, authorization, network, or release
+gates and does not close Phase 4.2C.
 
 An error retains the current envelope shape, for example:
 

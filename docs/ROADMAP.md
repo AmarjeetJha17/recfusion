@@ -55,10 +55,11 @@ A local synthetic application-service checkpoint is implemented and described
 in [`OFFLINE-RECOMMENDATION-INFERENCE.md`](./OFFLINE-RECOMMENDATION-INFERENCE.md).
 It includes versioned contracts, a deterministic invented catalog/history
 provider, safe synthetic content-artifact validation, and adapters for the
-existing content and weighted-RRF retrieval. It has no recommendation HTTP
-route, release promotion, production model, or real-data input. The checkpoint
-awaits project-owner review; ADRs 018/019 remain Proposed and Phase 4.2C remains
-ON HOLD. No later Phase 6 implementation is authorized by this checkpoint.
+existing content and weighted-RRF retrieval. It has no production
+recommendation route, release promotion, production model, or real-data input.
+Phase 6.2A adds a separately documented, guarded development-only route over
+the synthetic service. ADRs 018/019 remain Proposed and Phase 4.2C remains ON
+HOLD.
 
 ## Phase 7 — Bounded agent workflow
 
