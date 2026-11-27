@@ -12,10 +12,37 @@ from recfusion_ml.evaluation.content_benchmark import (
     _ranked_by_policy,
     generate_synthetic_benchmark,
 )
-from recfusion_ml.evaluation.hybrid_benchmark import run_hybrid_benchmark
+from recfusion_ml.evaluation.hybrid_benchmark import (
+    _concentration,
+    run_hybrid_benchmark,
+)
 from recfusion_ml.retrieval.content import ContentIndex
 
 pytestmark = pytest.mark.unit
+
+
+def test_recommendation_concentration_matches_hand_calculated_placements() -> None:
+    concentration = _concentration(
+        {"u1": ("a", "b"), "u2": ("a", "c")},
+        k=2,
+    )
+
+    # Four placements: a has 2/4 and b/c each have 1/4.
+    assert concentration == {
+        "unique_recommended_item_count": 3,
+        "recommendation_count": 4,
+        "maximum_item_exposure_share": 0.5,
+        "herfindahl_hirschman_index": 0.375,
+    }
+
+
+def test_recommendation_concentration_is_zero_for_empty_rankings() -> None:
+    assert _concentration({"u1": (), "u2": ()}, k=5) == {
+        "unique_recommended_item_count": 0,
+        "recommendation_count": 0,
+        "maximum_item_exposure_share": 0.0,
+        "herfindahl_hirschman_index": 0.0,
+    }
 
 
 def test_hybrid_benchmark_is_fixed_aggregate_only_and_reproducible() -> None:

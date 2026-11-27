@@ -176,6 +176,17 @@ accessibility closure as an alternative. This is a documentation checkpoint:
 no implementation is authorized or started. ADR-018/019 remain Proposed and
 Phase 4.2C remains ON HOLD. The untouched real test split remains unused.
 
+### Phase 8.2 — Synthetic evaluation robustness and essential accessibility closure (owner review pending)
+
+The frozen three-family synthetic scenario manifest, metric concentration
+oracle, and keyboard empty-state focus correction are documented in
+[`PHASE-8-QUALITY-ACCEPTANCE.md`](./PHASE-8-QUALITY-ACCEPTANCE.md). Local
+frontend/backend quality gates passed. Keyboard navigation covered the local
+demo routes, recommendation modes, empty search recovery, and API failure/retry
+state. Paired screen-reader review remains unverified, hosted CI has not run on
+this uncommitted change set, and project-owner review is pending. No Phase 8.3
+work is started; ADR-018/019 remain Proposed and Phase 4.2C remains ON HOLD.
+
 ## Phase 9 — MLOps and observability
 
 Model registry/versioning, MLflow experiments, source-aware metrics, traces, alerts, performance benchmark. **Gate:** exact model/data version traceability and documented results.

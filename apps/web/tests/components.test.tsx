@@ -60,6 +60,24 @@ describe("catalog and product presentation", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/no products match/i);
   });
 
+  it("returns keyboard focus to search after clearing the empty catalog state", async () => {
+    const user = userEvent.setup();
+    render(<DiscoveryCatalog />);
+
+    const search = screen.getByRole("searchbox", {
+      name: /search synthetic electronics/i,
+    });
+    await user.type(search, "missing device");
+    for (let index = 0; index < 6; index += 1) await user.tab();
+
+    const clearFilters = screen.getByRole("button", { name: "Clear filters" });
+    expect(clearFilters).toHaveFocus();
+    await user.keyboard("{Enter}");
+
+    expect(search).toHaveValue("");
+    expect(search).toHaveFocus();
+  });
+
   it("links cards to product details and preserves missing values honestly", () => {
     const product = catalog.find((item) => item.id.endsWith(":000008"));
     if (!product) throw new Error("The shared catalog must include its incomplete record.");

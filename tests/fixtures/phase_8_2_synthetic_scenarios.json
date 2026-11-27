@@ -1,0 +1,77 @@
+{
+  "schema_version": "recfusion.phase-8.2-scenarios.v1",
+  "description": "Frozen synthetic regression scenarios; not empirical recommendation evidence.",
+  "canonical_output_encoding": "UTF-8 JSON, sorted keys, compact separators, non-finite numbers forbidden",
+  "application_catalog": {
+    "catalog_id": "synthetic-electronics-v1",
+    "catalog_fingerprint": "b7d29b34eb6eaf5c1d9a935a3c94769023cae6dd8401b0aca1daf4d47fb97c78",
+    "compatibility_fingerprint": "6cfcdb984ee561b3d4a8f82ed7514f0433e888e3110a6c4c316c5d13fe42ab5f",
+    "bundle_fingerprint": "0244b50e0cff15ffba48c7144101ec5c19d0155d9c558f11683cc8b72d4c85eb"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "warm_only",
+      "family": "warm_only_retrieval",
+      "generator_schema": "recfusion.synthetic-content-generator.v1",
+      "seed": 43031,
+      "candidate_policy": "warm_only",
+      "catalog_fingerprint": "400746abb9cc8bad83047581ed29647c002047c3729ec03de80a20ccda481d96",
+      "source_checksums": {
+        "metadata_source_sha256": "400746abb9cc8bad83047581ed29647c002047c3729ec03de80a20ccda481d96",
+        "training_interactions_sha256": "095ca0805890dd60a26a652a997c8943652489a7ed37613874f25e3584d9ba0c",
+        "evaluation_labels_sha256": "fda726062c5e567581e3052e9640a4b5de2e68c2927ad39a09b621207a8fb0da"
+      },
+      "bundle_fingerprint": "8718b2099dfa9fb8ba910c26e6578b4f326e03647278e2536da12a2e8fed4138",
+      "expected_summary": {
+        "eligible_candidate_count": 24,
+        "evaluated_user_count": 16,
+        "cold_eligible_candidate_count": 0
+      },
+      "expected_output_sha256": "cb658021bccca81bd5c180516e276f2f6f2a93489d482fc595b312c310ccecd4"
+    },
+    {
+      "scenario_id": "content_eligible_cold",
+      "family": "content_eligible_cold_retrieval",
+      "generator_schema": "recfusion.synthetic-content-generator.v1",
+      "seed": 43031,
+      "candidate_policy": "content_eligible_hybrid",
+      "catalog_fingerprint": "400746abb9cc8bad83047581ed29647c002047c3729ec03de80a20ccda481d96",
+      "source_checksums": {
+        "metadata_source_sha256": "400746abb9cc8bad83047581ed29647c002047c3729ec03de80a20ccda481d96",
+        "training_interactions_sha256": "095ca0805890dd60a26a652a997c8943652489a7ed37613874f25e3584d9ba0c",
+        "evaluation_labels_sha256": "fda726062c5e567581e3052e9640a4b5de2e68c2927ad39a09b621207a8fb0da"
+      },
+      "bundle_fingerprint": "641015a223fc503f951858c1e75b8b88d3d443c75449f2b4277c2e2988fdb881",
+      "expected_summary": {
+        "candidate_catalog_size": 32,
+        "eligible_cold_target_count": 8,
+        "eligible_cold_user_denominator": 8
+      },
+      "expected_output_sha256": "aa840c0961625e3205f7744a550f4845e1fd2a3ce9229d7d27775eb80b834a23"
+    },
+    {
+      "scenario_id": "sparse_empty",
+      "family": "sparse_empty_retrieval",
+      "generator_schema": "recfusion.synthetic-content-generator.v1",
+      "seed": 44041,
+      "candidate_policy": "content_eligible_hybrid",
+      "catalog_fingerprint": "400746abb9cc8bad83047581ed29647c002047c3729ec03de80a20ccda481d96",
+      "source_checksums": {
+        "metadata_source_sha256": "400746abb9cc8bad83047581ed29647c002047c3729ec03de80a20ccda481d96",
+        "training_interactions_sha256": "a7d12ea8d13f7160eea6cfbf3fef61d29f5a7ccdfe245807df7e8e30efd1ad4d",
+        "evaluation_labels_sha256": "b6427bc40294ce35f73701b8d17976a0fe4d619e0aefe99041f9baeae0fea149"
+      },
+      "bundle_fingerprint": "10606b7aa7914406c11d2195500eaf70cc9f9c153db2029d07f3d5728162f923",
+      "expected_summary": {
+        "content_profile_empty": true,
+        "candidate_item_count": 32,
+        "recommendations": [],
+        "raw_generated_counts": {
+          "item_cf": 0,
+          "tfidf_content": 0
+        }
+      },
+      "expected_output_sha256": "f2c884e543f6680030c705824f648e02ddf9e4a4fa89790e9ee153989333e931"
+    }
+  ]
+}

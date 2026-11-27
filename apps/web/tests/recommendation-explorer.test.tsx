@@ -54,6 +54,20 @@ describe("recommendation explorer", () => {
     },
   );
 
+  it("supports keyboard navigation across the recommendation mode radio group", async () => {
+    const user = userEvent.setup();
+    render(<RecommendationExplorer />);
+
+    await user.tab();
+    await user.tab();
+    const productMode = screen.getByRole("radio", { name: /product to product/i });
+    expect(productMode).toHaveFocus();
+
+    await user.keyboard("{ArrowRight}");
+
+    expect(screen.getByRole("radio", { name: /synthetic user/i })).toBeChecked();
+  });
+
   it.each([
     ["product_to_product", /similarity over available product-content features/i],
     ["synthetic_user", /prior synthetic training interactions and product content/i],

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ProductCard } from "@/components/ProductCard";
 import {
   type CategoryFilter,
@@ -22,6 +22,7 @@ export function DiscoveryCatalog() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [sort, setSort] = useState<ProductSort>("featured");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const products = useMemo(
     () => sortProducts(searchCatalog(query, category), sort),
     [query, category, sort],
@@ -63,6 +64,7 @@ export function DiscoveryCatalog() {
             name="catalog-search"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search devices, features, or connectors"
+            ref={searchInputRef}
             type="search"
             value={query}
           />
@@ -109,6 +111,7 @@ export function DiscoveryCatalog() {
             onClick={() => {
               setQuery("");
               setCategory("all");
+              searchInputRef.current?.focus();
             }}
             type="button"
           >

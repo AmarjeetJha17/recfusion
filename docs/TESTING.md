@@ -73,6 +73,22 @@ part of normal unit CI. MEDIUM and LARGE remain opt-in and are not CI gates.
 See [EVALUATION-PERFORMANCE.md](./EVALUATION-PERFORMANCE.md) for workload
 bounds, measurement scope, and the local aggregate-only smoke report.
 
+Phase 8.2 adds the frozen, synthetic-only scenario manifest at
+[`tests/fixtures/phase_8_2_synthetic_scenarios.json`](../tests/fixtures/phase_8_2_synthetic_scenarios.json).
+Its unit acceptance tests reuse the existing content benchmark, hybrid
+benchmark, hybrid retrieval, and shared synthetic catalog. They freeze seeds,
+source/catalog/bundle fingerprints, selected aggregate output hashes, and
+hand-calculated concentration examples; they do not introduce a new evaluator
+or make empirical quality claims. Run them with:
+
+```powershell
+uv run --frozen pytest tests/unit/test_phase_8_2_quality_acceptance.py tests/unit/test_hybrid_benchmark.py
+```
+
+The keyboard empty-state focus recovery is covered by the frontend component
+tests. Full Phase 8.2 evidence and the paired screen-reader limitation are in
+[`PHASE-8-QUALITY-ACCEPTANCE.md`](./PHASE-8-QUALITY-ACCEPTANCE.md).
+
 ## 8. Bug reporting
 
 Provide reproduction inputs, environment, expected/actual output, logs with redaction, model/catalog/version IDs, affected constraints and regression test. Fixes must add a test reproducing the issue.
