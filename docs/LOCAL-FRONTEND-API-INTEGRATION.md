@@ -214,3 +214,122 @@ The frontend joins product detail only after exact catalog ID and asset hash
 match; otherwise it keeps API IDs and provenance without metadata. No browser
 automation was run for this closure. ADR-018/019 remain Proposed and Phase
 4.2C remains ON HOLD.
+
+## Phase 7.3 final synthetic application QA
+
+**Reviewed:** 2026-11-27. This section supersedes earlier statements in this
+file that the Phase 7.1B implementation had no browser evidence or exact
+responsive measurements. Earlier phase-specific evidence remains historical.
+
+### Current implementation identity
+
+Both consumers read
+[`synthetic-electronics-v2.json`](../packages/recfusion_core/data/synthetic-electronics-v2.json),
+schema `recfusion.synthetic-catalog.v2`, catalog ID
+`synthetic-electronics-v1`, version `2` (10 records; 9 visible). Fingerprints:
+
+| Fingerprint | Value |
+|---|---|
+| Shared asset bytes | `b7d29b34eb6eaf5c1d9a935a3c94769023cae6dd8401b0aca1daf4d47fb97c78` |
+| Inference compatibility projection | `6cfcdb984ee561b3d4a8f82ed7514f0433e888e3110a6c4c316c5d13fe42ab5f` |
+| Recommendation bundle | `0244b50e0cff15ffba48c7144101ec5c19d0155d9c558f11683cc8b72d4c85eb` |
+| Prepared inference artifact | `7f50c2dea0b9374e40433a2519b0bcc863d1f5a097d7755596c6db79a696f3fd` |
+
+The v1 request, response, and error schemas are unchanged. Content requests
+use `tfidf_content` v1 / `content_catalog`; hybrid requests use `weighted_rrf`
+v1 / `warm_hybrid` or `content_eligible_hybrid`. The frontend only displays
+catalog metadata when catalog ID, exact asset fingerprint, canonical item
+membership, and display eligibility match. Unknown valid IDs remain ID-only;
+hidden or ineligible entries do not receive metadata. The UI preserves rank
+and provenance and does not derive warm/cold labels from product details.
+
+### Local browser evidence
+
+Local Chrome and DevTools responsive mode exercised the built Next.js app at
+`127.0.0.1:3000`; API scenarios used `127.0.0.1:8000`. Widths were set in CSS
+pixels with device scale 1. Both servers were stopped after QA. Local
+screenshots were inspected but not retained as repository files. No HAR or
+network export was retained.
+
+| Viewport | Home | Explore | Product detail |
+|---:|---|---|---|
+| 1440 px | `scrollWidth` 1440 = viewport; visually inspected | `scrollWidth` 1440 = viewport; visually inspected | `scrollWidth` 1440 = viewport; visually inspected |
+| 900 px | `scrollWidth` 900 = viewport; visually inspected | `scrollWidth` 900 = viewport; visually inspected | `scrollWidth` 900 = viewport; visually inspected |
+| 700 px | `scrollWidth` 700 = viewport; visually inspected | `scrollWidth` 700 = viewport; visually inspected | `scrollWidth` 700 = viewport; visually inspected |
+| 375 px | `scrollWidth` 375 = viewport; visually inspected | `scrollWidth` 375 = viewport; controls and results inspected | `scrollWidth` 375 = viewport; product detail inspected |
+
+These measurements establish no horizontal document overflow for the three
+routes at the requested widths. They do not replace a component-by-component
+clipping review or contrast measurement. At widths other than 375 px, this
+pass focused on route layout and overflow; recommendation-card detail was
+browser-verified at 375 px.
+
+At 375 px, the accessibility tree exposed the main landmark, labelled radio
+groups and selects, recommendation status, ranked list, provenance, canonical
+IDs, and product links. Browser results were: fixture product-to-product
+5/5; API product-to-product 5/5; synthetic-user content 5/5; warm hybrid
+4/5; content-eligible hybrid 5/5. The warm short list was announced without
+padding. API results showed catalog and artifact fingerprints, ranks, and
+source attribution. With the API stopped, the fixture hybrid flow returned
+5/5 and stated “offline · no network request.”
+
+Chrome's Issues panel reported zero page errors, zero breaking changes, and
+two possible improvements. One reported that a form field without `id` or
+`name` appeared on two resources; Chrome notes this may impair autofill. The
+second possible improvement was not separately identified in the retained
+inspection. The app console had zero messages in the production session.
+Keyboard-only route traversal, direct focus-ring inspection, and independent
+text contrast measurement remain unverified. Automated tests cover keyboard
+operation for search/category controls and accessible status/error states.
+The reduced-motion override is present; the prior smooth-scroll warning did
+not recur. Development React DevTools/HMR messages were informational.
+
+### Regression, errors, and determinism
+
+Frontend: 56 tests passed in eight files. Coverage includes exact
+catalog/fingerprint joins; unknown, hidden, ineligible, duplicate, and
+incomplete product records; route availability; empty and short results;
+fixture determinism/no-fetch; API-unavailable without fixture fallback;
+typed 503; malformed response; timeout; cancellation; stale response;
+explicit retry; and accessible loading/error/status behavior.
+
+Backend: 369 tests passed. Contract tests cover API disabled by default and
+production rejection; loopback server, client, Host, Origin, and restricted
+preflight checks; body/schema/K/exclusion bounds; typed 404 and invalid
+request; empty result; safe 500/503; and repeated-response determinism
+excluding `request_id`. The frozen Phase 7.1B baseline checks ordered IDs for
+product, synthetic-user, both hybrid policies, and an empty synthetic-user
+profile. No live saturation traffic was generated. Each API browser scenario
+was observed once; browser-level repeat comparison was not performed.
+
+### Security, validation, and limitations
+
+Inspected code and tests retain disabled-by-default API activation,
+production rejection, numeric loopback binding/URL, exact Origin and
+loopback Host/client/server checks, restricted preflight, 16 KiB request
+limit, `k` limit 20, exclusion limit 64, and per-app concurrency default 2
+(maximum 4). Forwarded headers are not trusted. No arbitrary API URL, proxy,
+or tunnel is used. Loopback is not authentication: another local process can
+call or exhaust the service, and a local forwarding proxy is unsupported.
+No real-data access, training, promotion, or deployment occurred.
+
+Frontend checks passed: frozen install, lint, typecheck, tests, and build.
+Biome reported 21 existing CSS warnings (17 descending-specificity and four
+reduced-motion `!important`). Backend sync, lock check, Ruff check/format,
+mypy, and pytest passed; pytest emitted one PyTorch warning because NumPy is
+absent. Pre-commit passed after malformed inherited `GIT_CONFIG_*` entries
+were removed from its process environment. The build prerendered `/`,
+`/explore`, and generated product routes. Standalone static export is not
+configured.
+
+The checked-in [CI workflow](../.github/workflows/ci.yml) defines Python
+lint, format, typecheck, tests, pre-commit, and package-build steps for pushes
+and pull requests targeting `master`. Its remote run status was not queried;
+the validation results here are local.
+
+**Phase 7.3 verdict: Conditional GO for a local portfolio walkthrough.** The
+API/fixture flows, identity checks, and automated gates passed. Complete
+responsive acceptance, keyboard/focus traversal, and contrast measurement
+remain open. See [`SYNTHETIC-PORTFOLIO-DEMO.md`](./SYNTHETIC-PORTFOLIO-DEMO.md)
+for the walkthrough and detailed evidence. ADR-018/019 remain Proposed and
+Phase 4.2C remains ON HOLD. No commit, push, or deployment was performed.

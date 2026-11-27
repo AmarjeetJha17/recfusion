@@ -239,3 +239,46 @@ This task did not run browser automation or capture browser/network evidence.
 The prior 1440/900/700/375-pixel responsive measurements remain unverified.
 ADR-018/019 remain Proposed and Phase 4.2C remains ON HOLD. No commit, push,
 deployment, or Phase 7.2 work is part of this closure.
+
+## Phase 7.3 final QA evidence
+
+**Reviewed:** 2026-11-27. This section supersedes the preceding Phase 7.1B
+statement that no browser automation or responsive measurements were
+available. It does not erase the earlier phase-specific records.
+
+Local Chrome verified the built app at CSS widths 1440, 900, 700, and 375 px.
+Home, Explore, and product detail each had `documentElement.scrollWidth` equal
+to the viewport at all four widths. Screenshots were visually inspected for
+the route layouts; recommendation-card details and provenance were inspected
+at 375 px. This establishes no horizontal document overflow for the tested
+route-width pairs, while exhaustive clipping and contrast review remain open.
+
+Browser recommendation flows returned: fixture product-to-product 5/5;
+Local API product-to-product 5/5; synthetic-user content 5/5; warm hybrid
+4/5; content-eligible hybrid 5/5. Fixture mode also returned the five-item
+hybrid fixture with the API stopped and stated that no network request was
+made. The warm hybrid short list was not padded. Browser results displayed
+versioned provenance, original ranks, canonical product IDs, catalog and
+artifact fingerprints, and valid detail links. No synthetic history was
+displayed. No browser HAR was retained.
+
+Chrome's Issues panel showed 0 page errors, 0 breaking changes, and 2 possible
+improvements; one says a form field on two resources lacks `id` or `name`,
+which may affect autofill. The production browser console had 0 messages.
+
+Automated frontend and backend suites passed (56 and 369 tests respectively).
+Tests cover product identity/fingerprint resolution, restricted and unknown
+items, request failures, accessible statuses, retries, cancellations, stale
+responses, and deterministic ordering. The reduced-motion override is
+present, and the previously observed smooth-scroll warning did not recur in
+the browser console. Keyboard-only route traversal, focus-ring inspection,
+and independent contrast measurement remain unverified.
+
+See [`SYNTHETIC-PORTFOLIO-DEMO.md`](./SYNTHETIC-PORTFOLIO-DEMO.md) for launch
+commands, walkthrough, full viewport evidence, limitations, and verdict; see
+[`LOCAL-FRONTEND-API-INTEGRATION.md`](./LOCAL-FRONTEND-API-INTEGRATION.md)
+for current integration and security evidence. Phase 7.3 is **Conditional GO
+for a local portfolio walkthrough**; complete responsive and manual
+accessibility acceptance remain open. ADR-018/019 remain Proposed and Phase
+4.2C remains ON HOLD. No commit, push, deployment, or Phase 7.4 work is
+authorized by this QA review.
