@@ -1,8 +1,12 @@
 # RecFusion
 
-**Release state:** v1.0.0 portfolio release preparation. No v1.0.0 tag, package release, or public deployment has been created.
+**Release:** [v1.0.0 — Portfolio Research Prototype](https://github.com/AmarjeetJha17/recfusion/releases/tag/v1.0.0) | **Status:** Published
 
-RecFusion is a recommendation-systems research prototype with a reproducible offline evaluation codebase and a local, synthetic-only electronics demo. The web demo uses invented products and user contexts. It demonstrates catalog integrity, recommendation contracts, content retrieval, and hybrid rank fusion; it does not establish real-world recommendation quality.
+RecFusion is an evaluation-driven recommendation systems research prototype featuring a reproducible offline ML evaluation pipeline and a local, synthetic-only electronics recommendation application.
+
+The project combines Python, FastAPI, Next.js, TF-IDF content retrieval, weighted Reciprocal Rank Fusion (RRF), deterministic evaluation, and automated quality gates.
+
+**Scope:** Portfolio-ready research prototype. Not a production recommendation service. The local demo uses invented products and synthetic user contexts.
 
 ## Included in the v1.0.0 scope
 
@@ -147,7 +151,11 @@ pnpm run test
 pnpm run build
 ```
 
-GitHub Actions runs separate read-only Python and frontend quality jobs on pushes to and pull requests targeting `master`. The hosted run for Phase 8.2 commit [`4e3cc0c8e76cfd5900b0afff921b3972b8d71d94`](https://github.com/AmarjeetJha17/recfusion/commit/4e3cc0c8e76cfd5900b0afff921b3972b8d71d94) succeeded in [CI run #12](https://github.com/AmarjeetJha17/recfusion/actions/runs/46028982036). This run verifies that committed SHA; later uncommitted documentation changes have no hosted CI result yet.
+GitHub Actions automatically validates the Python backend and Next.js frontend on pushes and pull requests targeting `master`.
+
+The [v1.0.0 release commit](https://github.com/AmarjeetJha17/recfusion/commit/5643dafdc765e37123acffb3063dfdfcd62ba849) passed both hosted quality jobs in the [final CI run](https://github.com/AmarjeetJha17/recfusion/actions/runs/46037492406).
+
+The release baseline includes 375 passing Python tests and 59 passing frontend tests. These checks validate implementation correctness and reproducibility, not real-world recommendation quality.
 
 ## Accessibility and security limits
 
@@ -155,8 +163,9 @@ Verified evidence includes the four viewport widths recorded in [the Phase 7.4 a
 
 ADR-018 and ADR-019 remain **Proposed**. Phase 4.2C remains **ON HOLD**. This repository is a local research/portfolio prototype, not a public recommendation service or a commercial product feed.
 
-## Release records
+## Release & Documentation
 
+- [v1.0.0 — Portfolio Research Prototype](https://github.com/AmarjeetJha17/recfusion/releases/tag/v1.0.0)
 - [v1.0.0 release checklist](docs/RELEASE-V1.0.0-CHECKLIST.md)
 - [v1.0.0 release notes draft](docs/RELEASE-V1.0.0-NOTES.md)
 - [Current versus proposed architecture](docs/ARCHITECTURE.md)
