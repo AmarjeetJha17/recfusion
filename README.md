@@ -107,3 +107,12 @@ uv run pre-commit run --all-files
 ## Continuous integration
 
 The [CI workflow](.github/workflows/ci.yml) runs on pull requests targeting `master` and pushes to `master`. It installs the locked Python dependencies, runs Ruff lint/format checks, mypy, pytest, all pre-commit hooks, and builds the Python package. It does not require Docker, PostgreSQL, Qdrant, datasets, or ML models.
+
+## Synthetic local application demo
+
+The local Next.js app demonstrates invented electronics discovery and an
+opt-in loopback-only synthetic recommendation API. Start-up commands,
+walkthrough, acceptance evidence, security limits, and unverified responsive
+checks are recorded in [`docs/SYNTHETIC-DEMO-ACCEPTANCE.md`](docs/SYNTHETIC-DEMO-ACCEPTANCE.md).
+This is a development demonstration, not a public or production service; it
+does not access real Amazon data or metadata.

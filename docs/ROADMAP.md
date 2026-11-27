@@ -91,6 +91,16 @@ without adding fallback results. This remains presentation-only. See
 [RECOMMENDATION-EXPERIENCE.md](./RECOMMENDATION-EXPERIENCE.md). ADR-018/019
 remain Proposed and Phase 4.2C remains ON HOLD.
 
+### Phase 6.4 — Synthetic application demonstration (conditional owner review)
+
+The existing discovery frontend and explicit loopback API were demonstrated
+with synthetic fixtures and all three API request modes. Automated frontend
+and backend quality checks passed. Exact CSS viewport checks at 1440, 900,
+700, and 375 px remain unverified; see
+[`SYNTHETIC-DEMO-ACCEPTANCE.md`](./SYNTHETIC-DEMO-ACCEPTANCE.md). The
+checkpoint remains conditional pending owner review of those responsive
+checks. ADR-018/019 remain Proposed, and Phase 4.2C remains ON HOLD.
+
 ## Phase 7 — Bounded agent workflow
 
 Intent extraction, preference state, typed tools, grounded comparisons/explanations, clarification and no-match recovery. **Gate:** golden cases and adversarial suite pass; no unverified product claims.
