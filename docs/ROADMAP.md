@@ -166,6 +166,16 @@ Intent extraction, preference state, typed tools, grounded comparisons/explanati
 
 Next.js discovery/chat/comparison/profile/ML Explorer with responsive/accessibility checks. **Gate:** complete e2e demo including empty/offline/failure states.
 
+### Phase 8.1 — Research readiness and next-stage architecture review (owner review pending)
+
+The evidence inventory, real-versus-synthetic research assessment, architecture
+review, and prioritized next-stage proposal are recorded in
+[`PHASE-8-RESEARCH-READINESS.md`](./PHASE-8-RESEARCH-READINESS.md). The review
+recommends synthetic evaluation robustness as a possible next milestone, with
+accessibility closure as an alternative. This is a documentation checkpoint:
+no implementation is authorized or started. ADR-018/019 remain Proposed and
+Phase 4.2C remains ON HOLD. The untouched real test split remains unused.
+
 ## Phase 9 — MLOps and observability
 
 Model registry/versioning, MLflow experiments, source-aware metrics, traces, alerts, performance benchmark. **Gate:** exact model/data version traceability and documented results.
