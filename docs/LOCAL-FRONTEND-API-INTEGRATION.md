@@ -105,33 +105,63 @@ catalog integration limitation, not a claim that the API omitted a returned
 product. Static build and component tests do not substitute for browser
 review.
 
-In the final acceptance pass, the workspace host started the API and frontend
-on `127.0.0.1`; `/ready` and `/explore` each returned HTTP 200 from that host.
-The available Browser Use runner could not reach the workspace host's
-`127.0.0.1:3000` and reported `ERR_CONNECTION_REFUSED` (its worker environment
-had no listener on that address). It captured blocked-state evidence at the
-requested 1440-, 900-, 700-, and 375-pixel widths, but no application page was
-loaded. The browser run was not retried. Responsive overflow, clipping,
-keyboard focus, routes, fixture mode, visual empty/error states, Local API
-requests and responses, canonical IDs, provenance, unknown-input behavior,
-and browser console/network findings therefore remain unverified. The local
-HTTP responses and automated tests below are separate evidence and are not
-browser end-to-end results.
+## Phase 6.3B browser closure evidence (2026-11-27)
 
-The local HTTP smoke used the v1 contract directly against the loopback API:
+The implementation commit is `9e33ab4de0abc975fc1afed586d9cece2e8ed7f1`
+(`feat(web): integrate local synthetic recommendation API`). The working tree
+was clean when reviewed. The user-provided Chrome screenshot shows the
+discovery page at a desktop-sized capture (1920 × 1080 image); it does not
+establish a 1440 CSS-pixel viewport. A fresh workspace-host request to `/`
+returned HTTP 200. A local Chrome capture of
+`/products/not-a-real-product` showed the expected “We can’t find that
+fixture” page and a return-to-discovery link.
+
+| Requested viewport | Evidence reviewed | Result |
+|---|---|---|
+| 1440 px | Supplied 1920 × 1080 desktop screenshot; CSS viewport not recorded | Exact-width responsive result unverified |
+| 900 px | Earlier local Chrome capture at browser zoom 110%, approximately 935 CSS px | Approximate evidence only; result list was readable, canonical IDs wrapped; exact 900 px and overflow measurement unverified |
+| 700 px | Earlier local Chrome capture at browser zoom 150%, approximately 685 CSS px | Approximate evidence only; long IDs wrapped into narrow columns but were not visibly truncated; exact 700 px and overflow measurement unverified |
+| 375 px | No local capture found | Unverified |
+
+Local Chrome interaction evidence from this review covered the home and
+Explore pages, search/category filtering, a valid product detail route, an
+unknown product route, and visible keyboard focus. It also covered explicit
+Local API selection and these displayed responses:
+
+| Mode | Browser-displayed result |
+|---|---|
+| Product-to-product | Five recommendations; `TFIDF_CONTENT V1`, content provenance, and canonical IDs. The captured IDs were `synthetic-electronics-v1:item:000006`, `...000002`, `...000007`, `...000004`, and `...000003`. |
+| Synthetic-user content | Five recommendations with content-similarity provenance; the interface stated that history stays private. Individual returned IDs were not retained in the review notes. |
+| Hybrid | Four recommendations in Warm-only policy with `WEIGHTED_RRF V1`; displayed source provenance included synthetic BPR, item-CF, and content sources. Individual returned IDs were not retained in the review notes. |
+
+With FastAPI unavailable, Local API mode displayed a safe unavailable-service
+error without switching providers. After selecting Fixture mode, the hybrid
+fixture request returned three fixture results and indicated that no network
+request was made. The UI exposes only curated product and user contexts, so
+unknown product/user identifiers were not entered through its controls. The
+unknown-user 404 remains direct-HTTP evidence described below, not browser
+evidence. The unknown product route was verified in local Chrome.
+
+The earlier isolated Browser Use worker reported `ERR_CONNECTION_REFUSED` for
+the workspace loopback address. It was not retried. This is a limitation of
+that worker path and does not contradict the workspace-host HTTP 200 or the
+local Chrome evidence above. No browser console log, DevTools Network capture,
+or HAR was retained; detailed request timing, payloads, and console/network
+errors remain unverified. Browser observations above are separate from the
+direct HTTP smoke and automated tests. They do not establish exact-width
+responsive behavior, no-overflow guarantees, or a clean browser console.
+
+The earlier local HTTP smoke used the v1 contract directly against the
+loopback API:
 `/ready` returned ready; allowed-origin preflight returned 204; product-to-
 product, synthetic-user, and hybrid calls each returned five recommendations;
 repeating the product query returned the same ordered recommendation list;
 an unexpected Origin returned 403; and an unknown synthetic user returned
-404. This verifies HTTP integration, not browser end-to-end behavior. Both
-development servers were bound only to `127.0.0.1` and stopped after the
-smoke. The prior browser review covered the home and Explore pages at a
-desktop-sized viewport, search/category filtering, a product detail route,
-unknown-product not-found behavior, and visible keyboard focus. Responsive
-widths and selecting Local API through the browser remain unverified. An
-earlier browser-control session stopped when URL verification failed; the
-latest attempt was blocked by the isolated browser worker's inability to reach
-the workspace host, as described above.
+404. This verifies HTTP integration, not browser end-to-end behavior. During
+that earlier smoke, both development servers were bound only to `127.0.0.1`
+and then stopped. The frontend was responding again during this closure
+review, when `/` returned HTTP 200; the API's current process state was not
+checked.
 
 Frontend checks passed: `pnpm install --frozen-lockfile`, `pnpm typecheck`,
 `pnpm test` (30 passed), and `pnpm build`. `pnpm lint` completed with 22
@@ -159,10 +189,10 @@ warnings arise from the global stylesheet checker comparing selectors from
 unrelated component subtrees (for example `.sort-control span` and
 `.hero__index span:first-child` cannot match the same element). None points
 to the newly added canonical-ID wrapping rule. No warning-specific visual
-defect was demonstrated in the earlier desktop review or the current build,
-but responsive visual effects remain unverified because browser automation
-was unavailable. No cascade change was justified solely to silence the
-warnings. The optional-chain warning in the fixture provider was removed
+defect was demonstrated in the supplied desktop screenshot or approximate
+local Chrome captures; exact requested responsive widths remain unverified.
+No cascade change was justified solely to silence the warnings. The
+optional-chain warning in the fixture provider was removed
 using an explicit missing-product guard. The exact remaining lint count is
 recorded by the validation run.
 
