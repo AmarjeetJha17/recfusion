@@ -1,6 +1,6 @@
 # Evaluation correctness and performance infrastructure
 
-**Status:** Phase 5.1B synthetic-only evaluation and resource measurements.
+**Status:** Phase 5.2A synthetic-only pipeline profiling and optimization decision.
 Workload sizes are test configurations, not throughput targets, serving
 budgets, or quality evidence.
 
@@ -243,7 +243,7 @@ sizes and are not used to infer asymptotic complexity or extrapolate to a real
 catalog. SMALL process RSS and MEDIUM process RSS are both unavailable on this
 Windows runtime. Both reports contain only aggregate metrics.
 
-### Phase 5.2 priorities proposed from this run
+### Phase 5.1B follow-ups proposed before the Phase 5.2A profile
 
 1. Keep the metric correctness oracle and leakage/candidate-contract tests as
    gates for any optimization.
@@ -257,6 +257,136 @@ Windows runtime. Both reports contain only aggregate metrics.
    Do not use these synthetic measurements to authorize or size real-data
    processing, serving, or model training.
 
-No Phase 5.2 implementation is included in this checkpoint. Phase 4.2C remains
-ON HOLD under Proposed ADR-018. No real Electronics data was read, sampled,
-trained on, or evaluated.
+## Phase 5.2A MEDIUM pipeline profile and decision
+
+### Frozen baseline and methodology
+
+The committed SMALL and MEDIUM reports were verified before profiling. Both
+use schema `recfusion.synthetic-evaluation.v1` and seed `51001`; the MEDIUM
+profile is 200 users, 5,000 warm candidates, depth 20, and K=5/10/20. The
+existing MEDIUM report was not overwritten. Its workload SHA-256 is
+`b3ecab9b8423c7fbec5fcae975da282baf18f8c96982b97ba5d3603f46afc803`,
+recommendation SHA-256 is
+`48c62d96b986d9ae59a151b05d525f61608bd768ed9e40a02f3e7cb7c9cfce16`, and
+metric payload matches the newly profiled runs. The SMALL report remains at
+the same seed and has 20 users and 100 candidates.
+
+Profiling used Python's standard-library `cProfile` and `pstats` around
+`run_synthetic_evaluation` for one MEDIUM run with three metric repetitions.
+A paired unprofiled run used the same profile, seed, code, and repetitions.
+This is one local pair, not a stable multi-run timing distribution. The
+profile was disabled for a separate report-publication measurement. Pure JSON
+serialization was timed separately on the same aggregate report; it is a
+diagnostic submeasurement and must not be added to the end-to-end publication
+time. A short `tracemalloc` snapshot run captured positive retained-allocation
+deltas by source line; these deltas do not include all transient allocations.
+The local `.pstats`, aggregate reports, and profile summary are under the
+gitignored directory
+`data/processed/evaluation-performance-medium-v1/profile-5-2a-final/`.
+No user-level rankings or record contents were written to those artifacts.
+
+### Stage measurements
+
+The paired unprofiled run is used for the stage clocks below. Stage boundaries
+are inclusive only where stated; do not add the full publication clock to its
+separate JSON serialization submeasurement.
+
+| Stage | Observed time | Share of comparable total | Boundary |
+|---|---:|---:|---|
+| Synthetic fixture generation | 0.04999 s | 11.4% of runner | Create synthetic IDs and rating events; includes cohort construction |
+| Eligibility and seen-item cohort checks | Not independently timed | Included above | `build_validation_cohort` is included in fixture generation; cProfile reports it separately as an inclusive function time |
+| Candidate/recommendation construction | 0.03134 s | 7.2% of runner | Build 200 depth-20 rankings and their recommendation digest |
+| Workload fingerprints | 0.01413 s | 3.2% of runner | Hash train/validation events, candidate keys, recommendation output, and workload projection |
+| Per-user ranking metrics plus macro aggregation | 0.01927 s mean per call; 3 calls | 13.2% of runner across all calls | One `evaluate_rankings` call includes validation checks, user loop, per-user metrics, and macro aggregation; internal sub-stages are not separately observable without invasive instrumentation |
+| Stable aggregate projection serialization | 0.000073 s | 0.02% of runner | Existing runner's canonical stable projection serialization |
+| Full aggregate JSON serialization | 0.000063 s mean; 5 repetitions | Not additive | Canonical serialization of a 6,593-byte profile report payload; separate micro-measurement included within `publish_report`'s broader boundary |
+| Output publication | 0.00687 s | 1.6% of runner plus publication | `publish_report` end-to-end: canonical serialization, bounded temp write/flush/fsync, exclusive destination claim, and atomic replace |
+| Total runner | 0.43716 s | 100% of runner | Existing runner boundary; includes generation, three metric calls, provenance/environment collection, and report projection work; excludes final report publication |
+
+Unprofiled process CPU time was 0.1875 s; the cProfile run reported 0.484375 s.
+The process-time clock is coarse at these short durations. The stage values do
+not sum to total runner time. The remainder includes
+runner bookkeeping and provenance/environment collection; cProfile found
+approximately 0.083 s cumulative in two Git subprocess calls for revision and
+dirty-state metadata. Those calls are visible diagnostic overhead, but at
+this workload size they do not establish a meaningful user-facing or resource
+problem. cProfile timing is inclusive and nested function timings overlap.
+
+### Function profile and allocation observations
+
+The profiled runner took 0.55929 s versus 0.43745 s unprofiled, an observed
+**27.85% cProfile overhead** for this single pair. The profile recorded
+134,917 calls (134,899 primitive calls) and 0.553 s total function self time.
+Treat these values as diagnostic only; the profiler noticeably changes the
+runtime, and no latency threshold has been set.
+
+The leading cProfile cumulative times were:
+
+- `build_synthetic_workload`: 0.273 s; it includes calls below it and therefore
+  overlaps its child function timings.
+- `evaluate_rankings`: 0.190 s across three calls (0.063 s profiled mean per
+  call). This includes candidate and seen-item validation, the per-user loop,
+  metric accumulation, and macro aggregation.
+- `build_validation_cohort`: 0.057 s once, including warm/cold eligibility,
+  positive-pair, and seen-item accounting.
+- `RatingEvent.__post_init__`: 5,440 calls / 0.042 s cumulative.
+- `_git_worktree_dirty` and `_git_revision`: 0.049 s and 0.035 s cumulative;
+  together they run two subprocesses for provenance reporting.
+- `_hash_events`: two calls / 0.024 s cumulative; `_hash_lines`: one call /
+  0.017 s cumulative.
+
+The largest positive retained generation deltas were 524,504 bytes for the
+candidate `frozenset`, 312,136 bytes for seen-item sets built by cohort
+construction, and 310,000 bytes for the 5,000 synthetic item keys. These are
+source-line snapshot deltas, not exclusive object sizes or peak allocation
+totals. The generation traced peak was 3,669,824 bytes; evaluation snapshot
+peak was 46,376 bytes; the three-call traced evaluation peak averaged 45,592
+bytes. All these measurements cover Python allocations only.
+
+The harness's true process peak RSS probe is unsupported on this Windows
+runtime. A short external working-set sampling attempt produced a constant
+4.14 MiB reading that could not be independently validated against the live
+Python process, so it is excluded; current working set and true peak RSS remain
+unavailable. No `psutil` or other dependency was added.
+
+### Correctness, equivalence, and resource safety
+
+The unprofiled run, cProfile run, and saved MEDIUM baseline agree exactly on
+profile, seed, configuration, input/output counts, cohort audit, workload,
+train, validation, recommendation, and evaluation-code hashes, schema, and
+metric payload. The profiled and unprofiled runs also have the same stable
+projection hash:
+`8a35268a26c9f68a25130fa83c629e49ac1fcc005da0c4504748a05d2ec388c0`.
+The historical baseline report has a different stable projection hash because
+it records the earlier HEAD and a dirty worktree; its workload and result
+fingerprints and metrics are unchanged. Candidate eligibility remains exactly
+the train-known pool with train-seen items excluded. The cohort remains 200
+warm eligible targets and 40 audited cold-item exclusions. The evaluator's
+200-user denominator and per-user macro policy are unchanged. No target,
+temporal, or test leakage path was introduced.
+
+The run generated 5,440 records and stayed within the existing bounds: 200 of
+1,000 users, 5,000 of 25,000 candidates, 64 of 500 batch rows, and a report
+under 7 KB against a 1 MB limit. The two profiling reports were 6,594 and
+6,660 bytes; the `.pstats` artifact was 50,586 bytes. The profiling outputs
+are ignored locally. No Amazon CSV, trusted real split, model checkpoint, or
+metadata was opened.
+
+### Optimization decision
+
+**NO OPTIMIZATION NEEDED.** The existing MEDIUM path is deterministic and
+correct, remains comfortably inside its explicit synthetic bounds, and takes
+under half a second for the runner in the paired unprofiled observation. No
+performance budget or reproducible resource failure demonstrates a material
+cost problem. The Git subprocesses and `RatingEvent` validation are possible
+future optimization targets only if a later representative workload shows
+they matter. The cProfile overhead itself is diagnostic instrumentation, not
+a production cost. Do not optimize based only on these synthetic timings.
+
+Recommended next milestone: project-owner review of this profile, then retain
+the current evaluator unless a future, predeclared workload budget shows a
+specific cost or resource blocker. If deeper resource evidence is needed, run
+the same frozen MEDIUM profile in an environment that exposes trustworthy
+current working set and peak RSS before proposing code changes. No optimization
+was implemented in Phase 5.2A. ADR-018 remains Proposed; Phase 4.2C remains ON
+HOLD. No real Electronics data was read, sampled, trained on, or evaluated.
