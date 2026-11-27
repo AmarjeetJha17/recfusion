@@ -1,6 +1,6 @@
-# RecFusion — documentation-first project starter
+# RecFusion — electronics recommendation research prototype
 
-**Status:** Phase 1 repository/API foundations and a Phase 2 source-independent ingestion foundation exercised only with synthetic local fixtures. No recommendation features, trained models, performance measurements, live inventory, or product integrations are implied by this implementation.
+**Status:** Local synthetic catalog discovery and Recommendation Lab implemented. The demo verifies interface and API integration contracts, not recommendation quality. Real-data research findings are validation-only; no model is promoted for serving.
 
 RecFusion is an **evaluation-driven hybrid electronics recommender**: classical and neural retrieval generate candidates; deterministic constraints and a learned ranker order products; a bounded agent workflow extracts preferences, calls typed tools, and explains catalog-grounded results. It is **not** an LLM that invents shopping recommendations.
 
@@ -112,7 +112,14 @@ The [CI workflow](.github/workflows/ci.yml) runs on pull requests targeting `mas
 
 The local Next.js app demonstrates invented electronics discovery and an
 opt-in loopback-only synthetic recommendation API. Start-up commands,
-walkthrough, acceptance evidence, security limits, and unverified responsive
-checks are recorded in [`docs/SYNTHETIC-DEMO-ACCEPTANCE.md`](docs/SYNTHETIC-DEMO-ACCEPTANCE.md).
-This is a development demonstration, not a public or production service; it
-does not access real Amazon data or metadata.
+walkthrough, viewport evidence, accessibility findings, and limitations are
+recorded in [`docs/SYNTHETIC-PORTFOLIO-DEMO.md`](docs/SYNTHETIC-PORTFOLIO-DEMO.md)
+and [`docs/ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md`](docs/ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md).
+It uses invented products and user contexts. This is a local development
+demonstration, not a public or production service.
+
+Real-data collaborative results and their validation-only limits are kept
+separate in [`docs/RECOMMENDATION-RESEARCH-SYNTHESIS.md`](docs/RECOMMENDATION-RESEARCH-SYNTHESIS.md).
+Those results use historical review/interaction signals, not purchase
+conversions or live inventory, and do not authorize Amazon metadata use;
+Phase 4.2C remains ON HOLD.

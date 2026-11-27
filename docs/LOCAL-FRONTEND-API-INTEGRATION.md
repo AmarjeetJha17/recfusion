@@ -327,6 +327,67 @@ lint, format, typecheck, tests, pre-commit, and package-build steps for pushes
 and pull requests targeting `master`. Its remote run status was not queried;
 the validation results here are local.
 
+## Phase 7.4 accessibility and browser acceptance closure
+
+**Reviewed:** 2026-11-27. This section supersedes Phase 7.3 statements above
+that keyboard acceptance, control contrast, form IDs/names, mobile clipping,
+and browser mode flows were still unverified. Earlier phase-specific records
+remain historical. Full evidence and limits are in
+[`ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md`](./ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md).
+
+Local Chrome verified home, Explore, and product detail at CSS widths 1440,
+900, 700, and 375 px. `scrollWidth` equalled `clientWidth` at every pair; no
+horizontal document overflow was observed. At 375 px, long fingerprints,
+canonical IDs, provenance, and card details wrapped within the page. Search
+and select controls were 46.4 px high, submit 46 px, filter chips 40.8 px,
+and mode cards 68 px. The first 375 px screenshot exposed a 5 px crop on the
+right edge of the header; the mobile page/header width was reduced, and a
+follow-up screenshot showed the full “Demo mode” label within the viewport.
+All three routes were rechecked at 375 px after that fix. Screenshots were
+visually inspected but not retained; no HAR was retained.
+
+The keyboard walkthrough verified the focused skip link and main-content
+target, home navigation actions, source/mode radio operation, focused context
+select and submit, recommendation card/detail navigation, and Enter on
+**Retry request**. The full keyboard path through all search, filter, sort,
+card, detail, provenance, and error states; keyboard-trap checks; and paired
+screen-reader testing remain open.
+
+Contrast was measured from rendered CSS colors. Normal text pairs measured
+at least 6.70:1 and white text on the primary button measured 6.70:1. The
+original `#cbd5e1` control boundary measured 1.48:1 on white and failed the
+3:1 non-text threshold. A dedicated `--control-border: #64748b` now applies
+to select, search, and filter controls; it measures 4.76:1 on white and
+4.26:1 on the soft surface. Reduced-motion emulation returned true for the
+media query; document scrolling computed to `auto`, with transitions and
+animations at `0.00001s`.
+
+Catalog search and sort now have the unique ID/name pairs `catalog-search`
+and `catalog-sort`, with regression coverage. Chrome Issues reported zero
+page errors, breaking changes, and possible improvements after this update.
+The app console contained no errors or warnings; the native development
+browser showed only informational React DevTools/HMR notices. Observed app
+requests used the frontend and fixed loopback API; the failed request was an
+intentional check of the unavailable/retry state.
+
+Browser results: fixture product-to-product 5/5; API product-to-product
+5/5; synthetic-user 5/5; warm hybrid 4/5; content-eligible hybrid 5/5. The
+UI preserved rank, exact IDs, fingerprints, provenance, and links; the warm
+hybrid short list was announced and not padded. Blocking the local API
+request surfaced the explicit unavailable message and Retry button; after
+unblocking, keyboard Enter on Retry returned live results without fixture
+fallback. Fixture mode rendered offline and made no recommendation request.
+
+The earlier real-data Two-Tower result remains validation-only: NDCG@10
+`0.015572` with K=10 catalog coverage `0.000684` (31/45,331) in one
+10,000-user Electronics 5-core pilot; no independent test evaluation was
+performed. Synthetic demo metrics are not real-data performance evidence.
+ADR-018/019 remain Proposed and Phase 4.2C remains ON HOLD. No serving,
+training, data-access, or security policy changed. The full keyboard review,
+paired assistive-technology check, exhaustive component clipping review,
+and detailed HAR/payload review remain unverified. No commit, push, or
+deployment was performed.
+
 **Phase 7.3 verdict: Conditional GO for a local portfolio walkthrough.** The
 API/fixture flows, identity checks, and automated gates passed. Complete
 responsive acceptance, keyboard/focus traversal, and contrast measurement

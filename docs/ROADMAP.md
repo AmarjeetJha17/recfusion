@@ -122,9 +122,26 @@ Automated frontend checks and local loopback mode smoke passed. Unknown,
 mismatched, hidden, duplicate, incomplete, and ineligible identity behavior is
 covered by resolver/component tests. See
 [`VERIFIED-RECOMMENDATION-CARDS.md`](./VERIFIED-RECOMMENDATION-CARDS.md).
-Exact 1440/900/700/375 browser measurements and complete responsive/accessibility
-acceptance remain open. This implementation is awaiting project-owner review;
-it does not change ADR-018/019 status or Phase 4.2C ON HOLD.
+The Phase 7.2 checkpoint left exact 1440/900/700/375 browser measurements
+and complete responsive/accessibility acceptance open; the later Phase 7.4
+audit records the measurements and remaining manual gaps. This implementation
+is awaiting project-owner review; it does not change ADR-018/019 status or
+Phase 4.2C ON HOLD.
+
+### Phase 7.4 — Accessibility closure and portfolio release audit (owner review pending)
+
+Local Chrome verified all three routes at 1440, 900, 700, and 375 CSS px with
+no horizontal document overflow. Form control contrast was measured and the
+search/select/filter boundaries were strengthened; reduced-motion emulation,
+stable search/sort identifiers, local API modes, failure messaging, and
+keyboard retry recovery were checked. Browser results and limitations are
+recorded in [`ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md`](./ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md)
+and [`SYNTHETIC-PORTFOLIO-DEMO.md`](./SYNTHETIC-PORTFOLIO-DEMO.md).
+
+Full keyboard traversal, paired screen-reader testing, exhaustive component
+clipping review, and a retained HAR remain unverified. The audit does not
+advance a release milestone or change ADR-018/019 or Phase 4.2C, which remains
+ON HOLD. Project-owner review is pending.
 
 ## Phase 7 — Bounded agent workflow
 

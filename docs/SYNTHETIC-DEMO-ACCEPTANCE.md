@@ -282,3 +282,39 @@ for a local portfolio walkthrough**; complete responsive and manual
 accessibility acceptance remain open. ADR-018/019 remain Proposed and Phase
 4.2C remains ON HOLD. No commit, push, deployment, or Phase 7.4 work is
 authorized by this QA review.
+
+## Phase 7.4 accessibility and portfolio audit
+
+This later local-browser audit supersedes Phase 7.3 statements that
+responsive, keyboard/focus, control-contrast, and autofill checks were still
+open. Earlier phase-specific evidence remains historical. See
+[`ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md`](./ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md)
+for the full evidence matrix and limitations.
+
+Local Chrome checked home, Explore, and product detail at 1440, 900, 700,
+and 375 CSS px. `scrollWidth` equalled `clientWidth` for all pairs. At 375 px,
+long canonical IDs, fingerprints, provenance, and product-card details
+wrapped; search/select controls measured 46.4 px, submit 46 px, filter chips
+40.8 px, and mode cards 68 px. The first 375 px screenshot showed a 5 px
+right-edge crop on the header; the mobile page/header width was reduced. A
+follow-up screenshot showed “Demo mode” fully visible, and all three routes
+were rechecked at 375 px. No screenshot or HAR was retained.
+
+The keyboard pass verified the visible skip link, primary navigation actions,
+source/mode radio selection, focused select and submit controls, product
+detail links, and Enter-key retry recovery. Complete keyboard traversal and
+paired screen-reader testing remain open. Contrast measurement found the old
+control border at 1.48:1 on white; control borders now measure 4.76:1 on white
+and 4.26:1 on the soft surface. Emulated reduced motion set page scrolling
+to `auto` and transitions/animations to `0.00001s`. Search/sort controls now
+have stable, unique ID/name pairs and regression coverage; Chrome Issues
+reported zero remaining findings.
+
+Fixture product-to-product returned 5/5 offline. Browser Local API results
+were product-to-product 5/5, synthetic-user 5/5, warm hybrid 4/5, and
+content-eligible hybrid 5/5. The unavailable state was explicit and offered
+Retry; after restoring the loopback request, Enter on Retry recovered to 5/5
+live results with no fixture substitution. Result ranks, identities,
+fingerprints, provenance, and links were present. No API or security
+contract changed. ADR-018/019 remain Proposed; Phase 4.2C remains ON HOLD.
+Project-owner review is pending; no commit, push, or deployment occurred.

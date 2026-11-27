@@ -1,8 +1,8 @@
 # RecFusion Synthetic Portfolio Demonstration
 
-**Phase 7.3 final QA — reviewed 2026-11-27**
+**Phase 7.4 accessibility and portfolio audit — reviewed 2026-11-27**
 
-**Acceptance:** Conditional GO for a local synthetic portfolio walkthrough; full responsive and manual accessibility sign-off remains open.
+**Acceptance:** Conditional GO for a local synthetic portfolio walkthrough. Full keyboard and assistive-technology sign-off remains open; project-owner review is pending.
 
 ## What this demonstrates
 
@@ -123,3 +123,66 @@ Backend: offline frozen sync and lock check passed; Ruff check/format and mypy p
 The checked-in [CI workflow](../.github/workflows/ci.yml) defines Python lint, formatting, type checking, pytest, pre-commit, and package-build jobs on pushes and pull requests targeting `master`. Its current remote run status was not queried; the results above are local evidence.
 
 **Conditional GO for a local portfolio walkthrough.** The requested route-by-width matrix has no horizontal overflow at 1440/900/700/375 px. Manual accessibility sign-off remains open: keyboard-only route traversal, direct focus-ring review, and contrast measurement were not completed. Chrome also surfaced an autofill markup improvement. The implementation and automated quality gates passed; browser/API mode flows passed as recorded above. This does not authorize a commit, push, deployment, real-data work, Phase 4.2C, or another implementation phase.
+
+## Phase 7.4 accessibility and release audit
+
+The current Phase 7.4 findings supersede the Phase 7.3 limits immediately
+above. The detailed acceptance matrix is in
+[`ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md`](./ACCESSIBILITY-AND-PORTFOLIO-REVIEW.md).
+
+Local Chrome checked home, Explore, and product detail at 1440, 900, 700,
+and 375 CSS px. For each route and width, `documentElement.scrollWidth` was
+equal to `clientWidth`. At 375 px, recommendation provenance, canonical IDs,
+fingerprints, and card text wrapped within the viewport. The inspected
+screenshots were not saved as repository files; a HAR was not retained. The
+first 375 px screenshot revealed a 5 px right-edge crop on the header. After
+reducing the mobile page/header width, the follow-up screenshot showed the
+full “Demo mode” label and all three routes retained no overflow.
+
+Keyboard checks verified the skip link, home navigation actions, source/mode
+radio selection, focus on the context select and submit button, product
+detail links, and Enter-key recovery through **Retry request**. Full keyboard
+traversal through search, filters, sorting, every route control, and all
+error states is still open. Screen-reader review with assistive technology
+was not performed.
+
+Contrast measurements found the original `#cbd5e1` control border at 1.48:1
+against white. Search, select, and filter control borders now use
+`#64748b`, measured at 4.76:1 on white and 4.26:1 on `#eef3f7`. Normal text
+and primary-button pairs measured 6.70:1 or higher. With
+`prefers-reduced-motion: reduce` emulated, scroll behavior computed to
+`auto`; button transitions and animations computed to `0.00001s`.
+
+The search and sort controls now have unique stable ID/name pairs and
+regression tests. Chrome Issues reported zero page errors, zero breaking
+changes, and zero possible improvements. Browser console errors and warnings
+were absent; development React DevTools/HMR notices were informational.
+
+Browser flows passed: fixture product-to-product 5/5; live API
+product-to-product 5/5; synthetic-user 5/5; warm hybrid 4/5; content-eligible
+hybrid 5/5. The warm hybrid list remained short and the UI announced that
+count. A deliberately blocked loopback API request displayed the unavailable
+state and Retry button. Unblocking the request and pressing Enter on Retry
+restored 5/5 live results without substituting fixture data. Fixture mode
+rendered its offline result and made no recommendation request. App requests
+observed in Chrome used the local frontend and fixed loopback API origins;
+no HAR/payload-level review was retained.
+
+### Historical real-interaction findings
+
+The real-data research findings remain separate from this synthetic
+walkthrough. On one 10,000-user Electronics 5-core pilot, the validation-
+selected Two-Tower checkpoint reported NDCG@10 `0.015572` and Recall@10
+`0.025889`, with only `0.000684` K=10 coverage (31 of 45,331 candidates).
+There was no independent test-set evaluation; selection on validation and
+severe coverage concentration limit interpretation. Review signals are not
+purchases, impressions, or confirmed negatives. See
+[`RECOMMENDATION-RESEARCH-SYNTHESIS.md`](./RECOMMENDATION-RESEARCH-SYNTHESIS.md)
+for the cohorts and complete metric caveats. No model is promoted for serving.
+
+**Phase 7.4 verdict: Conditional GO for a local synthetic portfolio
+walkthrough, pending project-owner review.** Full keyboard traversal, paired
+screen-reader review, exhaustive component clipping review, and detailed
+network-payload evidence remain unverified. ADR-018/019 remain Proposed and
+Phase 4.2C remains ON HOLD. No commit, push, deployment, algorithm, API
+contract, catalog identity, or security-policy change is part of this review.

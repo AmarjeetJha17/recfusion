@@ -38,6 +38,8 @@ export function DiscoveryCatalog() {
           <span>Sort by</span>
           <select
             aria-label="Sort products"
+            id="catalog-sort"
+            name="catalog-sort"
             onChange={(event) => setSort(event.target.value as ProductSort)}
             value={sort}
           >
@@ -57,6 +59,8 @@ export function DiscoveryCatalog() {
           <input
             aria-label="Search synthetic electronics"
             autoComplete="off"
+            id="catalog-search"
+            name="catalog-search"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search devices, features, or connectors"
             type="search"

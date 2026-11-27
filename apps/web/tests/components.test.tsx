@@ -17,6 +17,22 @@ describe("catalog and product presentation", () => {
     expect(screen.getAllByRole("article").length).toBeGreaterThan(5);
   });
 
+  it("gives catalog search and sorting controls unique stable form identifiers", () => {
+    render(<DiscoveryCatalog />);
+
+    const search = screen.getByRole("searchbox", {
+      name: /search synthetic electronics/i,
+    });
+    const sort = screen.getByRole("combobox", { name: "Sort products" });
+
+    expect(search).toHaveAttribute("id", "catalog-search");
+    expect(search).toHaveAttribute("name", "catalog-search");
+    expect(sort).toHaveAttribute("id", "catalog-sort");
+    expect(sort).toHaveAttribute("name", "catalog-sort");
+    expect(document.querySelectorAll("#catalog-search")).toHaveLength(1);
+    expect(document.querySelectorAll("#catalog-sort")).toHaveLength(1);
+  });
+
   it("updates search and category results with keyboard-operable controls", async () => {
     const user = userEvent.setup();
     render(<DiscoveryCatalog />);
