@@ -17,9 +17,9 @@ async def health() -> HealthResponse:
     responses={503: {"model": ReadinessResponse}},
 )
 async def readiness(request: Request) -> ReadinessResponse | JSONResponse:
-    demo_unavailable = (
-        request.app.state.settings.synthetic_demo_enabled
-        and request.app.state.recommendation_service is None
+    demo_unavailable = request.app.state.settings.synthetic_demo_enabled and (
+        request.app.state.recommendation_service is None
+        or request.app.state.recommendation_limiter is None
     )
     if not request.app.state.initialized or demo_unavailable:
         response = ReadinessResponse(status="not_ready")

@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+from anyio import WouldBlock
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from starlette.concurrency import run_in_threadpool
 
 from recfusion_api.dependencies.recommendation import (
     RecommendationRequestParseError,
+    has_json_content_type,
     parse_recommendation_payload,
     read_bounded_body,
     require_loopback_scope,
+    run_with_capacity,
 )
 from recfusion_api.schemas.recommendation import (
     RecommendationError,
@@ -68,6 +70,7 @@ def _status_for(code: RecommendationErrorCode) -> int:
         200: {"model": RecommendationResponse},
         403: {"model": RecommendationErrorResponse},
         404: {"model": RecommendationErrorResponse},
+        415: {"model": RecommendationErrorResponse},
         422: {"model": RecommendationErrorResponse},
         500: {"model": RecommendationErrorResponse},
         503: {"model": RecommendationErrorResponse},
@@ -87,6 +90,12 @@ async def recommend(request: Request) -> JSONResponse:
     request_id = getattr(request.state, "request_id", "unavailable")
     if not require_loopback_scope(request):
         return _error_response(request_id, RecommendationErrorCode.INVALID_REQUEST, 403)
+    if not has_json_content_type(request):
+        return _error_response(
+            request_id, RecommendationErrorCode.UNSUPPORTED_CONTENT_TYPE, 415
+        )
+    if request.query_params:
+        return _error_response(request_id, RecommendationErrorCode.INVALID_REQUEST, 422)
     try:
         body = await read_bounded_body(request)
         recommendation_request = parse_recommendation_payload(body)
@@ -94,12 +103,19 @@ async def recommend(request: Request) -> JSONResponse:
         return _error_response(request_id, error.code, 422)
 
     service = getattr(request.app.state, "recommendation_service", None)
-    if service is None:
+    limiter = getattr(request.app.state, "recommendation_limiter", None)
+    if service is None or limiter is None:
         return _error_response(
             request_id, RecommendationErrorCode.DEMO_UNAVAILABLE, 503
         )
     try:
-        result = await run_in_threadpool(service.recommend, recommendation_request)
+        result = await run_with_capacity(
+            lambda: service.recommend(recommendation_request), limiter
+        )
+    except WouldBlock:
+        return _error_response(
+            request_id, RecommendationErrorCode.CONCURRENCY_LIMIT_EXCEEDED, 503
+        )
     except RecommendationServiceError as error:
         return _error_response(request_id, error.code, _status_for(error.code))
     except Exception:

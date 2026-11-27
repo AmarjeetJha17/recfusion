@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
+from anyio import CapacityLimiter
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -25,14 +26,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        if app_settings.synthetic_demo_enabled:
-            app.state.recommendation_service = build_synthetic_recommendation_service()
-        app.state.initialized = True
         try:
+            if app_settings.synthetic_demo_enabled:
+                app.state.recommendation_service = (
+                    build_synthetic_recommendation_service()
+                )
+                app.state.recommendation_limiter = CapacityLimiter(
+                    app_settings.synthetic_demo_max_concurrency
+                )
+            app.state.initialized = True
             yield
         finally:
             app.state.initialized = False
             app.state.recommendation_service = None
+            app.state.recommendation_limiter = None
 
     app = FastAPI(
         title=app_settings.app_name,
@@ -47,6 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = app_settings
     app.state.initialized = False
     app.state.recommendation_service = None
+    app.state.recommendation_limiter = None
     app.include_router(health_router)
     if app_settings.synthetic_demo_enabled:
         app.include_router(recommendations_router)

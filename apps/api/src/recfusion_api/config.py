@@ -1,6 +1,6 @@
 from typing import Literal, Self
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["development", "test", "production"]
@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     debug: bool = False
     log_level: LogLevel = "INFO"
     synthetic_demo_enabled: bool = False
+    synthetic_demo_max_concurrency: int = Field(default=2, ge=1, le=4)
 
     @model_validator(mode="after")
     def reject_production_debug(self) -> Self:
