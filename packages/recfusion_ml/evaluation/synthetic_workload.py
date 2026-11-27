@@ -71,6 +71,7 @@ class SyntheticWorkload:
     output_sha256: str
     training_events_sha256: str
     validation_events_sha256: str
+    stage_timings: Mapping[str, float]
 
 
 def get_workload_config(
@@ -197,6 +198,7 @@ def build_synthetic_workload(config: WorkloadConfig) -> SyntheticWorkload:
     if config != checked:
         raise ValueError("WorkloadConfig does not match its validated profile.")
 
+    fixture_started = time.perf_counter()
     users = tuple(f"synthetic-user-{index:05d}" for index in range(config.user_count))
     items = tuple(
         f"synthetic-item-{index:06d}" for index in range(config.candidate_count)
@@ -240,6 +242,8 @@ def build_synthetic_workload(config: WorkloadConfig) -> SyntheticWorkload:
         for index in range(len(cold_items))
     )
     cohort = build_validation_cohort(training, validation, candidates)
+    fixture_generation_seconds = time.perf_counter() - fixture_started
+    recommendation_started = time.perf_counter()
     rankings = {
         user: tuple(
             items[(index + offset + seed_shift + 1) % (len(items) - 1) + 1]
@@ -267,6 +271,8 @@ def build_synthetic_workload(config: WorkloadConfig) -> SyntheticWorkload:
     for user in sorted(rankings):
         for item in rankings[user]:
             recommendation_digest.update(f"{user}\t{item}\n".encode())
+    recommendation_generation_seconds = time.perf_counter() - recommendation_started
+    fingerprint_started = time.perf_counter()
     training_digest = _hash_events(training)
     validation_digest = _hash_events(validation)
     fingerprint = hashlib.sha256()
@@ -285,6 +291,7 @@ def build_synthetic_workload(config: WorkloadConfig) -> SyntheticWorkload:
             }
         )
     )
+    fingerprint_seconds = time.perf_counter() - fingerprint_started
     return SyntheticWorkload(
         config=config,
         cohort=cohort,
@@ -296,6 +303,11 @@ def build_synthetic_workload(config: WorkloadConfig) -> SyntheticWorkload:
         output_sha256=recommendation_digest.hexdigest(),
         training_events_sha256=training_digest,
         validation_events_sha256=validation_digest,
+        stage_timings={
+            "synthetic_fixture_generation_seconds": fixture_generation_seconds,
+            "recommendation_generation_seconds": recommendation_generation_seconds,
+            "workload_fingerprint_seconds": fingerprint_seconds,
+        },
     )
 
 
@@ -404,6 +416,7 @@ def run_synthetic_evaluation(
     allow_large: bool = False,
     memory_probe: Callable[[], dict[str, object]] | None = None,
 ) -> dict[str, object]:
+    run_started = time.perf_counter()
     if (
         isinstance(repetitions, bool)
         or not isinstance(repetitions, int)
@@ -412,7 +425,9 @@ def run_synthetic_evaluation(
     ):
         raise ValueError("repetitions must be between 1 and 10.")
     config = get_workload_config(profile, seed=seed, allow_large=allow_large)
-    workload = build_synthetic_workload(config)
+    workload, generation_measurement = _measure(
+        lambda: build_synthetic_workload(config), memory_probe=memory_probe
+    )
     metrics: dict[str, object] | None = None
     resource_runs: list[dict[str, object]] = []
     for _ in range(repetitions):
@@ -533,6 +548,9 @@ def run_synthetic_evaluation(
             "git_worktree_dirty": _git_worktree_dirty(),
         },
     }
+    serialization_started = time.perf_counter()
+    stable_payload_bytes = _canonical_bytes(stable_payload)
+    serialization_seconds = time.perf_counter() - serialization_started
     process_samples = [
         cast(float, cast(dict[str, object], record["process_time_seconds"])["value"])
         for record in resource_runs
@@ -544,9 +562,10 @@ def run_synthetic_evaluation(
         if cast(dict[str, object], record["python_traced_peak_bytes"])["value"]
         is not None
     ]
-    return {
+    report: dict[str, object] = {
         **stable_payload,
-        "stable_sha256": hashlib.sha256(_canonical_bytes(stable_payload)).hexdigest(),
+        "stable_sha256": hashlib.sha256(stable_payload_bytes).hexdigest(),
+        "generation_resources": generation_measurement,
         "resources": resource_runs,
         "resource_summary": {
             "wall_time_seconds_mean": statistics.fmean(wall_samples),
@@ -566,7 +585,21 @@ def run_synthetic_evaluation(
             "repetitions": repetitions,
             "process_scope": "current process only; child processes are not measured",
         },
+        "stage_timings": {
+            **workload.stage_timings,
+            "metric_evaluation_mean_wall_seconds": statistics.fmean(wall_samples),
+            "aggregate_serialization_seconds": serialization_seconds,
+            "total_workload_execution_seconds": 0.0,
+            "total_scope": (
+                "runner including generation, metric repetitions, and stable "
+                "projection serialization; excludes report file publication"
+            ),
+        },
     }
+    cast(dict[str, object], report["stage_timings"])[
+        "total_workload_execution_seconds"
+    ] = time.perf_counter() - run_started
+    return report
 
 
 def _package_version(name: str) -> str | None:

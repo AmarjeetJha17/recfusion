@@ -90,6 +90,17 @@ def test_synthetic_workload_and_report_are_deterministic() -> None:
     assert first["stable_sha256"] == second["stable_sha256"]
     assert first["workload_sha256"] == second["workload_sha256"]
     assert first["metrics"] == second["metrics"]
+    stage_timings = first["stage_timings"]
+    for stage in (
+        "synthetic_fixture_generation_seconds",
+        "recommendation_generation_seconds",
+        "workload_fingerprint_seconds",
+        "aggregate_serialization_seconds",
+        "total_workload_execution_seconds",
+    ):
+        assert stage_timings[stage] >= 0  # type: ignore[index]
+    generation_memory = first["generation_resources"]["python_traced_peak_bytes"]  # type: ignore[index]
+    assert generation_memory["status"] in {"available", "unavailable"}
     assert first["input_counts"] == {
         "train_records": 120,
         "validation_records": 24,

@@ -1,7 +1,8 @@
 # Evaluation correctness and performance infrastructure
 
-**Status:** Phase 5.1A synthetic-only infrastructure. Workload sizes are test
-configurations, not throughput targets, serving budgets, or quality evidence.
+**Status:** Phase 5.1B synthetic-only evaluation and resource measurements.
+Workload sizes are test configurations, not throughput targets, serving
+budgets, or quality evidence.
 
 ## Correctness contracts
 
@@ -104,10 +105,13 @@ contain aggregates only, not user/item keys or per-user rankings.
 
 The report explicitly identifies synthetic-only data, records rating and
 cohort audit counts, and marks timestamp range and metadata unavailable. The
-performance figures characterize only the local synthetic evaluator call;
-workload construction and report publication are outside the timed interval.
-They are not real-catalog latency, production throughput, capacity estimates,
-or recommendation-quality claims.
+MEDIUM report separately records synthetic fixture generation,
+recommendation generation, workload fingerprinting, metric evaluation,
+aggregate serialization, and total runner time. Total runner time includes
+generation, metric repetitions, and stable-projection serialization, but not
+report file publication or `uv` process startup. These measurements are local
+synthetic execution observations, not real-catalog latency, production
+throughput, capacity estimates, or recommendation-quality claims.
 
 ## Phase 5.1A SMALL smoke check
 
@@ -154,18 +158,105 @@ Observed on CPython 3.13.11 / Windows 11 AMD64, Git revision
   `900010c84427895babbb7db1139d78ffb383c21d4758c7fc43636ff6d55dcc01`.
 
 The stable fingerprint excludes volatile `resources`, `resource_summary`, the
-stable fingerprint field itself, and the local artifact path. Only SMALL was
-run; MEDIUM and LARGE were not run. This millisecond-scale fixture does not
+stable fingerprint field itself, and the local artifact path. At completion of
+the Phase 5.1A checkpoint, only SMALL had run; MEDIUM and LARGE had not run.
+This millisecond-scale fixture does not
 measure end-to-end workload generation, retrieval serving, or real-data
 throughput.
 
-## Proposed Phase 5.1B experiment design
+## Phase 5.1B MEDIUM controlled synthetic evaluation
 
-After owner review, a separate checkpoint may run explicitly selected MEDIUM
-workloads and repeat them under a documented, controlled environment. It
-should preserve the evaluator and candidate contract, report repeated-run
-variance and resource method/scope, and compare sparse implementation paths
-only when profiling identifies a bottleneck. LARGE should require a separate
-explicit invocation and resource review. No synthetic measurements should be
-extrapolated to real Electronics data or online serving; any real-data run
-remains subject to the independent data-use and pilot gates.
+One MEDIUM run was executed from the repository root with seed `51001` and
+three evaluator repetitions. The report is local and gitignored at
+`data/processed/evaluation-performance-medium-v1/output/report.json`; it is
+not committed. The command used the existing CLI and offline project
+environment:
+
+```powershell
+uv run --offline python -m recfusion_ml.evaluation.synthetic_workload --profile medium --seed 51001 --repetitions 3 --output data/processed/evaluation-performance-medium-v1/output/report.json --temp-dir data/processed/evaluation-performance-medium-v1/tmp
+```
+
+Preflight found approximately 12 GiB available RAM and 173 GiB free on the
+project drive. The run used conservative 2 GiB available-RAM and 1 GiB free-
+disk abort floors; these are safety guards, not estimates of workload capacity.
+The output path was absent before execution and ignored by Git. The separate
+temporary directory was also ignored. The harness does not use SQLite, so
+temporary SQLite size is not applicable. No source-data files were opened.
+
+Observed workload and correctness results:
+
+- 200 train-eligible and evaluated users; 5,000 warm candidate items.
+- 5,200 synthetic train records, 240 validation records (200 warm targets and
+  40 cold-item positives), 5,440 generated records total, and 0 rejected
+  records.
+- The warm-start cohort contains 200 eligible positive targets. All 40
+  cold-item positives are counted as exclusions; there are 0 cold-user, seen,
+  or duplicate-positive observations.
+- The exact train-known candidate pool has 5,000 items, with each user's
+  train-seen items excluded. The output has 200 recommendation users and
+  4,000 recommendation rows at source depth 20 (20 per user).
+- Recall/HitRate at K=5/10/20 are 0.25/0.50/1.00; NDCG is
+  0.147423/0.227178/0.352013; MRR is 0.114167/0.146448/0.179887; candidate
+  coverage is 0.0408/0.0418/0.0438. These are deterministic synthetic fixture
+  outcomes, not comparative model evidence.
+- All ratings are 5 by construction. Timestamp range and product metadata are
+  unavailable. The fixture contains no raw identifiers or row-level report
+  output.
+
+Measured stages and resource scope:
+
+- Fixture generation: 0.06970 seconds; recommendation generation: 0.04148
+  seconds; workload fingerprinting: 0.01752 seconds.
+- Three metric calls averaged 0.02712 seconds (population standard deviation
+  0.00124 seconds). Aggregate serialization took 0.000129 seconds. Total
+  measured runner time was 0.58386 seconds; it includes those stages and
+  report projection work, but excludes final report publication and `uv`
+  startup.
+- Generation traced Python allocation peak was 3,670,048 bytes. Metric-call
+  traced peak averaged 45,592 bytes (population standard deviation 113 bytes).
+  These are Python allocation measurements, not total process memory.
+- Process CPU time was 0.125 seconds for generation and 0.015625 seconds per
+  metric call. Process peak RSS is unavailable because the Windows harness
+  does not expose the supported OS peak-memory API. No external RSS substitute
+  was used. Input I/O is not applicable because this is a generated fixture.
+- The aggregate report is 6,743 bytes with SHA-256
+  `20dd752b759f01a356a6167da143c1d25fdec4eac0a68cb8d4064623fef8072f`.
+  No SQLite temporary file was created.
+
+Determinism was checked by rebuilding the workload with the same profile and
+seed. The replay matched the recorded workload (`b3ecab9b8423c7fbec5fcae975da282baf18f8c96982b97ba5d3603f46afc803`), training
+(`d98e55f2c60c4dd00c2415feb22c6efc32935d5f6726fd226c6a0e739c2783dc`),
+validation
+(`b6453aa72c893fe69fe479f111fcfc6aa39f4dd44c9a92962ba54e915d177355`), and
+recommendation output
+(`48c62d96b986d9ae59a151b05d525f61608bd768ed9e40a02f3e7cb7c9cfce16`) hashes.
+All three metric repetitions returned identical metric payloads. The report
+records the pre-run HEAD revision and a dirty worktree because this checkpoint's
+timing instrumentation was under review during the run; its evaluation-code
+fingerprint identifies the evaluated code.
+
+Compared with the preserved SMALL report, the profile grew from 20 users and
+100 candidates to 200 users and 5,000 candidates. The metric-call mean grew
+from 1.732 ms to 27.122 ms, while the traced metric-call allocation mean grew
+from 6,160 to 45,592 bytes. These local observations have different workload
+sizes and are not used to infer asymptotic complexity or extrapolate to a real
+catalog. SMALL process RSS and MEDIUM process RSS are both unavailable on this
+Windows runtime. Both reports contain only aggregate metrics.
+
+### Phase 5.2 priorities proposed from this run
+
+1. Keep the metric correctness oracle and leakage/candidate-contract tests as
+   gates for any optimization.
+2. Profile larger synthetic cohorts in a controlled environment that can
+   measure process peak RSS before changing sparse data structures. MEDIUM did
+   not establish a resource bottleneck, and its results do not justify a
+   capacity claim.
+3. If further profiling identifies serialization or fingerprinting as
+   material, measure those stages independently before optimizing them.
+4. Keep LARGE explicitly opt-in and subject to a separate resource review.
+   Do not use these synthetic measurements to authorize or size real-data
+   processing, serving, or model training.
+
+No Phase 5.2 implementation is included in this checkpoint. Phase 4.2C remains
+ON HOLD under Proposed ADR-018. No real Electronics data was read, sampled,
+trained on, or evaluated.
