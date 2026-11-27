@@ -1,6 +1,6 @@
 # Phase 7.5 — Frontend CI and repository release readiness
 
-**Review date:** 2026-11-27  
+**Review date:** 2026-11-27
 **Status:** Workflow and local validation recorded; hosted GitHub Actions run pending.
 
 This checkpoint adds frontend quality gates to the existing GitHub Actions CI
