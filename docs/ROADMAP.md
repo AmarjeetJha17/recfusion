@@ -176,16 +176,30 @@ accessibility closure as an alternative. This is a documentation checkpoint:
 no implementation is authorized or started. ADR-018/019 remain Proposed and
 Phase 4.2C remains ON HOLD. The untouched real test split remains unused.
 
-### Phase 8.2 — Synthetic evaluation robustness and essential accessibility closure (owner review pending)
+### Phase 8.2 — Synthetic evaluation robustness and essential accessibility closure (completed; owner release review pending)
 
 The frozen three-family synthetic scenario manifest, metric concentration
 oracle, and keyboard empty-state focus correction are documented in
 [`PHASE-8-QUALITY-ACCEPTANCE.md`](./PHASE-8-QUALITY-ACCEPTANCE.md). Local
 frontend/backend quality gates passed. Keyboard navigation covered the local
 demo routes, recommendation modes, empty search recovery, and API failure/retry
-state. Paired screen-reader review remains unverified, hosted CI has not run on
-this uncommitted change set, and project-owner review is pending. No Phase 8.3
-work is started; ADR-018/019 remain Proposed and Phase 4.2C remains ON HOLD.
+state. Paired screen-reader review remains unverified. Phase 8.2 is committed
+at `4e3cc0c8e76cfd5900b0afff921b3972b8d71d94`; hosted Python and frontend CI
+both passed in [run #12](https://github.com/AmarjeetJha17/recfusion/actions/runs/46028982036).
+
+### Phase 8.3 — Final v1.0.0 portfolio release preparation (owner approval pending)
+
+This is documentation and release-readiness work for a local synthetic-only
+research prototype. It does not authorize a public deployment, tag, package
+publication, new recommendation feature, model training, real-data analysis,
+API redesign, or production authentication. The current implementation and
+demo evidence are documented in [`SYNTHETIC-PORTFOLIO-DEMO.md`](./SYNTHETIC-PORTFOLIO-DEMO.md),
+with release readiness in [`RELEASE-V1.0.0-CHECKLIST.md`](./RELEASE-V1.0.0-CHECKLIST.md)
+and [`RELEASE-V1.0.0-NOTES.md`](./RELEASE-V1.0.0-NOTES.md). The documentation
+changes are not yet committed and have no hosted CI result. Screen-reader
+review, full WCAG certification, and owner release approval remain pending.
+ADR-018/019 remain Proposed; Phase 4.2C remains ON HOLD. Phase 9/10 roadmap
+items are outside the v1.0.0 scope and are not started by Phase 8.3.
 
 ## Phase 9 — MLOps and observability
 

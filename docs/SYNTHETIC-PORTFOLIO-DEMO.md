@@ -1,6 +1,6 @@
 # RecFusion Synthetic Portfolio Demonstration
 
-**Phase 7.4 accessibility and portfolio audit — reviewed 2026-11-27**
+**Phase 8.3 final portfolio release preparation — reviewed 2026-11-27**
 
 **Acceptance:** Conditional GO for a local synthetic portfolio walkthrough. Full keyboard and assistive-technology sign-off remains open; project-owner review is pending.
 
@@ -28,7 +28,7 @@ Products 1–8 are catalog-eligible; item 8 has incomplete display metadata. Ite
 
 ## Run the demonstration locally
 
-Prerequisites: Python 3.13 and `uv`, Node.js 20.9 or newer, and pnpm 11.25.0. Keep both servers bound to loopback. Use separate PowerShell terminals.
+Prerequisites: Python 3.13, uv 0.13.1, Node.js 24.12.0 (the frontend manifest accepts 20.9 or newer), and pnpm 11.25.0. Keep both servers bound to loopback. Use separate PowerShell terminals.
 
 API terminal, from the repository root:
 
@@ -58,7 +58,7 @@ Open `http://127.0.0.1:3000`. The frontend API URL is fixed to `http://127.0.0.1
 5. Select a synthetic profile and run synthetic-user content. Explain that no raw history or preference details are displayed.
 6. Run Hybrid in Warm-only mode, then Content-eligible. Describe `weighted_rrf` v1 and the candidate-policy difference. A live warm-only request returned four of five; a content-eligible request returned five of five. The UI reports the actual count and does not pad short lists.
 7. Point to the catalog ID and exact asset fingerprint. The UI displays product metadata only after an exact match. Source-list membership records provenance, not preference or causation.
-8. Point to the automated local quality checks and the repository's [CI workflow](../.github/workflows/ci.yml), which runs Python lint, format, typecheck, tests, pre-commit, and package build on pushes and pull requests to `master`. The current external CI run status was not queried.
+8. Point to the automated local quality checks and the repository's [CI workflow](../.github/workflows/ci.yml), which runs separate Python and frontend quality jobs on pushes and pull requests to `master`. The published Phase 8.2 commit passed both jobs in [CI run #12](https://github.com/AmarjeetJha17/recfusion/actions/runs/46028982036); later uncommitted documentation changes have no hosted result.
 9. Close with limitations: synthetic results are not validated personalization or a real-world quality claim. Real metadata research remains separate. ADR-018/019 remain Proposed; Phase 4.2C remains ON HOLD.
 
 ## Phase 7.3 browser evidence
@@ -186,3 +186,39 @@ screen-reader review, exhaustive component clipping review, and detailed
 network-payload evidence remain unverified. ADR-018/019 remain Proposed and
 Phase 4.2C remains ON HOLD. No commit, push, deployment, algorithm, API
 contract, catalog identity, or security-policy change is part of this review.
+
+## Phase 8.3 final local demo verification
+
+On 2026-11-27, the current committed frontend and API were started locally
+with Python 3.13.11 / uv 0.13.1 and Node.js 24.12.0 / pnpm 11.25.0. The API
+was enabled explicitly with `RECFUSION_SYNTHETIC_DEMO_ENABLED=true`, an exact
+`http://127.0.0.1:3000` Origin, concurrency 2, and a `127.0.0.1` bind. Both
+servers were stopped with Ctrl+C after the walkthrough.
+
+| Scenario checked in local Chrome | Result | Observed evidence |
+|---|---:|---|
+| Catalog discovery search | Pass | Searching “headphones” reduced the catalog to one result. |
+| Category filter and sort | Pass | Headphones filter showed two products; Category sort selected and reordered the list. |
+| Product detail navigation | Pass | A verified monitor card opened its canonical `/products/...` route; detail features and similar product links rendered. |
+| Fixture product-to-product | Pass, 5/5 | Fixture-backed results, TF-IDF provenance, catalog fingerprint, artifact fingerprint, ranked synthetic cards. |
+| Local API product-to-product | Pass, 5/5 | Response-backed cards matched the exact shared catalog identity and asset fingerprint. |
+| Local API synthetic-user content | Pass, 5/5 | Synthetic profile label and TF-IDF source were displayed; raw history was not shown. |
+| Local API warm hybrid | Pass, 4/5 | Weighted RRF, `warm_hybrid`, contributing sources, and the short returned count were displayed without filler. |
+| Local API content-eligible hybrid | Pass, 5/5 | Weighted RRF, `content_eligible_hybrid`, catalog/artifact fingerprints, ranks, and source attribution were displayed. |
+| Offline fixture while API stopped | Pass, 5/5 | Fixture mode still returned the prewritten example while the loopback API was stopped. |
+| API unavailable and retry | Pass | The UI showed “Recommendations unavailable” and **Retry request**; after restarting the API, keyboard activation of Retry returned 5/5 results. |
+
+The accessibility tree exposed labels for search, sorting, category controls,
+source/mode selection, and candidate policy. The inspected page visibly
+retained the selected category, sort label, synthetic disclosure, and result
+counts. Development-server output recorded HTTP 200 for `/`, `/explore`, and
+the product detail route. Next.js emitted its non-blocking
+`scroll-behavior` configuration warning. A persistent browser console export
+and HAR were not retained; no payload-level audit is claimed. Paired
+screen-reader review, exhaustive component clipping review, and WCAG
+certification remain unverified. The older viewport measurements in the
+Phase 7.4 section are prior evidence and were not repeated in Phase 8.3.
+
+This walkthrough is synthetic interface/integration evidence only. It does
+not measure recommendation quality, model superiority, commercial uplift, or
+serving capacity.

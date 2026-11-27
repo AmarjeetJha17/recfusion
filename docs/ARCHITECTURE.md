@@ -1,33 +1,35 @@
 # ARCHITECTURE — RecFusion system design
 
-**Status:** Proposed logical design; repository, API, local infrastructure, and CI foundations are implemented, with no production deployment.
+**Status:** The local synthetic prototype described in section 1 is implemented. The broader online-service design in the later sections remains proposed; there is no production deployment.
 
-## 1. Architectural style
+## 1. Current v1.0.0 local prototype
 
-**Modular monolith** first: Next.js frontend, FastAPI backend, typed domain modules, offline ML jobs, PostgreSQL and Qdrant as external dependencies. Separate training from low-latency inference. Avoid microservices until profiling justifies a split.
+The release-scope demo is a small local system. Its default recommendation path is a prewritten synthetic fixture in the Next.js app. An optional development-only API path calls FastAPI on loopback and serves an in-memory validated synthetic artifact. The browser verifies catalog identity and fingerprints before joining recommendation IDs to display metadata. Offline research/evaluation code is a separate path; no real-data model is served by the demo.
 
 ```mermaid
-flowchart TD
-  U[Browser / Next.js] --> A[FastAPI / auth + validation]
-  A --> O[Recommendation orchestration]
-  A --> G[Bounded agent workflow]
-  G -->|typed tools only| O
-  O --> C[Candidate generators]
-  C --> NN[Two-tower ANN index]
-  C --> SS[Semantic/sparse search]
-  C --> B[Collaborative/popular baseline]
-  O --> F[Hard-constraint validator]
-  F --> R[Ranker + diversity post-processing]
-  R --> V[Final catalog verification]
-  V --> A
-  A --> P[(PostgreSQL)]
-  SS --> Q[(Qdrant)]
-  T[Offline ETL / training / evaluation] --> M[Versioned model artifacts]
-  M --> O
-  T --> Q
+flowchart LR
+  subgraph Browser[Local browser]
+    Web[Next.js app]
+    Fixtures[Offline recommendation fixtures]
+    Resolver[Catalog and fingerprint resolver]
+  end
+  Asset[Shared synthetic catalog JSON and manifest]
+  Web --> Fixtures
+  Web -->|explicit opt-in, loopback Origin| Guard[FastAPI request and loopback checks]
+  Guard --> Runtime[Validated in-memory synthetic artifact]
+  Runtime --> Content[TF-IDF product-content retrieval]
+  Runtime --> RRF[Weighted RRF over fixed synthetic source lists]
+  Content --> Resolver
+  RRF --> Resolver
+  Asset --> Web
+  Asset --> Guard
+  Resolver --> Cards[Verified synthetic product cards]
+  Research[Offline baselines, training code, and evaluation]
 ```
 
-## 2. Responsibility boundaries
+The dashed research connection denotes shared code and contracts, not a live dependency from the demo to training or real-data processing. The API demo does not use PostgreSQL, Qdrant, authentication, a model registry, or a production checkpoint.
+
+## 2. Proposed target: responsibility boundaries
 
 | Component | Owns | Must not do |
 |---|---|---|
@@ -39,7 +41,7 @@ flowchart TD
 | `apps/web` | presentation, forms, accessible interactions | expose credentials or override server filters |
 | `infra` | environment, service lifecycle, observability | store secrets in Git |
 
-## 3. Request path
+## 3. Proposed target request path (not implemented)
 
 1. Validate caller/session and API schema; assign `request_id`.
 2. Read catalog version, user profile (if allowed), recent interactions and explicit request; normalize constraints and units.
@@ -53,7 +55,7 @@ flowchart TD
 
 **No matching products:** return explicit empty result with reasons, never fabricate or relax hard constraints.
 
-## 4. Data paths
+## 4. Proposed target data paths (not implemented)
 
 **Offline:** source JSONL/Parquet → schema/data quality checks → immutable raw versions → dedup and feature derivation → timestamp-aware split → model training → model evaluation → versioned artifact + index; promotion gated on tests.
 
