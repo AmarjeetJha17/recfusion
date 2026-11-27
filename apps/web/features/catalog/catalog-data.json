@@ -1,0 +1,209 @@
+{
+  "schema_version": "recfusion.synthetic-electronics-frontend.v1",
+  "catalog_id": "synthetic-electronics-v1",
+  "products": [
+    {
+      "id": "synthetic-electronics-v1:item:000001",
+      "name": "Synthetic laptop 16GB RAM 512GB SSD",
+      "category": "laptop",
+      "description": "An invented everyday laptop example for the RecFusion interface.",
+      "specifications": {
+        "Memory": "16 GB",
+        "Storage": "512 GB SSD",
+        "Ports": "USB-C",
+        "Weight": "1.42 kg"
+      },
+      "cohort": "warm",
+      "recommendationEligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000002",
+      "name": "Synthetic laptop 8GB RAM 256GB SSD",
+      "category": "laptop",
+      "description": "An invented compact laptop example with a smaller storage configuration.",
+      "specifications": {
+        "Memory": "8 GB",
+        "Storage": "256 GB SSD",
+        "Ports": "USB-C",
+        "Weight": null
+      },
+      "cohort": "warm",
+      "recommendationEligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000003",
+      "name": "Synthetic smartphone OLED 128GB",
+      "category": "smartphone",
+      "description": "An invented mobile-device example with a bright OLED display.",
+      "specifications": {
+        "Display": "6.1 in OLED",
+        "Storage": "128 GB",
+        "Connector": "USB-C",
+        "Network": null
+      },
+      "cohort": "warm",
+      "recommendationEligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000004",
+      "name": "Synthetic wireless headphones",
+      "category": "headphones",
+      "description": "An invented over-ear listening device example.",
+      "specifications": {
+        "Fit": "Over-ear",
+        "Connection": "Wireless",
+        "Connector": "USB-C",
+        "Battery life": "Up to 28 hours"
+      },
+      "cohort": "warm",
+      "recommendationEligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000005",
+      "name": "Synthetic desktop monitor 27 inch",
+      "category": "monitor",
+      "description": "An invented desktop display example for workspace setups.",
+      "specifications": {
+        "Panel": "27 in IPS",
+        "Resolution": "2560 × 1440",
+        "Refresh rate": "120 Hz",
+        "Connector": "USB-C"
+      },
+      "cohort": "warm",
+      "recommendationEligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000006",
+      "name": "Synthetic laptop 16GB RAM 1TB SSD",
+      "category": "laptop",
+      "description": "An invented laptop example with expanded local storage.",
+      "specifications": {
+        "Memory": "16 GB",
+        "Storage": "1 TB SSD",
+        "Ports": "USB-C",
+        "Weight": "1.58 kg"
+      },
+      "cohort": "cold",
+      "recommendationEligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000007",
+      "name": "Synthetic wireless earbuds USB-C",
+      "category": "headphones",
+      "description": "An invented in-ear audio example with a compact charging case.",
+      "specifications": {
+        "Fit": "In-ear",
+        "Connection": "Wireless",
+        "Charging case": "USB-C",
+        "Battery life": null
+      },
+      "cohort": "cold",
+      "recommendationEligible": true,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000008",
+      "name": null,
+      "category": "accessory",
+      "description": "A fixture intentionally missing descriptive attributes.",
+      "specifications": { "Connector": null, "Compatibility": null },
+      "cohort": "unknown",
+      "recommendationEligible": false,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000011",
+      "name": "Synthetic folding travel keyboard",
+      "category": "accessory",
+      "description": "An invented compact keyboard example for a portable desk setup.",
+      "specifications": {
+        "Layout": "Compact",
+        "Connection": "Bluetooth",
+        "Power": "Rechargeable USB-C",
+        "Weight": "320 g"
+      },
+      "cohort": "cold",
+      "recommendationEligible": false,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000012",
+      "name": "Synthetic USB-C desk hub",
+      "category": "accessory",
+      "description": "An invented multi-port hub example for a home workstation.",
+      "specifications": {
+        "Ports": "8",
+        "Video output": "DisplayPort",
+        "Power delivery": "Up to 90 W",
+        "Cable": "Integrated USB-C"
+      },
+      "cohort": "cold",
+      "recommendationEligible": false,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000013",
+      "name": "Synthetic smartphone compact 128GB",
+      "category": "smartphone",
+      "description": "An invented smaller-format mobile device example.",
+      "specifications": {
+        "Display": "5.8 in OLED",
+        "Storage": "128 GB",
+        "Connector": "USB-C",
+        "Weight": "174 g"
+      },
+      "cohort": "cold",
+      "recommendationEligible": false,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000014",
+      "name": "Synthetic ultrawide monitor 34 inch",
+      "category": "monitor",
+      "description": "An invented ultrawide desktop display example.",
+      "specifications": {
+        "Panel": "34 in VA",
+        "Resolution": "3440 × 1440",
+        "Refresh rate": "100 Hz",
+        "Stand adjustment": null
+      },
+      "cohort": "cold",
+      "recommendationEligible": false,
+      "visible": true,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-electronics-v1:item:000015",
+      "name": "Synthetic wired studio headphones",
+      "category": "headphones",
+      "description": "An invented wired listening device example for desk use.",
+      "specifications": {
+        "Fit": "Over-ear",
+        "Connection": "Wired",
+        "Connector": "3.5 mm",
+        "Cable length": "1.8 m"
+      },
+      "cohort": "cold",
+      "recommendationEligible": false,
+      "visible": true,
+      "synthetic": true
+    }
+  ]
+}

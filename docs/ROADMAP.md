@@ -61,6 +61,16 @@ Phase 6.2A adds a separately documented, guarded development-only route over
 the synthetic service. ADRs 018/019 remain Proposed and Phase 4.2C remains ON
 HOLD.
 
+### Phase 6.3A — Synthetic electronics discovery frontend (owner review pending)
+
+The local Next.js frontend provides catalog discovery and a fixture-backed
+recommendation explorer using invented electronics records only. It makes no
+API or external network requests and does not use Amazon interaction data or
+metadata. Scope, run instructions, contracts, fixture limits, and the Phase
+6.3B handoff are documented in
+[`SYNTHETIC-FRONTEND.md`](./SYNTHETIC-FRONTEND.md). This checkpoint does not
+advance ADRs 018/019 or the Phase 4.2C hold.
+
 ## Phase 7 — Bounded agent workflow
 
 Intent extraction, preference state, typed tools, grounded comparisons/explanations, clarification and no-match recovery. **Gate:** golden cases and adversarial suite pass; no unverified product claims.

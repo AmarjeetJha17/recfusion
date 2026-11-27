@@ -1,0 +1,174 @@
+{
+  "schema_version": "recfusion.synthetic-recommendation-fixtures.v1",
+  "product_results": {
+    "000001": {
+      "candidate_count": 7,
+      "history_count": 0,
+      "seen_count": 0,
+      "candidates": [
+        { "id": "000006", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000002", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000003", "sources": ["tfidf_content"], "reason": "content_similarity" }
+      ]
+    },
+    "000002": {
+      "candidate_count": 7,
+      "history_count": 0,
+      "seen_count": 0,
+      "candidates": [
+        { "id": "000001", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000006", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000004", "sources": ["tfidf_content"], "reason": "content_similarity" }
+      ]
+    },
+    "000003": {
+      "candidate_count": 7,
+      "history_count": 0,
+      "seen_count": 0,
+      "candidates": [
+        { "id": "000001", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000005", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000004", "sources": ["tfidf_content"], "reason": "content_similarity" }
+      ]
+    },
+    "000004": {
+      "candidate_count": 7,
+      "history_count": 0,
+      "seen_count": 0,
+      "candidates": [
+        { "id": "000007", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000005", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000002", "sources": ["tfidf_content"], "reason": "content_similarity" }
+      ]
+    },
+    "000005": {
+      "candidate_count": 7,
+      "history_count": 0,
+      "seen_count": 0,
+      "candidates": [
+        { "id": "000004", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000003", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000001", "sources": ["tfidf_content"], "reason": "content_similarity" }
+      ]
+    },
+    "000006": {
+      "candidate_count": 7,
+      "history_count": 0,
+      "seen_count": 0,
+      "candidates": [
+        { "id": "000001", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000002", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000005", "sources": ["tfidf_content"], "reason": "content_similarity" }
+      ]
+    },
+    "000007": {
+      "candidate_count": 7,
+      "history_count": 0,
+      "seen_count": 0,
+      "candidates": [
+        { "id": "000004", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000005", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000003", "sources": ["tfidf_content"], "reason": "content_similarity" }
+      ]
+    }
+  },
+  "user_results": {
+    "000001": {
+      "candidate_count": 6,
+      "history_count": 3,
+      "seen_count": 2,
+      "candidates": [
+        { "id": "000005", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000006", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000007", "sources": ["tfidf_content"], "reason": "content_similarity" }
+      ]
+    },
+    "000002": {
+      "candidate_count": 5,
+      "history_count": 2,
+      "seen_count": 1,
+      "candidates": [
+        { "id": "000001", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000002", "sources": ["tfidf_content"], "reason": "content_similarity" },
+        { "id": "000004", "sources": ["tfidf_content"], "reason": "content_similarity" }
+      ]
+    },
+    "000003": { "candidate_count": 0, "history_count": 0, "seen_count": 0, "candidates": [] }
+  },
+  "hybrid_results": {
+    "000001": {
+      "warm": {
+        "candidate_count": 6,
+        "history_count": 3,
+        "seen_count": 2,
+        "candidates": [
+          {
+            "id": "000005",
+            "sources": ["synthetic_item_cf", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          { "id": "000002", "sources": ["synthetic_bpr_control"], "reason": "hybrid_rrf" },
+          { "id": "000004", "sources": ["synthetic_item_cf"], "reason": "hybrid_rrf" }
+        ]
+      },
+      "content": {
+        "candidate_count": 7,
+        "history_count": 3,
+        "seen_count": 2,
+        "candidates": [
+          {
+            "id": "000006",
+            "sources": ["tfidf_content", "synthetic_bpr_control"],
+            "reason": "hybrid_rrf"
+          },
+          { "id": "000007", "sources": ["tfidf_content"], "reason": "hybrid_rrf" },
+          {
+            "id": "000005",
+            "sources": ["synthetic_item_cf", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          { "id": "000004", "sources": ["synthetic_item_cf"], "reason": "hybrid_rrf" }
+        ]
+      }
+    },
+    "000002": {
+      "warm": {
+        "candidate_count": 5,
+        "history_count": 2,
+        "seen_count": 1,
+        "candidates": [
+          { "id": "000001", "sources": ["synthetic_item_cf"], "reason": "hybrid_rrf" },
+          {
+            "id": "000004",
+            "sources": ["synthetic_bpr_control", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          },
+          { "id": "000005", "sources": ["synthetic_item_cf"], "reason": "hybrid_rrf" }
+        ]
+      },
+      "content": {
+        "candidate_count": 7,
+        "history_count": 2,
+        "seen_count": 1,
+        "candidates": [
+          { "id": "000007", "sources": ["tfidf_content"], "reason": "hybrid_rrf" },
+          {
+            "id": "000006",
+            "sources": ["tfidf_content", "synthetic_bpr_control"],
+            "reason": "hybrid_rrf"
+          },
+          { "id": "000001", "sources": ["synthetic_item_cf"], "reason": "hybrid_rrf" },
+          {
+            "id": "000004",
+            "sources": ["synthetic_item_cf", "tfidf_content"],
+            "reason": "hybrid_rrf"
+          }
+        ]
+      }
+    },
+    "000003": {
+      "warm": { "candidate_count": 0, "history_count": 0, "seen_count": 0, "candidates": [] },
+      "content": { "candidate_count": 0, "history_count": 0, "seen_count": 0, "candidates": [] }
+    }
+  }
+}
